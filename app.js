@@ -12,6 +12,8 @@ const ALL_WORDBOOK_ID = "all";
 const NEW_WORDBOOK_ID = "new";
 const GOT_WORDBOOK_ID = "got";
 const DIY_WORDBOOK_ID = "diy";
+const WORDBOOK_CONFLICT_KEEP_LOCAL = "keep-local";
+const WORDBOOK_CONFLICT_USE_IMPORTED = "use-imported";
 const SYSTEM_WORDBOOKS = [
   { id: ALL_WORDBOOK_ID, title: "all", description: "全部单词" },
   { id: NEW_WORDBOOK_ID, title: "new", description: "还没 got 的词" },
@@ -87,6 +89,7 @@ const elements = {
   exportBtn: document.querySelector("#exportBtn"),
   importBtn: document.querySelector("#importBtn"),
   importFile: document.querySelector("#importFile"),
+  wordbookExportScope: document.querySelector("#wordbookExportScope"),
   wordbookExportBtn: document.querySelector("#wordbookExportBtn"),
   wordbookImportBtn: document.querySelector("#wordbookImportBtn"),
   wordbookImportFile: document.querySelector("#wordbookImportFile"),
@@ -149,6 +152,7 @@ function bindEvents() {
       state.ui.activeView = button.dataset.viewTarget;
       persist();
       renderView();
+      if (state.ui.activeView === "my") renderMy();
     });
   });
 
@@ -316,6 +320,33 @@ function renderView() {
 function renderMy() {
   if (!elements.myStats) return;
   elements.myStats.textContent = `${state.albums.length} 专辑 · ${state.tapes.length} 磁带 · ${state.entries.length} 段落 · ${state.vocabulary.length} 词`;
+  renderWordbookExportScopeOptions();
+}
+
+function renderWordbookExportScopeOptions() {
+  if (!elements.wordbookExportScope) return;
+  const current = elements.wordbookExportScope.value || ALL_WORDBOOK_ID;
+  const options = wordbookExportScopeOptions();
+  elements.wordbookExportScope.replaceChildren(
+    ...options.map((option) => new Option(option.label, option.value))
+  );
+  elements.wordbookExportScope.value = options.some((option) => option.value === current)
+    ? current
+    : ALL_WORDBOOK_ID;
+}
+
+function wordbookExportScopeOptions() {
+  return [
+    { value: ALL_WORDBOOK_ID, label: "全部单词本" },
+    { value: "current", label: "当前选中单词本" },
+    { value: NEW_WORDBOOK_ID, label: "仅 new" },
+    { value: GOT_WORDBOOK_ID, label: "仅 got" },
+    { value: DIY_WORDBOOK_ID, label: "仅 DIY" },
+    ...state.wordbooks.map((wordbook) => ({
+      value: wordbookScopeValue(wordbook.id),
+      label: `单词本：${wordbook.title}`
+    }))
+  ];
 }
 
 function syncInput() {
@@ -1252,6 +1283,16 @@ function openDialog({ title, submitText, fields, onSubmit }) {
   dialogSubmitHandler = onSubmit;
 
   fields.forEach((field) => {
+    if (field.type === "static") {
+      const note = el("div", "dialog-note");
+      if (field.label) {
+        note.append(el("span", "field-label", field.label));
+      }
+      note.append(el("p", "", field.value || ""));
+      elements.dialogBody.append(note);
+      return;
+    }
+
     const wrapper = el("label", "dialog-field");
     const label = el("span", "field-label", field.label);
     const input = createDialogInput(field);
@@ -1543,6 +1584,16 @@ function isKnownWordbookId(wordbookId) {
   return isSystemWordbook(wordbookId) || state.wordbooks.some((book) => book.id === wordbookId);
 }
 
+function wordbookScopeValue(wordbookId) {
+  return isSystemWordbook(wordbookId) ? wordbookId : `book:${wordbookId}`;
+}
+
+function wordbookIdFromScope(scopeValue, currentWordbookId = state.ui.selectedWordbookId) {
+  if (scopeValue === "current") return currentWordbookId || ALL_WORDBOOK_ID;
+  if (String(scopeValue || "").startsWith("book:")) return String(scopeValue).slice(5);
+  return scopeValue || ALL_WORDBOOK_ID;
+}
+
 function vocabularyForWordbook(wordbookId) {
   return state.vocabulary.filter((item) => vocabularyMatchesWordbook(item, wordbookId));
 }
@@ -1553,6 +1604,45 @@ function vocabularyMatchesWordbook(item, wordbookId) {
   if (wordbookId === GOT_WORDBOOK_ID) return item.status === "got";
   if (wordbookId === DIY_WORDBOOK_ID) return isDiyVocabulary(item);
   return Array.isArray(item.wordbookIds) && item.wordbookIds.includes(wordbookId);
+}
+
+function vocabularyMatchesScope(item, scopeValue, currentWordbookId = state.ui.selectedWordbookId) {
+  return vocabularyMatchesWordbook(item, wordbookIdFromScope(scopeValue, currentWordbookId));
+}
+
+function vocabularyForScope(scopeValue, vocabulary = state.vocabulary, currentWordbookId = state.ui.selectedWordbookId) {
+  return vocabulary.filter((item) => vocabularyMatchesScope(item, scopeValue, currentWordbookId));
+}
+
+function wordbookScopeLabel(scopeValue, sourceWordbooks = state.wordbooks, currentWordbookId = state.ui.selectedWordbookId) {
+  const wordbookId = wordbookIdFromScope(scopeValue, currentWordbookId);
+  if (scopeValue === "current") {
+    const selected = getWordbook(currentWordbookId);
+    return `当前：${selected?.title || "all"}`;
+  }
+  if (wordbookId === ALL_WORDBOOK_ID) return "全部单词本";
+  if (wordbookId === NEW_WORDBOOK_ID) return "new";
+  if (wordbookId === GOT_WORDBOOK_ID) return "got";
+  if (wordbookId === DIY_WORDBOOK_ID) return "DIY";
+  return sourceWordbooks.find((wordbook) => wordbook.id === wordbookId)?.title || "自定义单词本";
+}
+
+function wordbooksForVocabulary(vocabulary, sourceWordbooks = state.wordbooks) {
+  const ids = new Set();
+  vocabulary.forEach((item) => {
+    (item.wordbookIds || []).forEach((id) => ids.add(id));
+  });
+  return sourceWordbooks.filter((wordbook) => ids.has(wordbook.id));
+}
+
+function wordbooksForScope(scopeValue, vocabulary, sourceWordbooks = state.wordbooks, currentWordbookId = state.ui.selectedWordbookId) {
+  const wordbookId = wordbookIdFromScope(scopeValue, currentWordbookId);
+  if (wordbookId === ALL_WORDBOOK_ID) return sourceWordbooks;
+  if (!isSystemWordbook(wordbookId)) {
+    const custom = sourceWordbooks.find((wordbook) => wordbook.id === wordbookId);
+    return custom ? [custom] : [];
+  }
+  return wordbooksForVocabulary(vocabulary, sourceWordbooks);
 }
 
 function isDiyVocabulary(item) {
@@ -1924,17 +2014,35 @@ function setStatus(text) {
 }
 
 function exportData() {
-  downloadJson(state, `oofr-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  downloadJson(state, `oofr-backup-${dateStamp()}.json`);
 }
 
 function exportWordbooks() {
-  const payload = {
+  const scopeValue = elements.wordbookExportScope?.value || ALL_WORDBOOK_ID;
+  const payload = buildWordbookExportPayload(scopeValue);
+  downloadJson(payload, `oofr-wordbooks-${payload.scope.filePart}-${dateStamp()}.json`);
+  setStatus(`已导出${payload.scope.label}：${payload.vocabulary.length} 词`);
+}
+
+function buildWordbookExportPayload(scopeValue) {
+  const currentWordbookId = state.ui.selectedWordbookId;
+  const vocabulary = vocabularyForScope(scopeValue, state.vocabulary, currentWordbookId);
+  const wordbooks = wordbooksForScope(scopeValue, vocabulary, state.wordbooks, currentWordbookId);
+  const resolvedId = wordbookIdFromScope(scopeValue, currentWordbookId);
+  const label = wordbookScopeLabel(scopeValue, state.wordbooks, currentWordbookId);
+  return {
     type: "oofr.wordbooks.v1",
     exportedAt: nowIso(),
-    wordbooks: state.wordbooks,
-    vocabulary: state.vocabulary
+    scope: {
+      value: scopeValue,
+      resolvedId,
+      label,
+      filePart: wordbookScopeFilePart(scopeValue, label, currentWordbookId),
+      vocabularyCount: vocabulary.length
+    },
+    wordbooks: cloneJson(wordbooks),
+    vocabulary: cloneJson(vocabulary)
   };
-  downloadJson(payload, `oofr-wordbooks-${new Date().toISOString().slice(0, 10)}.json`);
 }
 
 function downloadJson(data, filename) {
@@ -1958,12 +2066,23 @@ function importData(event) {
   reader.addEventListener("load", () => {
     try {
       const imported = JSON.parse(String(reader.result || "{}"));
-      state = ensureStateShape(imported);
+      const nextState = ensureStateShape(imported);
+      const message = [
+        "完整数据导入会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置。",
+        `文件包含 ${nextState.albums.length} 专辑、${nextState.tapes.length} 磁带、${nextState.entries.length} 段落、${nextState.vocabulary.length} 词。`,
+        "继续前请确认已经备份当前数据。"
+      ].join("\n");
+      if (!window.confirm(message)) {
+        setStatus("已取消完整数据导入");
+        return;
+      }
+
+      state = nextState;
       selectedWord = null;
       syncSettingsControls();
       persist();
       renderAll();
-      setStatus("导入完成");
+      setStatus("完整数据导入完成");
     } catch {
       setStatus("导入失败");
     } finally {
@@ -1981,32 +2100,13 @@ function importWordbooks(event) {
   reader.addEventListener("load", () => {
     try {
       const imported = JSON.parse(String(reader.result || "{}"));
-      const incomingWordbooks = normalizeWordbookList(imported.wordbooks || []);
-      const incomingVocabulary = Array.isArray(imported.vocabulary)
-        ? normalizeVocabularyList(imported.vocabulary)
-        : [];
+      const bundle = prepareWordbookImport(imported);
+      if (bundle.incomingWordbooks.length === 0 && bundle.incomingVocabulary.length === 0) {
+        setStatus("没有找到可导入的单词本数据");
+        return;
+      }
 
-      incomingWordbooks.forEach((wordbook) => {
-        const existing = state.wordbooks.find((item) => item.id === wordbook.id);
-        if (existing) {
-          existing.title = wordbook.title;
-          existing.description = wordbook.description;
-          existing.updatedAt = nowIso();
-        } else {
-          state.wordbooks.push(wordbook);
-        }
-      });
-
-      state.vocabulary = normalizeVocabularyList([...state.vocabulary, ...incomingVocabulary]);
-      state.vocabulary.forEach((item) => {
-        item.wordbookIds = validWordbookIds(item.wordbookIds);
-      });
-      ensureSelections();
-      persist();
-      renderWordbooks();
-      renderVocab();
-      renderSentences();
-      setStatus("单词本导入完成");
+      openWordbookImportDialog(bundle);
     } catch {
       setStatus("单词本导入失败");
     } finally {
@@ -2014,6 +2114,176 @@ function importWordbooks(event) {
     }
   });
   reader.readAsText(file);
+}
+
+function prepareWordbookImport(imported) {
+  return {
+    sourceScope: imported?.scope || null,
+    incomingWordbooks: normalizeWordbookList(imported?.wordbooks || []),
+    incomingVocabulary: Array.isArray(imported?.vocabulary)
+      ? normalizeVocabularyList(imported.vocabulary)
+      : []
+  };
+}
+
+function openWordbookImportDialog(bundle) {
+  const sourceText = bundle.sourceScope?.label ? `原导出范围：${bundle.sourceScope.label}。` : "";
+  const diyCount = vocabularyForScope(DIY_WORDBOOK_ID, bundle.incomingVocabulary).length;
+  openDialog({
+    title: "导入单词本",
+    submitText: "导入",
+    fields: [
+      {
+        type: "static",
+        label: "预览",
+        value: `文件包含 ${bundle.incomingVocabulary.length} 个词、${bundle.incomingWordbooks.length} 个自定义单词本，其中 ${diyCount} 个词需要 DIY 补充。${sourceText}单词本导入会与当前数据取并集，不会删除本地词条。`
+      },
+      {
+        label: "导入范围",
+        name: "scope",
+        type: "select",
+        value: ALL_WORDBOOK_ID,
+        options: wordbookImportScopeOptions(bundle)
+      },
+      {
+        label: "重复词处理",
+        name: "conflictStrategy",
+        type: "select",
+        value: WORDBOOK_CONFLICT_KEEP_LOCAL,
+        options: [
+          { value: WORDBOOK_CONFLICT_KEEP_LOCAL, label: "保留本地 got/new 状态（推荐）" },
+          { value: WORDBOOK_CONFLICT_USE_IMPORTED, label: "使用导入文件的状态" }
+        ]
+      }
+    ],
+    onSubmit: (values) => applyWordbookImport(bundle, values)
+  });
+}
+
+function wordbookImportScopeOptions(bundle) {
+  const systemOptions = [
+    { value: ALL_WORDBOOK_ID, label: `全部（${bundle.incomingVocabulary.length} 词）` },
+    { value: NEW_WORDBOOK_ID, label: `仅 new（${vocabularyForScope(NEW_WORDBOOK_ID, bundle.incomingVocabulary).length} 词）` },
+    { value: GOT_WORDBOOK_ID, label: `仅 got（${vocabularyForScope(GOT_WORDBOOK_ID, bundle.incomingVocabulary).length} 词）` },
+    { value: DIY_WORDBOOK_ID, label: `仅 DIY（${vocabularyForScope(DIY_WORDBOOK_ID, bundle.incomingVocabulary).length} 词）` }
+  ];
+  const customOptions = bundle.incomingWordbooks.map((wordbook) => {
+    const scopeValue = wordbookScopeValue(wordbook.id);
+    const count = vocabularyForScope(scopeValue, bundle.incomingVocabulary).length;
+    return { value: scopeValue, label: `单词本：${wordbook.title}（${count} 词）` };
+  });
+  return [...systemOptions, ...customOptions];
+}
+
+function applyWordbookImport(bundle, values) {
+  const scopeValue = values.scope || ALL_WORDBOOK_ID;
+  const conflictStrategy = values.conflictStrategy || WORDBOOK_CONFLICT_KEEP_LOCAL;
+  const incomingVocabulary = vocabularyForScope(scopeValue, bundle.incomingVocabulary);
+  const incomingWordbooks = wordbooksForScope(scopeValue, incomingVocabulary, bundle.incomingWordbooks);
+
+  if (incomingVocabulary.length === 0 && incomingWordbooks.length === 0) {
+    setStatus("这个范围没有可导入的单词");
+    return;
+  }
+
+  const wordbookSummary = mergeImportedWordbooks(incomingWordbooks);
+  const vocabularySummary = mergeImportedVocabulary(incomingVocabulary, conflictStrategy);
+
+  state.vocabulary.forEach((item) => {
+    item.wordbookIds = validWordbookIds(item.wordbookIds);
+  });
+  ensureSelections();
+  persist();
+  renderWordbooks();
+  renderVocab();
+  renderSentences();
+  renderWordPanel();
+  renderMy();
+  setStatus(`单词本导入完成：新增 ${vocabularySummary.added} 词，合并 ${vocabularySummary.merged} 词；词本新增 ${wordbookSummary.added}，更新 ${wordbookSummary.updated}`);
+}
+
+function mergeImportedWordbooks(incomingWordbooks) {
+  const summary = { added: 0, updated: 0 };
+  incomingWordbooks.forEach((wordbook) => {
+    const existing = state.wordbooks.find((item) => item.id === wordbook.id);
+    if (existing) {
+      existing.title = wordbook.title;
+      existing.description = wordbook.description;
+      existing.updatedAt = nowIso();
+      summary.updated += 1;
+      return;
+    }
+    state.wordbooks.push({ ...wordbook });
+    summary.added += 1;
+  });
+  return summary;
+}
+
+function mergeImportedVocabulary(incomingVocabulary, conflictStrategy) {
+  const summary = { added: 0, merged: 0 };
+  incomingVocabulary.forEach((incoming) => {
+    const item = {
+      ...incoming,
+      wordbookIds: validWordbookIds(incoming.wordbookIds),
+      seenForms: mergeSeenForms([], incoming.seenForms)
+    };
+    const existing = state.vocabulary.find((word) => word.normalized === item.normalized || word.lemma === item.normalized);
+    if (!existing) {
+      const idExists = state.vocabulary.some((word) => word.id === item.id);
+      state.vocabulary.push({
+        ...item,
+        id: idExists ? makeId("word") : item.id,
+        createdAt: item.createdAt || nowIso(),
+        updatedAt: nowIso()
+      });
+      summary.added += 1;
+      return;
+    }
+
+    existing.ipa = mergeImportedText(existing.ipa, item.ipa, conflictStrategy);
+    existing.zh = mergeImportedText(existing.zh, item.zh, conflictStrategy);
+    if (conflictStrategy === WORDBOOK_CONFLICT_USE_IMPORTED) {
+      existing.status = item.status === "got" ? "got" : "new";
+    }
+    existing.wordbookIds = mergeWordbookIds(existing.wordbookIds, item.wordbookIds);
+    existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
+    existing.updatedAt = nowIso();
+    summary.merged += 1;
+  });
+  return summary;
+}
+
+function mergeImportedText(localValue, importedValue, conflictStrategy) {
+  if (conflictStrategy === WORDBOOK_CONFLICT_USE_IMPORTED) {
+    return String(importedValue || localValue || "");
+  }
+  return String(localValue || importedValue || "");
+}
+
+function wordbookScopeFilePart(scopeValue, label, currentWordbookId = state.ui.selectedWordbookId) {
+  const wordbookId = wordbookIdFromScope(scopeValue, currentWordbookId);
+  if ([ALL_WORDBOOK_ID, NEW_WORDBOOK_ID, GOT_WORDBOOK_ID, DIY_WORDBOOK_ID].includes(wordbookId)) {
+    return wordbookId;
+  }
+  return `book-${slugifyFilePart(label || wordbookId)}`;
+}
+
+function slugifyFilePart(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "selection";
+}
+
+function dateStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 async function loadAppState() {

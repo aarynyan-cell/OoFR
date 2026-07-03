@@ -7,7 +7,7 @@
     <title>OoFR 法语发音练习器</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.5.1">
+    <link rel="stylesheet" href="./styles.css?v=0.6.0">
   </head>
   <body>
     <div class="app-shell">
@@ -22,7 +22,7 @@
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR · v0.5</p>
+            <p class="eyebrow">OoFR · v0.6</p>
             <h1>法语发音练习器</h1>
           </div>
         </div>
@@ -208,6 +208,15 @@
             </div>
           </div>
 
+          <section class="notice-panel" aria-labelledby="noticeTitle">
+            <div>
+              <p class="eyebrow">Notice</p>
+              <h3 id="noticeTitle">导入前先备份</h3>
+            </div>
+            <p>完整数据导入会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置，导入后会变成文件里的版本。单词本导入只合并词条和自定义单词本，不会清空本地数据；遇到重复词时，可以选择保留本地 got/new 状态，或使用导入文件的状态。</p>
+            <p>换设备建议用完整数据备份；只交换生词、DIY 词或某个自定义单词本时，用单词本导入/导出更稳。导入任何新文件前，最好先导出一份当前数据留底。</p>
+          </section>
+
           <div class="my-grid">
             <section class="my-panel" aria-labelledby="backupTitle">
               <div class="panel-title-row compact">
@@ -236,6 +245,10 @@
                 </div>
               </div>
               <div class="split-actions">
+                <label class="compact-select">
+                  <span class="field-label">范围</span>
+                  <select id="wordbookExportScope"></select>
+                </label>
                 <button id="wordbookExportBtn" class="command-button" type="button" data-icon="download">
                   <span>导出</span>
                 </button>
@@ -244,7 +257,7 @@
                 </button>
                 <input id="wordbookImportFile" class="visually-hidden" type="file" accept="application/json,.json">
               </div>
-              <p class="micro-copy">只迁移自定义单词本和单词条目。</p>
+              <p class="micro-copy">可按 all、new、got、DIY 或自定义单词本导出；导入时会先预览再合并。</p>
             </section>
 
             <section class="my-panel" aria-labelledby="feedbackTitle">
@@ -280,7 +293,7 @@
       </form>
     </dialog>
 
-    <script src="./lexicon.js?v=0.5.1"></script>
-    <script src="./app.js?v=0.5.1"></script>
+    <script src="./lexicon.js?v=0.6.0"></script>
+    <script src="./app.js?v=0.6.0"></script>
   </body>
 </html>
