@@ -3,8 +3,11 @@ Aujourd'hui, je voudrais pratiquer les liaisons : les amis, vous avez, nous allo
 Est-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.`;
 
 const APP_STORAGE_KEY = "oofr.app.v1";
+const SYNC_STORAGE_KEY = "oofr.sync.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
+const EDGE_DEFAULT_VOICE = "Microsoft VivienneMultilingual Online (Natural) - French (France)";
+const CHROME_DEFAULT_VOICE = "Google français";
 
 const icons = {
   album: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M5 3h14v18H5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 7h6M9 17h6"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>`,
@@ -75,7 +78,9 @@ const elements = {
   dialogCancelBtn: document.querySelector("#dialogCancelBtn")
 };
 
-let state = loadAppState();
+const storageDriver = createStorageDriver();
+
+let state = null;
 let frenchVoices = [];
 let allVoices = [];
 let sentences = [];
@@ -84,19 +89,26 @@ let selectedWord = null;
 let runToken = 0;
 let renderTimer = 0;
 let dialogSubmitHandler = null;
+let syncSettingsTimer = 0;
 
-hydrateIcons();
-bindEvents();
-ensureSelections();
-syncSettingsControls();
-loadVoices();
-renderAll();
-registerServiceWorker();
+initApp();
 
-if (canSpeak()) {
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-} else {
-  setStatus("当前浏览器不支持朗读");
+async function initApp() {
+  hydrateIcons();
+  state = await loadAppState();
+  await applySyncedSettings();
+  bindEvents();
+  ensureSelections();
+  syncSettingsControls();
+  loadVoices();
+  renderAll();
+  registerServiceWorker();
+
+  if (canSpeak()) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  } else {
+    setStatus("当前浏览器不支持朗读");
+  }
 }
 
 function hydrateIcons() {
@@ -160,6 +172,7 @@ function bindEvents() {
 
   elements.voiceSelect.addEventListener("change", () => {
     state.settings.voice = elements.voiceSelect.value;
+    state.settings.voiceLocked = true;
     persist();
   });
 
@@ -1272,14 +1285,37 @@ function loadVoices() {
   if (frenchVoices.some((voice) => voice.name === currentValue)) {
     elements.voiceSelect.value = currentValue;
   } else {
-    const preferred = frenchVoices.find((voice) => voice.lang.toLowerCase() === "fr-fr") || frenchVoices[0];
+    const preferred = preferredDefaultVoice();
     elements.voiceSelect.value = preferred?.name || "";
     state.settings.voice = elements.voiceSelect.value;
+    state.settings.voiceLocked = false;
+    persist();
   }
 
   if (frenchVoices.length === 0) {
     setStatus("未找到法语声音，使用系统默认");
   }
+}
+
+function preferredDefaultVoice() {
+  const target = isEdgeBrowser() ? EDGE_DEFAULT_VOICE : CHROME_DEFAULT_VOICE;
+  const exact = frenchVoices.find((voice) => voice.name === target && voice.lang.toLowerCase() === "fr-fr");
+  if (exact) return exact;
+
+  const browserFallback = frenchVoices.find((voice) => voice.name === target);
+  if (browserFallback) return browserFallback;
+
+  const edgeVoice = frenchVoices.find((voice) => voice.name === EDGE_DEFAULT_VOICE);
+  if (edgeVoice) return edgeVoice;
+
+  const chromeVoice = frenchVoices.find((voice) => voice.name === CHROME_DEFAULT_VOICE);
+  if (chromeVoice) return chromeVoice;
+
+  return frenchVoices.find((voice) => voice.lang.toLowerCase() === "fr-fr") || frenchVoices[0] || null;
+}
+
+function isEdgeBrowser() {
+  return /\bEdg\//.test(window.navigator.userAgent);
 }
 
 function selectedVoice() {
@@ -1337,14 +1373,23 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-function loadAppState() {
-  const saved = readJson(APP_STORAGE_KEY);
+async function loadAppState() {
+  const saved = await readJson(APP_STORAGE_KEY);
   if (saved) {
     return ensureStateShape(saved);
   }
 
-  const legacy = readJson(LEGACY_STORAGE_KEY);
+  const legacy = await readJson(LEGACY_STORAGE_KEY);
   return createStarterState(legacy || {});
+}
+
+async function applySyncedSettings() {
+  const synced = await storageDriver.getSync(SYNC_STORAGE_KEY);
+  if (!synced?.settings) return;
+  state.settings = {
+    ...state.settings,
+    ...synced.settings
+  };
 }
 
 function ensureStateShape(raw) {
@@ -1388,7 +1433,8 @@ function createStarterState(legacy) {
     rate: legacy?.rate || "0.85",
     pause: legacy?.pause || "0.4",
     repeat: legacy?.repeat || "1",
-    voice: legacy?.voice || ""
+    voice: legacy?.voice || "",
+    voiceLocked: Boolean(legacy?.voice)
   };
 
   return {
@@ -1493,20 +1539,94 @@ function normalizeVocabulary(item) {
   };
 }
 
-function readJson(key) {
+async function readJson(key) {
   try {
-    return JSON.parse(window.localStorage.getItem(key));
+    return await storageDriver.getLocal(key);
   } catch {
     return null;
   }
 }
 
 function persist() {
-  try {
-    window.localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-  } catch {
+  storageDriver.setLocal(APP_STORAGE_KEY, state).catch(() => {
     setStatus("保存失败");
+  });
+  queueSyncedSettings();
+}
+
+function queueSyncedSettings() {
+  if (!storageDriver.canSync) return;
+  window.clearTimeout(syncSettingsTimer);
+  syncSettingsTimer = window.setTimeout(() => {
+    const syncedSettings = {
+      rate: state.settings.rate,
+      pause: state.settings.pause,
+      repeat: state.settings.repeat,
+      voice: state.settings.voice,
+      voiceLocked: state.settings.voiceLocked
+    };
+    storageDriver.setSync(SYNC_STORAGE_KEY, {
+      settings: syncedSettings,
+      updatedAt: nowIso()
+    }).catch(() => {});
+  }, 800);
+}
+
+function createStorageDriver() {
+  const chromeApi = globalThis.chrome;
+  const hasChromeStorage = Boolean(chromeApi?.storage?.local);
+  const isExtensionPage = window.location.protocol === "chrome-extension:";
+
+  if (hasChromeStorage && isExtensionPage) {
+    return {
+      canSync: Boolean(chromeApi.storage.sync),
+      async getLocal(key) {
+        return new Promise((resolve) => {
+          chromeApi.storage.local.get(key, (result) => resolve(result?.[key] || null));
+        });
+      },
+      async setLocal(key, value) {
+        return new Promise((resolve, reject) => {
+          chromeApi.storage.local.set({ [key]: value }, () => {
+            const error = chromeApi.runtime?.lastError;
+            if (error) reject(error);
+            else resolve();
+          });
+        });
+      },
+      async getSync(key) {
+        if (!chromeApi.storage.sync) return null;
+        return new Promise((resolve) => {
+          chromeApi.storage.sync.get(key, (result) => resolve(result?.[key] || null));
+        });
+      },
+      async setSync(key, value) {
+        if (!chromeApi.storage.sync) return;
+        return new Promise((resolve, reject) => {
+          chromeApi.storage.sync.set({ [key]: value }, () => {
+            const error = chromeApi.runtime?.lastError;
+            if (error) reject(error);
+            else resolve();
+          });
+        });
+      }
+    };
   }
+
+  return {
+    canSync: false,
+    async getLocal(key) {
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    },
+    async setLocal(key, value) {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    },
+    async getSync() {
+      return null;
+    },
+    async setSync() {}
+  };
 }
 
 function registerServiceWorker() {
