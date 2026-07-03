@@ -59,6 +59,8 @@ const elements = {
   refreshBtn: document.querySelector("#refreshBtn"),
   sampleBtn: document.querySelector("#sampleBtn"),
   clearBtn: document.querySelector("#clearBtn"),
+  audioSettingsToggle: document.querySelector("#audioSettingsToggle"),
+  audioSettingsPanel: document.querySelector("#audioSettingsPanel"),
   voiceSelect: document.querySelector("#voiceSelect"),
   rateControl: document.querySelector("#rateControl"),
   rateLabel: document.querySelector("#rateLabel"),
@@ -183,6 +185,10 @@ function bindEvents() {
     stopSpeech();
     setCurrentText("", null);
     elements.input.focus();
+  });
+
+  elements.audioSettingsToggle.addEventListener("click", () => {
+    setAudioSettingsOpen(elements.audioSettingsPanel.hidden);
   });
 
   elements.rateControl.addEventListener("input", () => {
@@ -1305,6 +1311,12 @@ function openDialog({ title, submitText, fields, onSubmit }) {
   } else {
     elements.dialog.setAttribute("open", "");
   }
+}
+
+function setAudioSettingsOpen(isOpen) {
+  elements.audioSettingsPanel.hidden = !isOpen;
+  elements.audioSettingsToggle.setAttribute("aria-expanded", String(isOpen));
+  elements.audioSettingsToggle.classList.toggle("is-active", isOpen);
 }
 
 function createDialogInput(field) {
