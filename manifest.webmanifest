@@ -1,0 +1,26 @@
+{
+  "name": "OoFR 法语发音练习器",
+  "short_name": "OoFR",
+  "description": "带专辑、磁带和单词本的法语发音练习工具。",
+  "lang": "zh-CN",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f0e7",
+  "theme_color": "#121514",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

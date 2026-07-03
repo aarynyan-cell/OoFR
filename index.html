@@ -3,114 +3,223 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#121514">
     <title>OoFR 法语发音练习器</title>
+    <link rel="icon" href="./icons/icon-192.png">
+    <link rel="manifest" href="./manifest.webmanifest">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <main class="app-shell">
+    <div class="app-shell">
       <header class="app-header">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 64 64" role="img">
-              <rect x="6" y="6" width="52" height="52" rx="8"></rect>
-              <path d="M18 39c5-14 11-14 16 0 3 8 7 8 12 0"></path>
-              <path d="M18 27c5-10 11-10 16 0 3 6 7 6 12 0"></path>
+              <rect x="6" y="8" width="52" height="48" rx="8"></rect>
+              <circle cx="22" cy="32" r="8"></circle>
+              <circle cx="42" cy="32" r="8"></circle>
+              <path d="M22 32h20M16 47h32"></path>
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR</p>
+            <p class="eyebrow">OoFR · v0.1</p>
             <h1>法语发音练习器</h1>
           </div>
         </div>
-        <div class="header-actions">
-          <button id="playAllTop" class="icon-button primary play-trigger" type="button" title="播放全部" aria-label="播放全部" data-icon="play"></button>
-          <button id="stopTop" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
-        </div>
+
+        <nav class="top-nav" aria-label="主导航">
+          <button type="button" class="nav-button" data-view-target="reader" aria-pressed="true">
+            <span data-icon="play"></span>
+            <span>朗读</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="library" aria-pressed="false">
+            <span data-icon="album"></span>
+            <span>专辑</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="vocab" aria-pressed="false">
+            <span data-icon="book"></span>
+            <span>单词本</span>
+          </button>
+        </nav>
       </header>
 
-      <section class="workbench" aria-label="发音练习工作区">
-        <section class="tool-panel composer-panel" aria-labelledby="textPanelTitle">
-          <div class="panel-title-row">
-            <div>
-              <p class="eyebrow">Texte</p>
-              <h2 id="textPanelTitle">文本</h2>
-            </div>
-            <span id="textStats" class="stat-pill">0 句</span>
+      <main>
+        <section id="readerView" class="view is-active" aria-labelledby="readerTitle">
+          <div class="reader-grid">
+            <section class="deck-panel" aria-labelledby="readerTitle">
+              <div class="panel-title-row">
+                <div>
+                  <p class="eyebrow">Lecture</p>
+                  <h2 id="readerTitle">朗读</h2>
+                  <p id="activeEntryLine" class="micro-copy">临时练习草稿</p>
+                </div>
+                <span id="textStats" class="stat-pill">0 句</span>
+              </div>
+
+              <label class="field-label" for="frenchInput">法语文字</label>
+              <textarea id="frenchInput" lang="fr" spellcheck="false"></textarea>
+
+              <div class="action-row">
+                <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
+                  <span>全文</span>
+                </button>
+                <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
+                <button id="saveEntryBtn" class="command-button" type="button" data-icon="save">
+                  <span>保存</span>
+                </button>
+                <button id="refreshBtn" class="icon-button play-trigger" type="button" title="刷新分句" aria-label="刷新分句" data-icon="refresh"></button>
+                <button id="sampleBtn" class="icon-button" type="button" title="示例" aria-label="示例" data-icon="spark"></button>
+                <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
+              </div>
+            </section>
+
+            <aside class="console-panel" aria-labelledby="settingsTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Audio</p>
+                  <h2 id="settingsTitle">播放</h2>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="field-label" for="voiceSelect">法语声音</label>
+                <select id="voiceSelect"></select>
+              </div>
+
+              <div class="control-group">
+                <div class="label-row">
+                  <label class="field-label" for="rateControl">语速</label>
+                  <output id="rateLabel" for="rateControl">0.85x</output>
+                </div>
+                <input id="rateControl" type="range" min="0.5" max="1.2" step="0.05" value="0.85">
+              </div>
+
+              <div class="control-group">
+                <span class="field-label">重复</span>
+                <div id="repeatGroup" class="segmented-control" role="radiogroup" aria-label="重复次数">
+                  <button type="button" data-repeat="1" aria-pressed="true">1</button>
+                  <button type="button" data-repeat="2" aria-pressed="false">2</button>
+                  <button type="button" data-repeat="3" aria-pressed="false">3</button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="label-row">
+                  <label class="field-label" for="pauseControl">间隔</label>
+                  <output id="pauseLabel" for="pauseControl">0.4s</output>
+                </div>
+                <input id="pauseControl" type="range" min="0" max="1.5" step="0.1" value="0.4">
+              </div>
+
+              <div class="control-group">
+                <span class="field-label">数据</span>
+                <div class="split-actions">
+                  <button id="exportBtn" class="command-button" type="button" data-icon="download">
+                    <span>导出</span>
+                  </button>
+                  <button id="importBtn" class="command-button" type="button" data-icon="upload">
+                    <span>导入</span>
+                  </button>
+                  <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json">
+                </div>
+              </div>
+            </aside>
           </div>
 
-          <label class="field-label" for="frenchInput">法语文字</label>
-          <textarea id="frenchInput" lang="fr" spellcheck="false"></textarea>
+          <section class="reader-panel" aria-labelledby="sentenceTitle">
+            <div class="reader-title-row">
+              <div>
+                <p class="eyebrow">Phrases</p>
+                <h2 id="sentenceTitle">朗读区</h2>
+                <p id="statusLine" class="status-line" role="status">准备好了</p>
+              </div>
+            </div>
 
-          <div class="action-row">
-            <button id="refreshBtn" class="command-button play-trigger" type="button" data-icon="refresh">
-              <span>刷新分句</span>
+            <div id="wordPanel" class="word-panel" hidden>
+              <div>
+                <p class="eyebrow">Mot</p>
+                <h3 id="wordPanelTitle"></h3>
+                <p id="wordPanelMeta" class="micro-copy"></p>
+              </div>
+              <div class="word-actions">
+                <button id="wordPlayBtn" class="icon-button play-trigger" type="button" title="播放单词" aria-label="播放单词" data-icon="speaker"></button>
+                <button id="wordAddBtn" class="command-button" type="button" data-icon="plus">
+                  <span>加入</span>
+                </button>
+                <button id="wordToggleBtn" class="command-button" type="button" data-icon="check">
+                  <span>got</span>
+                </button>
+                <button id="wordEditBtn" class="icon-button" type="button" title="编辑" aria-label="编辑" data-icon="edit"></button>
+                <button id="wordDeleteBtn" class="icon-button danger" type="button" title="删除" aria-label="删除" data-icon="trash"></button>
+              </div>
+            </div>
+
+            <div id="sentenceList" class="sentence-list"></div>
+          </section>
+        </section>
+
+        <section id="libraryView" class="view" aria-labelledby="libraryTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Albums & Cassettes</p>
+              <h2 id="libraryTitle">专辑</h2>
+            </div>
+            <button id="newAlbumBtn" class="command-button primary" type="button" data-icon="plus">
+              <span>专辑</span>
             </button>
-            <button id="sampleBtn" class="command-button muted" type="button" data-icon="spark">
-              <span>示例</span>
-            </button>
-            <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
+          </div>
+
+          <div class="library-layout">
+            <section class="album-shelf" aria-label="专辑列表">
+              <div id="albumShelf" class="album-grid"></div>
+            </section>
+
+            <section class="cassette-board" aria-label="磁带和条目">
+              <div id="libraryDetail" class="library-detail"></div>
+            </section>
           </div>
         </section>
 
-        <aside class="tool-panel settings-panel" aria-labelledby="settingsPanelTitle">
-          <div class="panel-title-row compact">
+        <section id="vocabView" class="view" aria-labelledby="vocabTitle">
+          <div class="section-heading">
             <div>
-              <p class="eyebrow">Audio</p>
-              <h2 id="settingsPanelTitle">播放</h2>
+              <p class="eyebrow">Vocabulaire</p>
+              <h2 id="vocabTitle">单词本</h2>
             </div>
+            <button id="newVocabBtn" class="command-button primary" type="button" data-icon="plus">
+              <span>单词</span>
+            </button>
           </div>
 
-          <div class="control-group">
-            <label class="field-label" for="voiceSelect">法语声音</label>
-            <select id="voiceSelect"></select>
+          <div class="vocab-toolbar">
+            <label class="field-label" for="vocabSearch">搜索</label>
+            <input id="vocabSearch" class="text-input" type="search" autocomplete="off">
+            <span id="vocabStats" class="stat-pill">0 词</span>
           </div>
 
-          <div class="control-group">
-            <div class="label-row">
-              <label class="field-label" for="rateControl">语速</label>
-              <output id="rateLabel" for="rateControl">0.85x</output>
-            </div>
-            <input id="rateControl" type="range" min="0.5" max="1.2" step="0.05" value="0.85">
-          </div>
-
-          <div class="control-group">
-            <span class="field-label">重复</span>
-            <div id="repeatGroup" class="segmented-control" role="radiogroup" aria-label="重复次数">
-              <button type="button" data-repeat="1" aria-pressed="true">1</button>
-              <button type="button" data-repeat="2" aria-pressed="false">2</button>
-              <button type="button" data-repeat="3" aria-pressed="false">3</button>
-            </div>
-          </div>
-
-          <div class="control-group">
-            <div class="label-row">
-              <label class="field-label" for="pauseControl">间隔</label>
-              <output id="pauseLabel" for="pauseControl">0.4s</output>
-            </div>
-            <input id="pauseControl" type="range" min="0" max="1.5" step="0.1" value="0.4">
-          </div>
-        </aside>
-
-        <section class="reader-panel" aria-labelledby="readerPanelTitle">
-          <div class="reader-title-row">
-            <div>
-              <p class="eyebrow">Lecture</p>
-              <h2 id="readerPanelTitle">朗读区</h2>
-              <p id="statusLine" class="status-line" role="status">准备好了</p>
-            </div>
-            <div class="reader-actions">
-              <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
-                <span>全文</span>
-              </button>
-              <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
-            </div>
-          </div>
-
-          <div id="sentenceList" class="sentence-list"></div>
+          <div id="vocabList" class="vocab-list"></div>
         </section>
-      </section>
-    </main>
+      </main>
+    </div>
 
+    <dialog id="appDialog" class="app-dialog">
+      <form id="dialogForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">OoFR</p>
+            <h2 id="dialogTitle"></h2>
+          </div>
+          <button id="dialogCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+        </div>
+        <div id="dialogBody" class="dialog-body"></div>
+        <div class="dialog-actions">
+          <button id="dialogCancelBtn" class="command-button" type="button">取消</button>
+          <button id="dialogSubmitBtn" class="command-button primary" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./lexicon.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
