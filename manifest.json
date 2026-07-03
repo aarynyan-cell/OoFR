@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "OoFR 法语发音练习器",
   "short_name": "OoFR",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "带专辑、磁带和单词本的法语发音练习工具。",
   "permissions": ["storage"],
   "action": {

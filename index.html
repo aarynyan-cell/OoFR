@@ -7,7 +7,7 @@
     <title>OoFR 法语发音练习器</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.4.1">
+    <link rel="stylesheet" href="./styles.css?v=0.5.1">
   </head>
   <body>
     <div class="app-shell">
@@ -22,7 +22,7 @@
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR · v0.4</p>
+            <p class="eyebrow">OoFR · v0.5</p>
             <h1>法语发音练习器</h1>
           </div>
         </div>
@@ -39,6 +39,10 @@
           <button type="button" class="nav-button" data-view-target="vocab" aria-pressed="false">
             <span data-icon="book"></span>
             <span>单词本</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="my" aria-pressed="false">
+            <span data-icon="user"></span>
+            <span>我的</span>
           </button>
         </nav>
       </header>
@@ -111,19 +115,6 @@
                 <input id="pauseControl" type="range" min="0" max="1.5" step="0.1" value="0.4">
               </div>
 
-              <div class="control-group">
-                <span class="field-label">数据</span>
-                <div class="split-actions">
-                  <button id="exportBtn" class="command-button" type="button" data-icon="download">
-                    <span>导出</span>
-                  </button>
-                  <button id="importBtn" class="command-button" type="button" data-icon="upload">
-                    <span>导入</span>
-                  </button>
-                  <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json">
-                </div>
-                <p class="micro-copy">换设备时用导出/导入迁移完整数据。</p>
-              </div>
             </aside>
           </div>
 
@@ -191,15 +182,83 @@
             <button id="newVocabBtn" class="command-button primary" type="button" data-icon="plus">
               <span>单词</span>
             </button>
+            <button id="newWordbookBtn" class="command-button" type="button" data-icon="book">
+              <span>单词本</span>
+            </button>
           </div>
+
+          <div id="wordbookShelf" class="wordbook-grid" aria-label="单词本列表"></div>
 
           <div class="vocab-toolbar">
             <label class="field-label" for="vocabSearch">搜索</label>
             <input id="vocabSearch" class="text-input" type="search" autocomplete="off">
             <span id="vocabStats" class="stat-pill">0 词</span>
           </div>
+          <p id="selectedWordbookLine" class="micro-copy">all · 0 词</p>
 
           <div id="vocabList" class="vocab-list"></div>
+        </section>
+
+        <section id="myView" class="view" aria-labelledby="myTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Mon OoFR</p>
+              <h2 id="myTitle">我的</h2>
+              <p id="myStats" class="micro-copy">0 专辑 · 0 磁带 · 0 段落 · 0 词</p>
+            </div>
+          </div>
+
+          <div class="my-grid">
+            <section class="my-panel" aria-labelledby="backupTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Backup</p>
+                  <h3 id="backupTitle">完整数据</h3>
+                </div>
+              </div>
+              <div class="split-actions">
+                <button id="exportBtn" class="command-button" type="button" data-icon="download">
+                  <span>导出</span>
+                </button>
+                <button id="importBtn" class="command-button" type="button" data-icon="upload">
+                  <span>导入</span>
+                </button>
+                <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json">
+              </div>
+              <p class="micro-copy">迁移专辑、磁带、段落、单词本和播放设置。</p>
+            </section>
+
+            <section class="my-panel" aria-labelledby="wordbookBackupTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Vocabulaire</p>
+                  <h3 id="wordbookBackupTitle">单词本</h3>
+                </div>
+              </div>
+              <div class="split-actions">
+                <button id="wordbookExportBtn" class="command-button" type="button" data-icon="download">
+                  <span>导出</span>
+                </button>
+                <button id="wordbookImportBtn" class="command-button" type="button" data-icon="upload">
+                  <span>上传</span>
+                </button>
+                <input id="wordbookImportFile" class="visually-hidden" type="file" accept="application/json,.json">
+              </div>
+              <p class="micro-copy">只迁移自定义单词本和单词条目。</p>
+            </section>
+
+            <section class="my-panel" aria-labelledby="feedbackTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Feedback</p>
+                  <h3 id="feedbackTitle">问题反馈</h3>
+                </div>
+                <span data-icon="feedback"></span>
+              </div>
+              <p class="contact-line">开发者：run</p>
+              <p class="contact-line">邮箱：<a href="mailto:aaaaaaryn@outlook.com">aaaaaaryn@outlook.com</a></p>
+            </section>
+          </div>
         </section>
       </main>
     </div>
@@ -221,7 +280,7 @@
       </form>
     </dialog>
 
-    <script src="./lexicon.js?v=0.4.1"></script>
-    <script src="./app.js?v=0.4.1"></script>
+    <script src="./lexicon.js?v=0.5.1"></script>
+    <script src="./app.js?v=0.5.1"></script>
   </body>
 </html>

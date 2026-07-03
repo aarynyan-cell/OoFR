@@ -8,6 +8,16 @@ const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
 const CHROME_DEFAULT_VOICE = "Google français";
 const ELIDED_PREFIXES = new Set(["c", "d", "j", "l", "m", "n", "qu", "s", "t", "jusqu", "lorsqu", "puisqu"]);
+const ALL_WORDBOOK_ID = "all";
+const NEW_WORDBOOK_ID = "new";
+const GOT_WORDBOOK_ID = "got";
+const DIY_WORDBOOK_ID = "diy";
+const SYSTEM_WORDBOOKS = [
+  { id: ALL_WORDBOOK_ID, title: "all", description: "全部单词" },
+  { id: NEW_WORDBOOK_ID, title: "new", description: "还没 got 的词" },
+  { id: GOT_WORDBOOK_ID, title: "got", description: "已经掌握的词" },
+  { id: DIY_WORDBOOK_ID, title: "DIY", description: "待补音标或释义" }
+];
 
 const icons = {
   album: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M5 3h14v18H5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 7h6M9 17h6"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>`,
@@ -16,6 +26,8 @@ const icons = {
   close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" d="m6 6 12 12M18 6 6 18"/></svg>`,
   download: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>`,
   edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="m4 16-.5 4 4-.5L19 8l-3.5-3.5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="m14 6 4 4"/></svg>`,
+  feedback: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 5h16v11H8l-4 4z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M8 9h8M8 13h5"/></svg>`,
+  pause: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>`,
   play: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.14v13.72c0 .74.82 1.18 1.44.78l10.08-6.86a.93.93 0 0 0 0-1.56L9.44 4.36A.94.94 0 0 0 8 5.14Z"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" d="M12 5v14M5 12h14"/></svg>`,
   refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 11a8.1 8.1 0 0 0-14.4-4.8L4 8m0 0V4m0 4h4m-4 5a8.1 8.1 0 0 0 14.4 4.8L20 16m0 0v4m0-4h-4"/></svg>`,
@@ -24,7 +36,8 @@ const icons = {
   speaker: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9.2v5.6c0 .66.54 1.2 1.2 1.2H8l5.1 4.1c.78.62 1.9.07 1.9-.93V4.83c0-1-1.12-1.55-1.9-.93L8 8H5.2C4.54 8 4 8.54 4 9.2Zm13.4-1.4a1 1 0 0 0 0 1.4 4 4 0 0 1 0 5.6 1 1 0 0 0 1.4 1.4 6 6 0 0 0 0-8.4 1 1 0 0 0-1.4 0Z"/></svg>`,
   stop: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="12" height="12" x="6" y="6" rx="2" fill="currentColor"/></svg>`,
   trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>`,
-  upload: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>`
+  upload: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21V9m0 0 4 4m-4-4-4 4M5 4h14"/></svg>`,
+  user: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 21a8 8 0 0 1 16 0"/></svg>`
 };
 
 const elements = {
@@ -32,7 +45,8 @@ const elements = {
   views: {
     reader: document.querySelector("#readerView"),
     library: document.querySelector("#libraryView"),
-    vocab: document.querySelector("#vocabView")
+    vocab: document.querySelector("#vocabView"),
+    my: document.querySelector("#myView")
   },
   input: document.querySelector("#frenchInput"),
   activeEntryLine: document.querySelector("#activeEntryLine"),
@@ -49,9 +63,6 @@ const elements = {
   repeatGroup: document.querySelector("#repeatGroup"),
   pauseControl: document.querySelector("#pauseControl"),
   pauseLabel: document.querySelector("#pauseLabel"),
-  exportBtn: document.querySelector("#exportBtn"),
-  importBtn: document.querySelector("#importBtn"),
-  importFile: document.querySelector("#importFile"),
   statusLine: document.querySelector("#statusLine"),
   sentenceList: document.querySelector("#sentenceList"),
   wordPanel: document.querySelector("#wordPanel"),
@@ -67,9 +78,19 @@ const elements = {
   albumShelf: document.querySelector("#albumShelf"),
   libraryDetail: document.querySelector("#libraryDetail"),
   newVocabBtn: document.querySelector("#newVocabBtn"),
+  newWordbookBtn: document.querySelector("#newWordbookBtn"),
+  wordbookShelf: document.querySelector("#wordbookShelf"),
+  selectedWordbookLine: document.querySelector("#selectedWordbookLine"),
   vocabSearch: document.querySelector("#vocabSearch"),
   vocabStats: document.querySelector("#vocabStats"),
   vocabList: document.querySelector("#vocabList"),
+  exportBtn: document.querySelector("#exportBtn"),
+  importBtn: document.querySelector("#importBtn"),
+  importFile: document.querySelector("#importFile"),
+  wordbookExportBtn: document.querySelector("#wordbookExportBtn"),
+  wordbookImportBtn: document.querySelector("#wordbookImportBtn"),
+  wordbookImportFile: document.querySelector("#wordbookImportFile"),
+  myStats: document.querySelector("#myStats"),
   dialog: document.querySelector("#appDialog"),
   dialogForm: document.querySelector("#dialogForm"),
   dialogTitle: document.querySelector("#dialogTitle"),
@@ -88,6 +109,7 @@ let sentences = [];
 let activeElement = null;
 let selectedWord = null;
 let runToken = 0;
+let playback = { status: "idle", key: "", label: "", token: 0 };
 let renderTimer = 0;
 let dialogSubmitHandler = null;
 let syncSettingsTimer = 0;
@@ -143,7 +165,7 @@ function bindEvents() {
     }, 100);
   });
 
-  elements.playAllReader.addEventListener("click", playAllSentences);
+  elements.playAllReader.addEventListener("click", toggleAllSentences);
   elements.stopReader.addEventListener("click", stopSpeech);
   elements.saveEntryBtn.addEventListener("click", openSaveCurrentDialog);
   elements.refreshBtn.addEventListener("click", renderSentences);
@@ -188,16 +210,23 @@ function bindEvents() {
   elements.exportBtn.addEventListener("click", exportData);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", importData);
+  elements.wordbookExportBtn.addEventListener("click", exportWordbooks);
+  elements.wordbookImportBtn.addEventListener("click", () => elements.wordbookImportFile.click());
+  elements.wordbookImportFile.addEventListener("change", importWordbooks);
 
   elements.wordPlayBtn.addEventListener("click", () => {
     if (!selectedWord) return;
-    playItems([{ text: selectedWord.raw, element: selectedWord.element, label: selectedWord.raw, lang: "fr-FR", forceFrench: true }]);
+    togglePlayback(
+      [{ text: selectedWord.raw, element: selectedWord.element, label: selectedWord.raw, lang: "fr-FR", forceFrench: true }],
+      { key: `word:${selectedWord.normalized}`, label: selectedWord.raw }
+    );
   });
 
   elements.wordAddBtn.addEventListener("click", () => {
     if (!selectedWord) return;
     addWordToVocabulary(selectedWord.raw);
     persist();
+    renderWordbooks();
     renderVocab();
     renderSentences();
     renderWordPanel();
@@ -210,6 +239,7 @@ function bindEvents() {
     item.status = item.status === "got" ? "new" : "got";
     item.updatedAt = nowIso();
     persist();
+    renderWordbooks();
     renderVocab();
     renderSentences();
     renderWordPanel();
@@ -232,6 +262,7 @@ function bindEvents() {
 
   elements.newAlbumBtn.addEventListener("click", () => openAlbumDialog());
   elements.newVocabBtn.addEventListener("click", () => openVocabDialog());
+  elements.newWordbookBtn.addEventListener("click", () => openWordbookDialog());
   elements.vocabSearch.addEventListener("input", renderVocab);
 
   elements.dialogCloseBtn.addEventListener("click", closeDialog);
@@ -265,17 +296,26 @@ function renderAll() {
   renderSentences();
   renderWordPanel();
   renderLibrary();
+  renderWordbooks();
   renderVocab();
+  renderMy();
+  renderPlaybackControls();
 }
 
 function renderView() {
   Object.entries(elements.views).forEach(([name, view]) => {
+    if (!view) return;
     view.classList.toggle("is-active", state.ui.activeView === name);
   });
 
   elements.navButtons.forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.viewTarget === state.ui.activeView));
   });
+}
+
+function renderMy() {
+  if (!elements.myStats) return;
+  elements.myStats.textContent = `${state.albums.length} 专辑 · ${state.tapes.length} 磁带 · ${state.entries.length} 段落 · ${state.vocabulary.length} 词`;
 }
 
 function syncInput() {
@@ -321,20 +361,30 @@ function renderSentences() {
       selectedWord.element = replacement;
     }
   }
+
+  renderPlaybackControls();
 }
 
 function createSentenceRow(sentence, index) {
   const row = el("div", "sentence-row");
   row.dataset.index = String(index);
+  row.dataset.playbackKey = `sentence:${index}`;
 
   const playButton = el("button", "icon-button sentence-play play-trigger");
   playButton.type = "button";
   playButton.title = `播放第 ${index + 1} 句`;
   playButton.setAttribute("aria-label", `播放第 ${index + 1} 句`);
+  playButton.dataset.playbackKey = row.dataset.playbackKey;
   playButton.innerHTML = icons.speaker;
   playButton.addEventListener("click", () => {
-    recordPracticeIfEntry();
-    playItems([{ text: sentence, element: row, label: `第 ${index + 1} 句` }]);
+    const key = row.dataset.playbackKey;
+    if (!isActivePlayback(key)) {
+      recordPracticeIfEntry();
+    }
+    togglePlayback([{ text: sentence, element: row, label: `第 ${index + 1} 句` }], {
+      key,
+      label: `第 ${index + 1} 句`
+    });
   });
 
   const text = el("p", "sentence-text");
@@ -410,13 +460,17 @@ function renderWordPanel() {
     elements.wordToggleBtn.querySelector("span").textContent = vocab.status === "got" ? "new" : "got";
   }
 
+  renderWordPlayButton();
   window.requestAnimationFrame(positionWordPanel);
 }
 
 function handleWordClick(word, element) {
   selectedWord = { raw: word, normalized: normalizeWord(word), info: resolveWordInfo(word), element };
   renderWordPanel();
-  playItems([{ text: word, element, label: word, lang: "fr-FR", forceFrench: true }]);
+  playItems(
+    [{ text: word, element, label: word, lang: "fr-FR", forceFrench: true }],
+    { key: `word:${selectedWord.normalized}`, label: word }
+  );
 }
 
 function positionWordPanel() {
@@ -493,15 +547,25 @@ function createAlbumCard(album) {
   const card = el("article", "album-card");
   card.style.background = `linear-gradient(135deg, ${album.coverColor}, rgba(18, 21, 20, 0.86))`;
   card.classList.toggle("is-selected", state.ui.selectedAlbumId === album.id);
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `选择专辑 ${album.title}`);
+  card.addEventListener("click", (event) => {
+    if (event.target.closest(".row-actions")) return;
+    selectAlbum(album.id);
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.target.closest(".row-actions")) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectAlbum(album.id);
+    }
+  });
 
   const button = el("button", "album-button");
   button.type = "button";
   button.addEventListener("click", () => {
-    state.ui.selectedAlbumId = album.id;
-    const firstTape = getTapes(album.id)[0];
-    state.ui.selectedTapeId = firstTape?.id || null;
-    persist();
-    renderLibrary();
+    selectAlbum(album.id);
   });
 
   const title = el("h3", "", album.title);
@@ -520,6 +584,14 @@ function createAlbumCard(album) {
 
   card.append(button, meta, actions);
   return card;
+}
+
+function selectAlbum(albumId) {
+  state.ui.selectedAlbumId = albumId;
+  const firstTape = getTapes(albumId)[0];
+  state.ui.selectedTapeId = firstTape?.id || null;
+  persist();
+  renderLibrary();
 }
 
 function renderLibraryDetail() {
@@ -622,21 +694,79 @@ function createEntrySection() {
   return wrap;
 }
 
+function renderWordbooks() {
+  elements.wordbookShelf.replaceChildren();
+  const books = [...SYSTEM_WORDBOOKS, ...state.wordbooks];
+  books.forEach((book) => {
+    elements.wordbookShelf.append(createWordbookCard(book));
+  });
+
+  const selected = getWordbook(state.ui.selectedWordbookId);
+  elements.selectedWordbookLine.textContent = selected
+    ? `${selected.title} · ${vocabularyForWordbook(selected.id).length} 词`
+    : `all · ${state.vocabulary.length} 词`;
+}
+
+function createWordbookCard(book) {
+  const count = vocabularyForWordbook(book.id).length;
+  const card = el("article", `wordbook-card${isSystemWordbook(book.id) ? " is-system" : ""}`);
+  card.classList.toggle("is-selected", state.ui.selectedWordbookId === book.id);
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `选择单词本 ${book.title}`);
+
+  const select = () => {
+    state.ui.selectedWordbookId = book.id;
+    persist();
+    renderWordbooks();
+    renderVocab();
+  };
+  card.addEventListener("click", (event) => {
+    if (event.target.closest(".row-actions")) return;
+    select();
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.target.closest(".row-actions")) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      select();
+    }
+  });
+
+  const title = el("h3", "", book.title);
+  const description = el("p", "", book.description || " ");
+  const meta = el("span", "badge", `${count} 词`);
+  card.append(title, description, meta);
+
+  if (!isSystemWordbook(book.id)) {
+    const actions = el("div", "row-actions");
+    actions.append(
+      miniButton("编辑", () => openWordbookDialog(book.id)),
+      miniButton("删除", () => deleteWordbook(book.id))
+    );
+    card.append(actions);
+  }
+
+  return card;
+}
+
 function renderVocab() {
   const query = normalizeWord(elements.vocabSearch.value || "");
   const items = state.vocabulary
+    .filter((item) => vocabularyMatchesWordbook(item, state.ui.selectedWordbookId))
     .filter((item) => {
       if (!query) return true;
-      return normalizeWord(`${item.word} ${item.lemma || ""} ${item.ipa} ${item.zh} ${seenFormsText(item)}`).includes(query);
+      return normalizeWord(`${item.word} ${item.lemma || ""} ${item.ipa} ${item.zh} ${seenFormsText(item)} ${wordbookNamesText(item)}`).includes(query);
     })
     .sort((a, b) => a.word.localeCompare(b.word, "fr"));
 
+  const selected = getWordbook(state.ui.selectedWordbookId);
   const gotCount = state.vocabulary.filter((item) => item.status === "got").length;
-  elements.vocabStats.textContent = `${state.vocabulary.length} 词 · ${gotCount} got`;
+  elements.vocabStats.textContent = `${items.length} / ${state.vocabulary.length} 词 · ${gotCount} got`;
   elements.vocabList.replaceChildren();
 
   if (items.length === 0) {
-    elements.vocabList.append(emptyState("还没有单词"));
+    elements.vocabList.append(emptyState(selected ? `${selected.title} 里还没有单词` : "还没有单词"));
     return;
   }
 
@@ -646,14 +776,21 @@ function renderVocab() {
     const word = el("div", "vocab-word");
     word.append(el("strong", "", item.word), el("span", "", item.ipa || "音标待补充"), el("span", "badge", item.status));
     const forms = seenFormsText(item);
+    const books = wordbookNamesText(item);
     body.append(word, el("p", "", item.zh || "释义待补充"));
     if (forms) {
       body.append(el("p", "", `见过：${forms}`));
     }
+    if (books) {
+      body.append(el("p", "", `词本：${books}`));
+    }
 
     const actions = el("div", "row-actions");
     actions.append(
-      miniButton("播放", () => playItems([{ text: item.word, element: card, label: item.word, forceFrench: true }])),
+      miniButton("播放", () => togglePlayback(
+        [{ text: item.word, element: card, label: item.word, forceFrench: true }],
+        { key: `word:${item.normalized}`, label: item.word }
+      )),
       miniButton(item.status === "got" ? "new" : "got", () => toggleVocabularyStatus(item.id)),
       miniButton("编辑", () => openVocabDialog(item.id)),
       miniButton("删除", () => deleteVocabulary(item.id))
@@ -664,20 +801,33 @@ function renderVocab() {
   });
 }
 
-async function playAllSentences() {
+function toggleAllSentences() {
   const rows = Array.from(elements.sentenceList.querySelectorAll(".sentence-row"));
   const items = sentences.map((sentence, index) => ({
     text: sentence,
     element: rows[index],
     label: `第 ${index + 1} 句`
   }));
-  if (items.length > 0) {
+  if (items.length > 0 && !isActivePlayback("reader:all")) {
     recordPracticeIfEntry();
   }
-  await playItems(items);
+  togglePlayback(items, { key: "reader:all", label: "全文" });
 }
 
-async function playItems(items) {
+function togglePlayback(items, options = {}) {
+  const key = options.key || playbackKeyForItems(items);
+  if (playback.key === key && playback.status === "playing") {
+    pauseSpeech();
+    return;
+  }
+  if (playback.key === key && playback.status === "paused") {
+    resumeSpeech();
+    return;
+  }
+  playItems(items, { ...options, key });
+}
+
+async function playItems(items, options = {}) {
   const playableItems = items.filter((item) => item?.text?.trim());
   if (playableItems.length === 0) return;
 
@@ -687,14 +837,20 @@ async function playItems(items) {
   }
 
   const token = ++runToken;
+  const key = options.key || playbackKeyForItems(playableItems);
+  const label = options.label || playableItems[0]?.label || "朗读";
   window.speechSynthesis.cancel();
   clearActive();
+  playback = { status: "playing", key, label, token };
   setBusy(true);
+  renderPlaybackControls();
 
   try {
     for (const item of playableItems) {
       if (token !== runToken) break;
       markActive(item.element);
+      playback.label = item.label || label;
+      renderPlaybackControls();
       setStatus(`正在播放：${item.label}`);
 
       const repeat = getRepeat();
@@ -709,9 +865,20 @@ async function playItems(items) {
     if (token === runToken) {
       clearActive();
       setBusy(false);
+      playback = { status: "idle", key: "", label: "", token: 0 };
+      renderPlaybackControls();
       setStatus("播放完成");
     }
   }
+}
+
+function playbackKeyForItems(items) {
+  const first = items.find((item) => item?.text?.trim());
+  return first ? `text:${normalizeWord(first.text).slice(0, 32)}:${items.length}` : "empty";
+}
+
+function isActivePlayback(key) {
+  return playback.key === key && (playback.status === "playing" || playback.status === "paused");
 }
 
 function speakOnce(text, token, options = {}) {
@@ -739,7 +906,21 @@ function speakOnce(text, token, options = {}) {
     utterance.onerror = finish;
 
     const estimatedMs = Math.max(2400, (text.length * 95) / Math.max(0.5, utterance.rate) + 1600);
-    const fallbackTimer = window.setTimeout(finish, estimatedMs);
+    let fallbackTimer = 0;
+    const scheduleFallback = () => {
+      fallbackTimer = window.setTimeout(() => {
+        if (token !== runToken) {
+          finish();
+          return;
+        }
+        if (playback.status === "paused") {
+          scheduleFallback();
+          return;
+        }
+        finish();
+      }, estimatedMs);
+    };
+    scheduleFallback();
 
     if (token === runToken) {
       window.speechSynthesis.speak(utterance);
@@ -749,6 +930,22 @@ function speakOnce(text, token, options = {}) {
   });
 }
 
+function pauseSpeech() {
+  if (!canSpeak() || playback.status !== "playing") return;
+  window.speechSynthesis.pause();
+  playback.status = "paused";
+  renderPlaybackControls();
+  setStatus(`已暂停：${playback.label}`);
+}
+
+function resumeSpeech() {
+  if (!canSpeak() || playback.status !== "paused") return;
+  playback.status = "playing";
+  window.speechSynthesis.resume();
+  renderPlaybackControls();
+  setStatus(`继续播放：${playback.label}`);
+}
+
 function stopSpeech() {
   runToken += 1;
   if (canSpeak()) {
@@ -756,12 +953,36 @@ function stopSpeech() {
   }
   clearActive();
   setBusy(false);
+  playback = { status: "idle", key: "", label: "", token: 0 };
+  renderPlaybackControls();
   setStatus("已停止");
 }
 
 function pause(milliseconds, token) {
   return new Promise((resolve) => {
-    window.setTimeout(() => resolve(), token === runToken ? milliseconds : 0);
+    let remaining = milliseconds;
+    let lastTick = Date.now();
+    const tick = () => {
+      if (token !== runToken) {
+        resolve();
+        return;
+      }
+      if (playback.status === "paused") {
+        lastTick = Date.now();
+        window.setTimeout(tick, 120);
+        return;
+      }
+
+      const now = Date.now();
+      remaining -= now - lastTick;
+      lastTick = now;
+      if (remaining <= 0) {
+        resolve();
+        return;
+      }
+      window.setTimeout(tick, Math.min(120, remaining));
+    };
+    tick();
   });
 }
 
@@ -878,6 +1099,46 @@ function openTapeDialog(tapeId, albumId = state.ui.selectedAlbumId) {
   });
 }
 
+function openWordbookDialog(wordbookId) {
+  const wordbook = state.wordbooks.find((item) => item.id === wordbookId);
+  openDialog({
+    title: wordbook ? "编辑单词本" : "新建单词本",
+    submitText: wordbook ? "更新" : "创建",
+    fields: [
+      { name: "title", label: "名称", type: "text", value: wordbook?.title || "", required: true },
+      { name: "description", label: "描述", type: "textarea", value: wordbook?.description || "" }
+    ],
+    onSubmit(values) {
+      if (wordbook) {
+        wordbook.title = values.title.trim();
+        wordbook.description = values.description.trim();
+        wordbook.updatedAt = nowIso();
+      } else {
+        const created = createWordbook(values.title, values.description);
+        state.ui.selectedWordbookId = created.id;
+      }
+      persist();
+      renderWordbooks();
+      renderVocab();
+    }
+  });
+}
+
+function deleteWordbook(wordbookId) {
+  const wordbook = state.wordbooks.find((item) => item.id === wordbookId);
+  if (!wordbook || !window.confirm(`删除单词本「${wordbook.title}」？`)) return;
+  state.wordbooks = state.wordbooks.filter((item) => item.id !== wordbookId);
+  state.vocabulary.forEach((item) => {
+    item.wordbookIds = (item.wordbookIds || []).filter((id) => id !== wordbookId);
+  });
+  if (state.ui.selectedWordbookId === wordbookId) {
+    state.ui.selectedWordbookId = ALL_WORDBOOK_ID;
+  }
+  persist();
+  renderWordbooks();
+  renderVocab();
+}
+
 function openEntryDialog(entryId, tapeId = state.ui.selectedTapeId) {
   const entry = getEntry(entryId);
   openDialog({
@@ -909,6 +1170,11 @@ function openEntryDialog(entryId, tapeId = state.ui.selectedTapeId) {
 function openVocabDialog(vocabId) {
   const item = getVocabulary(vocabId);
   const seed = item || (selectedWord ? buildVocabularyItem(selectedWord.raw) : null);
+  const currentWordbook = item?.wordbookIds?.[0] || selectedCustomWordbookId();
+  const wordbookOptions = [
+    { value: "", label: "不放入自定义单词本" },
+    ...state.wordbooks.map((wordbook) => ({ value: wordbook.id, label: wordbook.title }))
+  ];
   openDialog({
     title: item ? "编辑单词" : "新建单词",
     submitText: item ? "更新" : "创建",
@@ -916,6 +1182,7 @@ function openVocabDialog(vocabId) {
       { name: "word", label: "法语词", type: "text", value: seed?.word || "", required: true },
       { name: "ipa", label: "音标", type: "text", value: seed?.ipa || "" },
       { name: "zh", label: "中文释义", type: "textarea", value: seed?.zh || "" },
+      { name: "wordbookId", label: "自定义单词本", type: "select", value: currentWordbook, options: wordbookOptions },
       {
         name: "status",
         label: "状态",
@@ -931,6 +1198,7 @@ function openVocabDialog(vocabId) {
     onSubmit(values) {
       const info = resolveWordInfo(values.word);
       if (!info.lemma) return false;
+      const wordbookIds = values.wordbookId ? [values.wordbookId] : [];
 
       const existing = state.vocabulary.find((word) => word.normalized === info.lemma && word.id !== item?.id);
       if (existing) {
@@ -940,6 +1208,7 @@ function openVocabDialog(vocabId) {
         existing.ipa = values.ipa.trim();
         existing.zh = values.zh.trim();
         existing.status = values.status;
+        existing.wordbookIds = wordbookIds;
         trackSeenForm(existing, values.word);
         existing.updatedAt = nowIso();
       } else if (item) {
@@ -949,6 +1218,7 @@ function openVocabDialog(vocabId) {
         item.ipa = values.ipa.trim();
         item.zh = values.zh.trim();
         item.status = values.status;
+        item.wordbookIds = wordbookIds;
         trackSeenForm(item, values.word);
         item.updatedAt = nowIso();
       } else {
@@ -960,12 +1230,14 @@ function openVocabDialog(vocabId) {
           ipa: values.ipa.trim(),
           zh: values.zh.trim(),
           status: values.status,
+          wordbookIds,
           seenForms: [{ form: values.word.trim(), normalized: normalizeWord(values.word), count: 1 }],
           createdAt: nowIso(),
           updatedAt: nowIso()
         });
       }
       persist();
+      renderWordbooks();
       renderVocab();
       renderSentences();
       renderWordPanel();
@@ -1109,6 +1381,19 @@ function createEntry(tapeId, title, text, notes = "") {
   return entry;
 }
 
+function createWordbook(title, description = "") {
+  const timestamp = nowIso();
+  const wordbook = {
+    id: makeId("wordbook"),
+    title: title.trim(),
+    description: description.trim(),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+  state.wordbooks.push(wordbook);
+  return wordbook;
+}
+
 function deleteAlbum(albumId) {
   const album = getAlbum(albumId);
   if (!album || !window.confirm(`删除专辑「${album.title}」？`)) return;
@@ -1167,6 +1452,10 @@ function recordPracticeIfEntry() {
 function addWordToVocabulary(rawWord) {
   const item = ensureVocabularyItem(rawWord);
   trackSeenForm(item, rawWord);
+  const selectedBookId = selectedCustomWordbookId();
+  if (selectedBookId) {
+    addVocabularyToWordbook(item, selectedBookId);
+  }
   return item;
 }
 
@@ -1189,10 +1478,20 @@ function buildVocabularyItem(rawWord) {
     ipa: hint?.ipa || "",
     zh: hint?.zh || "",
     status: "new",
+    wordbookIds: selectedCustomWordbookId() ? [selectedCustomWordbookId()] : [],
     seenForms: [{ form: rawWord.trim(), normalized: info.normalized, count: 1 }],
     createdAt: nowIso(),
     updatedAt: nowIso()
   };
+}
+
+function addVocabularyToWordbook(item, wordbookId) {
+  if (!wordbookId) return;
+  if (!Array.isArray(item.wordbookIds)) item.wordbookIds = [];
+  if (!item.wordbookIds.includes(wordbookId)) {
+    item.wordbookIds.push(wordbookId);
+    item.updatedAt = nowIso();
+  }
 }
 
 function toggleVocabularyStatus(vocabId) {
@@ -1201,6 +1500,7 @@ function toggleVocabularyStatus(vocabId) {
   item.status = item.status === "got" ? "new" : "got";
   item.updatedAt = nowIso();
   persist();
+  renderWordbooks();
   renderVocab();
   renderSentences();
   renderWordPanel();
@@ -1214,6 +1514,7 @@ function deleteVocabulary(vocabId) {
     selectedWord = null;
   }
   persist();
+  renderWordbooks();
   renderVocab();
   renderSentences();
   renderWordPanel();
@@ -1226,6 +1527,51 @@ function findVocabulary(rawWord) {
 
 function getVocabulary(vocabId) {
   return state.vocabulary.find((item) => item.id === vocabId) || null;
+}
+
+function getWordbook(wordbookId) {
+  return SYSTEM_WORDBOOKS.find((book) => book.id === wordbookId)
+    || state.wordbooks.find((book) => book.id === wordbookId)
+    || null;
+}
+
+function isSystemWordbook(wordbookId) {
+  return SYSTEM_WORDBOOKS.some((book) => book.id === wordbookId);
+}
+
+function isKnownWordbookId(wordbookId) {
+  return isSystemWordbook(wordbookId) || state.wordbooks.some((book) => book.id === wordbookId);
+}
+
+function vocabularyForWordbook(wordbookId) {
+  return state.vocabulary.filter((item) => vocabularyMatchesWordbook(item, wordbookId));
+}
+
+function vocabularyMatchesWordbook(item, wordbookId) {
+  if (!wordbookId || wordbookId === ALL_WORDBOOK_ID) return true;
+  if (wordbookId === NEW_WORDBOOK_ID) return item.status !== "got";
+  if (wordbookId === GOT_WORDBOOK_ID) return item.status === "got";
+  if (wordbookId === DIY_WORDBOOK_ID) return isDiyVocabulary(item);
+  return Array.isArray(item.wordbookIds) && item.wordbookIds.includes(wordbookId);
+}
+
+function isDiyVocabulary(item) {
+  return !String(item.ipa || "").trim() || !String(item.zh || "").trim();
+}
+
+function wordbookNamesText(item) {
+  const names = [];
+  if (isDiyVocabulary(item)) names.push("DIY");
+  (item.wordbookIds || []).forEach((id) => {
+    const book = state.wordbooks.find((wordbook) => wordbook.id === id);
+    if (book) names.push(book.title);
+  });
+  return names.join("、");
+}
+
+function selectedCustomWordbookId() {
+  const selected = state.ui.selectedWordbookId;
+  return state.wordbooks.some((book) => book.id === selected) ? selected : "";
 }
 
 function lookupLexicon(rawWord) {
@@ -1370,6 +1716,10 @@ function ensureSelections() {
   if (selectedTape && selectedTape.albumId !== state.ui.selectedAlbumId) {
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
   }
+
+  if (!isKnownWordbookId(state.ui.selectedWordbookId)) {
+    state.ui.selectedWordbookId = ALL_WORDBOOK_ID;
+  }
 }
 
 function ensureLibraryForSave() {
@@ -1492,9 +1842,81 @@ function canSpeak() {
 }
 
 function setBusy(isBusy) {
-  document.querySelectorAll(".play-trigger").forEach((button) => {
-    button.disabled = isBusy;
+  document.body.classList.toggle("is-playing", isBusy);
+}
+
+function renderPlaybackControls() {
+  renderReaderPlayButton();
+  renderSentencePlayButtons();
+  renderWordPlayButton();
+}
+
+function renderReaderPlayButton() {
+  const key = "reader:all";
+  if (playback.key === key && playback.status === "playing") {
+    setButtonContent(elements.playAllReader, "pause", "暂停");
+    elements.playAllReader.title = "暂停全文";
+    elements.playAllReader.setAttribute("aria-label", "暂停全文");
+  } else if (playback.key === key && playback.status === "paused") {
+    setButtonContent(elements.playAllReader, "play", "继续");
+    elements.playAllReader.title = "继续全文";
+    elements.playAllReader.setAttribute("aria-label", "继续全文");
+  } else {
+    setButtonContent(elements.playAllReader, "play", "全文");
+    elements.playAllReader.title = "播放全文";
+    elements.playAllReader.setAttribute("aria-label", "播放全文");
+  }
+
+  elements.stopReader.disabled = playback.status === "idle";
+}
+
+function renderSentencePlayButtons() {
+  elements.sentenceList.querySelectorAll(".sentence-play").forEach((button) => {
+    const key = button.dataset.playbackKey;
+    const row = button.closest(".sentence-row");
+    const index = Number(row?.dataset.index || 0) + 1;
+    if (playback.key === key && playback.status === "playing") {
+      button.innerHTML = icons.pause;
+      button.title = `暂停第 ${index} 句`;
+      button.setAttribute("aria-label", `暂停第 ${index} 句`);
+    } else if (playback.key === key && playback.status === "paused") {
+      button.innerHTML = icons.play;
+      button.title = `继续第 ${index} 句`;
+      button.setAttribute("aria-label", `继续第 ${index} 句`);
+    } else {
+      button.innerHTML = icons.speaker;
+      button.title = `播放第 ${index} 句`;
+      button.setAttribute("aria-label", `播放第 ${index} 句`);
+    }
   });
+}
+
+function renderWordPlayButton() {
+  if (!selectedWord) {
+    elements.wordPlayBtn.innerHTML = icons.speaker;
+    return;
+  }
+
+  const key = `word:${selectedWord.normalized}`;
+  if (playback.key === key && playback.status === "playing") {
+    elements.wordPlayBtn.innerHTML = icons.pause;
+    elements.wordPlayBtn.title = "暂停单词";
+    elements.wordPlayBtn.setAttribute("aria-label", "暂停单词");
+  } else if (playback.key === key && playback.status === "paused") {
+    elements.wordPlayBtn.innerHTML = icons.play;
+    elements.wordPlayBtn.title = "继续单词";
+    elements.wordPlayBtn.setAttribute("aria-label", "继续单词");
+  } else {
+    elements.wordPlayBtn.innerHTML = icons.speaker;
+    elements.wordPlayBtn.title = "播放单词";
+    elements.wordPlayBtn.setAttribute("aria-label", "播放单词");
+  }
+}
+
+function setButtonContent(button, iconName, label) {
+  button.replaceChildren();
+  button.insertAdjacentHTML("beforeend", icons[iconName] || "");
+  button.append(el("span", "", label));
 }
 
 function setStatus(text) {
@@ -1502,12 +1924,26 @@ function setStatus(text) {
 }
 
 function exportData() {
-  const payload = JSON.stringify(state, null, 2);
+  downloadJson(state, `oofr-backup-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+function exportWordbooks() {
+  const payload = {
+    type: "oofr.wordbooks.v1",
+    exportedAt: nowIso(),
+    wordbooks: state.wordbooks,
+    vocabulary: state.vocabulary
+  };
+  downloadJson(payload, `oofr-wordbooks-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+function downloadJson(data, filename) {
+  const payload = JSON.stringify(data, null, 2);
   const blob = new Blob([payload], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `oofr-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.download = filename;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
@@ -1532,6 +1968,49 @@ function importData(event) {
       setStatus("导入失败");
     } finally {
       elements.importFile.value = "";
+    }
+  });
+  reader.readAsText(file);
+}
+
+function importWordbooks(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      const imported = JSON.parse(String(reader.result || "{}"));
+      const incomingWordbooks = normalizeWordbookList(imported.wordbooks || []);
+      const incomingVocabulary = Array.isArray(imported.vocabulary)
+        ? normalizeVocabularyList(imported.vocabulary)
+        : [];
+
+      incomingWordbooks.forEach((wordbook) => {
+        const existing = state.wordbooks.find((item) => item.id === wordbook.id);
+        if (existing) {
+          existing.title = wordbook.title;
+          existing.description = wordbook.description;
+          existing.updatedAt = nowIso();
+        } else {
+          state.wordbooks.push(wordbook);
+        }
+      });
+
+      state.vocabulary = normalizeVocabularyList([...state.vocabulary, ...incomingVocabulary]);
+      state.vocabulary.forEach((item) => {
+        item.wordbookIds = validWordbookIds(item.wordbookIds);
+      });
+      ensureSelections();
+      persist();
+      renderWordbooks();
+      renderVocab();
+      renderSentences();
+      setStatus("单词本导入完成");
+    } catch {
+      setStatus("单词本导入失败");
+    } finally {
+      elements.wordbookImportFile.value = "";
     }
   });
   reader.readAsText(file);
@@ -1564,9 +2043,10 @@ function ensureStateShape(raw) {
     currentText: String(stateLike.currentText || fallback.currentText),
     activeEntryId: stateLike.activeEntryId || null,
     ui: {
-      activeView: ["reader", "library", "vocab"].includes(stateLike.ui?.activeView) ? stateLike.ui.activeView : "reader",
+      activeView: ["reader", "library", "vocab", "my"].includes(stateLike.ui?.activeView) ? stateLike.ui.activeView : "reader",
       selectedAlbumId: stateLike.ui?.selectedAlbumId || null,
-      selectedTapeId: stateLike.ui?.selectedTapeId || null
+      selectedTapeId: stateLike.ui?.selectedTapeId || null,
+      selectedWordbookId: stateLike.ui?.selectedWordbookId || ALL_WORDBOOK_ID
     },
     settings: {
       ...fallback.settings,
@@ -1575,6 +2055,7 @@ function ensureStateShape(raw) {
     albums: Array.isArray(stateLike.albums) ? stateLike.albums.map(normalizeAlbum).filter(Boolean) : [],
     tapes: Array.isArray(stateLike.tapes) ? stateLike.tapes.map(normalizeTape).filter(Boolean) : [],
     entries: Array.isArray(stateLike.entries) ? stateLike.entries.map(normalizeEntry).filter(Boolean) : [],
+    wordbooks: Array.isArray(stateLike.wordbooks) ? normalizeWordbookList(stateLike.wordbooks) : [],
     vocabulary: Array.isArray(stateLike.vocabulary) ? normalizeVocabularyList(stateLike.vocabulary) : []
   };
 
@@ -1584,6 +2065,9 @@ function ensureStateShape(raw) {
 
   next.tapes = next.tapes.filter((tape) => next.albums.some((album) => album.id === tape.albumId));
   next.entries = next.entries.filter((entry) => next.tapes.some((tape) => tape.id === entry.tapeId));
+  next.vocabulary.forEach((item) => {
+    item.wordbookIds = validWordbookIds(item.wordbookIds, next.wordbooks);
+  });
   return next;
 }
 
@@ -1608,7 +2092,8 @@ function createStarterState(legacy) {
     ui: {
       activeView: "reader",
       selectedAlbumId: albumId,
-      selectedTapeId: tapeId
+      selectedTapeId: tapeId,
+      selectedWordbookId: ALL_WORDBOOK_ID
     },
     settings,
     albums: [
@@ -1644,6 +2129,7 @@ function createStarterState(legacy) {
         updatedAt: timestamp
       }
     ],
+    wordbooks: [],
     vocabulary: []
   };
 }
@@ -1687,6 +2173,27 @@ function normalizeEntry(entry) {
   };
 }
 
+function normalizeWordbookList(items) {
+  const byId = new Map();
+  items.map(normalizeWordbook).filter(Boolean).forEach((wordbook) => {
+    if (!byId.has(wordbook.id)) {
+      byId.set(wordbook.id, wordbook);
+    }
+  });
+  return Array.from(byId.values());
+}
+
+function normalizeWordbook(wordbook) {
+  if (!wordbook?.title || isSystemWordbook(wordbook.id)) return null;
+  return {
+    id: wordbook.id ? String(wordbook.id) : makeId("wordbook"),
+    title: String(wordbook.title).trim(),
+    description: String(wordbook.description || ""),
+    createdAt: wordbook.createdAt || nowIso(),
+    updatedAt: wordbook.updatedAt || nowIso()
+  };
+}
+
 function normalizeVocabularyList(items) {
   const byLemma = new Map();
   items.map(normalizeVocabulary).filter(Boolean).forEach((item) => {
@@ -1698,6 +2205,7 @@ function normalizeVocabularyList(items) {
     existing.status = existing.status === "got" || item.status === "got" ? "got" : "new";
     existing.ipa = existing.ipa || item.ipa;
     existing.zh = existing.zh || item.zh;
+    existing.wordbookIds = mergeWordbookIds(existing.wordbookIds, item.wordbookIds);
     existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
     existing.updatedAt = item.updatedAt > existing.updatedAt ? item.updatedAt : existing.updatedAt;
   });
@@ -1722,10 +2230,27 @@ function normalizeVocabulary(item) {
     ipa: String(item.ipa || hint?.ipa || ""),
     zh: String(item.zh || hint?.zh || ""),
     status: item.status === "got" ? "got" : "new",
+    wordbookIds: cleanWordbookIds([
+      ...(Array.isArray(item.wordbookIds) ? item.wordbookIds : []),
+      ...(item.wordbookId ? [item.wordbookId] : [])
+    ]),
     seenForms,
     createdAt: item.createdAt || nowIso(),
     updatedAt: item.updatedAt || nowIso()
   };
+}
+
+function validWordbookIds(ids = [], wordbooks = state?.wordbooks || []) {
+  const valid = new Set(wordbooks.map((wordbook) => wordbook.id));
+  return cleanWordbookIds(ids).filter((id) => valid.has(id));
+}
+
+function cleanWordbookIds(ids = []) {
+  return Array.from(new Set(ids.map(String).filter(Boolean).filter((id) => !isSystemWordbook(id))));
+}
+
+function mergeWordbookIds(left = [], right = []) {
+  return Array.from(new Set([...left, ...right].filter(Boolean).map(String)));
 }
 
 function normalizeSeenForm(entry) {
@@ -1769,6 +2294,7 @@ async function readJson(key) {
 }
 
 function persist() {
+  renderMy();
   storageDriver.setLocal(APP_STORAGE_KEY, state).catch(() => {
     setStatus("保存失败");
   });

@@ -579,6 +579,7 @@ input[type="range"] {
   color: var(--paper);
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 }
 
 .album-card::after {
@@ -592,6 +593,11 @@ input[type="range"] {
 }
 
 .album-card.is-selected {
+  outline: 4px solid var(--yellow);
+  outline-offset: 3px;
+}
+
+.album-card:focus-visible {
   outline: 4px solid var(--yellow);
   outline-offset: 3px;
 }
@@ -740,6 +746,52 @@ input[type="range"] {
   margin-bottom: 16px;
 }
 
+.wordbook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.wordbook-card,
+.my-panel {
+  border: 2px solid var(--dark);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 6px 6px 0 rgba(18, 21, 20, 0.88);
+}
+
+.wordbook-card {
+  min-height: 118px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 13px;
+  cursor: pointer;
+}
+
+.wordbook-card.is-system {
+  background:
+    linear-gradient(135deg, rgba(242, 200, 75, 0.26), transparent 72%),
+    var(--paper);
+}
+
+.wordbook-card.is-selected {
+  outline: 4px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.wordbook-card:focus-visible {
+  outline: 4px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.wordbook-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .vocab-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -770,6 +822,33 @@ input[type="range"] {
 .vocab-word span {
   color: var(--teal-deep);
   font-weight: 850;
+}
+
+.my-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.my-panel {
+  padding: 16px;
+}
+
+.my-panel [data-icon] svg {
+  width: 22px;
+  height: 22px;
+}
+
+.contact-line {
+  margin-top: 9px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.contact-line a {
+  color: var(--teal-deep);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .badge {
@@ -908,7 +987,9 @@ input[type="range"] {
 
   .nav-button {
     min-height: 42px;
-    padding: 0 8px;
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 0.92rem;
   }
 
   .sentence-row {
@@ -932,6 +1013,11 @@ input[type="range"] {
 
   .vocab-toolbar {
     grid-template-columns: 1fr auto;
+  }
+
+  .wordbook-grid,
+  .my-grid {
+    grid-template-columns: 1fr;
   }
 
   .vocab-toolbar .field-label {
