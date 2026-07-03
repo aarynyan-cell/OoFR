@@ -7,7 +7,7 @@
     <title>OoFR 法语发音练习器</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.6.0">
+    <link rel="stylesheet" href="./styles.css?v=0.7.0">
   </head>
   <body>
     <div class="app-shell">
@@ -22,7 +22,7 @@
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR · v0.6</p>
+            <p class="eyebrow">OoFR · v0.7</p>
             <h1>法语发音练习器</h1>
           </div>
         </div>
@@ -50,32 +50,66 @@
       <main>
         <section id="readerView" class="view is-active" aria-labelledby="readerTitle">
           <div class="reader-grid">
-            <section class="deck-panel" aria-labelledby="readerTitle">
-              <div class="panel-title-row">
-                <div>
-                  <p class="eyebrow">Lecture</p>
-                  <h2 id="readerTitle">朗读</h2>
-                  <p id="activeEntryLine" class="micro-copy">临时练习草稿</p>
+            <div class="reader-main">
+              <section class="deck-panel" aria-labelledby="readerTitle">
+                <div class="panel-title-row">
+                  <div>
+                    <p class="eyebrow">Lecture</p>
+                    <h2 id="readerTitle">朗读</h2>
+                    <p id="activeEntryLine" class="micro-copy">临时练习草稿</p>
+                  </div>
+                  <span id="textStats" class="stat-pill">0 句</span>
                 </div>
-                <span id="textStats" class="stat-pill">0 句</span>
-              </div>
 
-              <label class="field-label" for="frenchInput">法语文字</label>
-              <textarea id="frenchInput" lang="fr" spellcheck="false"></textarea>
+                <label class="field-label" for="frenchInput">法语文字</label>
+                <textarea id="frenchInput" lang="fr" spellcheck="false"></textarea>
 
-              <div class="action-row">
-                <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
-                  <span>全文</span>
-                </button>
-                <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
-                <button id="saveEntryBtn" class="command-button" type="button" data-icon="save">
-                  <span>保存</span>
-                </button>
-                <button id="refreshBtn" class="icon-button play-trigger" type="button" title="刷新分句" aria-label="刷新分句" data-icon="refresh"></button>
-                <button id="sampleBtn" class="icon-button" type="button" title="示例" aria-label="示例" data-icon="spark"></button>
-                <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
-              </div>
-            </section>
+                <div class="action-row">
+                  <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
+                    <span>全文</span>
+                  </button>
+                  <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
+                  <button id="saveEntryBtn" class="command-button" type="button" data-icon="save">
+                    <span>保存</span>
+                  </button>
+                  <button id="refreshBtn" class="icon-button play-trigger" type="button" title="刷新分句" aria-label="刷新分句" data-icon="refresh"></button>
+                  <button id="sampleBtn" class="icon-button" type="button" title="示例" aria-label="示例" data-icon="spark"></button>
+                  <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
+                </div>
+              </section>
+
+              <section class="reader-panel" aria-labelledby="sentenceTitle">
+                <div class="reader-title-row">
+                  <div>
+                    <p class="eyebrow">Phrases</p>
+                    <h2 id="sentenceTitle">朗读区</h2>
+                    <p id="statusLine" class="status-line" role="status">准备好了</p>
+                  </div>
+                </div>
+
+                <div id="wordPanel" class="word-panel" hidden>
+                  <div>
+                    <p class="eyebrow">Mot</p>
+                    <h3 id="wordPanelTitle"></h3>
+                    <p id="wordPanelMeta" class="micro-copy"></p>
+                  </div>
+                  <div class="word-actions">
+                    <button id="wordPlayBtn" class="icon-button play-trigger" type="button" title="播放单词" aria-label="播放单词" data-icon="speaker"></button>
+                    <button id="wordAddBtn" class="command-button" type="button" data-icon="plus">
+                      <span>加入</span>
+                    </button>
+                    <button id="wordToggleBtn" class="command-button" type="button" data-icon="check">
+                      <span>got</span>
+                    </button>
+                    <button id="wordEditBtn" class="icon-button" type="button" title="编辑" aria-label="编辑" data-icon="edit"></button>
+                    <button id="wordDeleteBtn" class="icon-button danger" type="button" title="删除" aria-label="删除" data-icon="trash"></button>
+                    <button id="wordPanelCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+                  </div>
+                </div>
+
+                <div id="sentenceList" class="sentence-list"></div>
+              </section>
+            </div>
 
             <aside class="console-panel" aria-labelledby="settingsTitle">
               <div class="panel-title-row compact">
@@ -117,38 +151,6 @@
 
             </aside>
           </div>
-
-          <section class="reader-panel" aria-labelledby="sentenceTitle">
-            <div class="reader-title-row">
-              <div>
-                <p class="eyebrow">Phrases</p>
-                <h2 id="sentenceTitle">朗读区</h2>
-                <p id="statusLine" class="status-line" role="status">准备好了</p>
-              </div>
-            </div>
-
-            <div id="wordPanel" class="word-panel" hidden>
-              <div>
-                <p class="eyebrow">Mot</p>
-                <h3 id="wordPanelTitle"></h3>
-                <p id="wordPanelMeta" class="micro-copy"></p>
-              </div>
-              <div class="word-actions">
-                <button id="wordPlayBtn" class="icon-button play-trigger" type="button" title="播放单词" aria-label="播放单词" data-icon="speaker"></button>
-                <button id="wordAddBtn" class="command-button" type="button" data-icon="plus">
-                  <span>加入</span>
-                </button>
-                <button id="wordToggleBtn" class="command-button" type="button" data-icon="check">
-                  <span>got</span>
-                </button>
-                <button id="wordEditBtn" class="icon-button" type="button" title="编辑" aria-label="编辑" data-icon="edit"></button>
-                <button id="wordDeleteBtn" class="icon-button danger" type="button" title="删除" aria-label="删除" data-icon="trash"></button>
-                <button id="wordPanelCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
-              </div>
-            </div>
-
-            <div id="sentenceList" class="sentence-list"></div>
-          </section>
         </section>
 
         <section id="libraryView" class="view" aria-labelledby="libraryTitle">
@@ -213,8 +215,20 @@
               <p class="eyebrow">Notice</p>
               <h3 id="noticeTitle">导入前先备份</h3>
             </div>
-            <p>完整数据导入会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置，导入后会变成文件里的版本。单词本导入只合并词条和自定义单词本，不会清空本地数据；遇到重复词时，可以选择保留本地 got/new 状态，或使用导入文件的状态。</p>
-            <p>换设备建议用完整数据备份；只交换生词、DIY 词或某个自定义单词本时，用单词本导入/导出更稳。导入任何新文件前，最好先导出一份当前数据留底。</p>
+            <ul class="notice-list">
+              <li>
+                <strong>完整数据导入</strong>
+                <span>会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置，导入后会变成文件里的版本。</span>
+              </li>
+              <li>
+                <strong>单词本导入</strong>
+                <span>只合并词条和自定义单词本，不会清空本地数据；重复词可以保留本地 got/new 状态，或使用导入文件状态。</span>
+              </li>
+              <li>
+                <strong>迁移建议</strong>
+                <span>换设备用完整数据备份；只交换生词、DIY 词或某个自定义单词本时，用单词本导入/导出。导入前先留一份备份。</span>
+              </li>
+            </ul>
           </section>
 
           <div class="my-grid">
@@ -244,7 +258,7 @@
                   <h3 id="wordbookBackupTitle">单词本</h3>
                 </div>
               </div>
-              <div class="split-actions">
+              <div class="wordbook-transfer">
                 <label class="compact-select">
                   <span class="field-label">范围</span>
                   <select id="wordbookExportScope"></select>
@@ -293,7 +307,7 @@
       </form>
     </dialog>
 
-    <script src="./lexicon.js?v=0.6.0"></script>
-    <script src="./app.js?v=0.6.0"></script>
+    <script src="./lexicon.js?v=0.7.0"></script>
+    <script src="./app.js?v=0.7.0"></script>
   </body>
 </html>

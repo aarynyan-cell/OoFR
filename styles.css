@@ -197,9 +197,15 @@ h3 {
 
 .reader-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(280px, 350px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
   gap: 18px;
   align-items: start;
+}
+
+.reader-main {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
 }
 
 .deck-panel,
@@ -228,7 +234,6 @@ h3 {
 }
 
 .reader-panel {
-  margin-top: 18px;
   padding: 18px;
   background: var(--paper);
 }
@@ -330,10 +335,6 @@ button:focus-visible {
 
 .action-row {
   margin-top: 14px;
-}
-
-.compact-select {
-  min-width: min(100%, 190px);
 }
 
 .command-button,
@@ -850,15 +851,59 @@ input[type="range"] {
   font-size: 1.15rem;
 }
 
-.notice-panel p:not(.eyebrow) {
+.notice-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  padding: 0;
+  margin: 0;
+}
+
+.notice-list li {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding-left: 13px;
+  border-left: 4px solid var(--orange);
+}
+
+.notice-list strong {
+  color: var(--dark);
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.notice-list span {
   color: var(--ink);
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   font-weight: 750;
   line-height: 1.55;
 }
 
 .my-panel {
   padding: 16px;
+}
+
+.wordbook-transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.compact-select {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.compact-select .field-label {
+  margin-bottom: 0;
+}
+
+.wordbook-transfer .command-button {
+  min-width: 98px;
 }
 
 .my-panel [data-icon] svg {
@@ -1006,6 +1051,22 @@ input[type="range"] {
   .library-layout {
     grid-template-columns: 1fr;
   }
+
+  .reader-main {
+    display: contents;
+  }
+
+  .deck-panel {
+    order: 1;
+  }
+
+  .console-panel {
+    order: 2;
+  }
+
+  .reader-panel {
+    order: 3;
+  }
 }
 
 @media (max-width: 620px) {
@@ -1026,6 +1087,11 @@ input[type="range"] {
     position: sticky;
     top: 8px;
     z-index: 5;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .nav-button {
@@ -1061,6 +1127,23 @@ input[type="range"] {
   .wordbook-grid,
   .my-grid {
     grid-template-columns: 1fr;
+  }
+
+  .notice-list {
+    grid-template-columns: 1fr;
+  }
+
+  .wordbook-transfer {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .compact-select {
+    grid-column: 1 / -1;
+  }
+
+  .wordbook-transfer .command-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .vocab-toolbar .field-label {

@@ -1,10 +1,10 @@
-const CACHE_NAME = "oofr-v0.6.0";
+const CACHE_NAME = "oofr-v0.7.0";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=0.6.0",
-  "./lexicon.js?v=0.6.0",
-  "./app.js?v=0.6.0",
+  "./styles.css?v=0.7.0",
+  "./lexicon.js?v=0.7.0",
+  "./app.js?v=0.7.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
