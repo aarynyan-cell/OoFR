@@ -17,6 +17,13 @@ OoFR includes a generated French-Chinese lexicon in `lexicon.js`.
 - License: MIT
 - Use in OoFR: French IPA pronunciations are used to fill entries that do not already include IPA.
 
+## Lexique 3.83
+
+- Source: Lexique 3.83, Boris New and Christophe Pallier
+- URL: `http://www.lexique.org/databases/Lexique383/Lexique383.tsv`
+- License: Creative Commons Attribution-ShareAlike
+- Use in OoFR: a compact subset of French word forms, lemmas, frequencies, and phonological forms is merged into the generated lexicon so common inflections such as `choisit` can be grouped under `choisir`.
+
 ## LEFFF
 
 - Source: LEFFF 3.4 via `ClaudeCoulombe/FrenchLefffLemmatizer`

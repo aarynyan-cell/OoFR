@@ -24,6 +24,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   min-height: 100%;
   background: var(--bg);
@@ -502,21 +506,38 @@ input[type="range"] {
 }
 
 .word-panel {
+  position: fixed;
+  z-index: 30;
+  width: min(470px, calc(100vw - 24px));
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  margin-bottom: 12px;
   padding: 13px;
   border: 2px solid var(--dark);
   border-radius: 8px;
   background:
     linear-gradient(90deg, rgba(242, 200, 75, 0.3), transparent),
     #fffefa;
+  box-shadow: 8px 8px 0 rgba(18, 21, 20, 0.88), var(--shadow);
 }
 
 .word-panel[hidden] {
   display: none;
+}
+
+.word-panel.is-bottom-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: 100%;
+  grid-template-columns: 1fr;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -14px 34px rgba(18, 21, 20, 0.22);
 }
 
 .section-heading {

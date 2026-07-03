@@ -6,8 +6,8 @@ const APP_STORAGE_KEY = "oofr.app.v1";
 const SYNC_STORAGE_KEY = "oofr.sync.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
-const EDGE_DEFAULT_VOICE = "Microsoft VivienneMultilingual Online (Natural) - French (France)";
 const CHROME_DEFAULT_VOICE = "Google français";
+const ELIDED_PREFIXES = new Set(["c", "d", "j", "l", "m", "n", "qu", "s", "t", "jusqu", "lorsqu", "puisqu"]);
 
 const icons = {
   album: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M5 3h14v18H5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 7h6M9 17h6"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>`,
@@ -62,6 +62,7 @@ const elements = {
   wordToggleBtn: document.querySelector("#wordToggleBtn"),
   wordEditBtn: document.querySelector("#wordEditBtn"),
   wordDeleteBtn: document.querySelector("#wordDeleteBtn"),
+  wordPanelCloseBtn: document.querySelector("#wordPanelCloseBtn"),
   newAlbumBtn: document.querySelector("#newAlbumBtn"),
   albumShelf: document.querySelector("#albumShelf"),
   libraryDetail: document.querySelector("#libraryDetail"),
@@ -190,7 +191,7 @@ function bindEvents() {
 
   elements.wordPlayBtn.addEventListener("click", () => {
     if (!selectedWord) return;
-    playItems([{ text: selectedWord.raw, element: selectedWord.element, label: selectedWord.raw }]);
+    playItems([{ text: selectedWord.raw, element: selectedWord.element, label: selectedWord.raw, lang: "fr-FR", forceFrench: true }]);
   });
 
   elements.wordAddBtn.addEventListener("click", () => {
@@ -227,6 +228,8 @@ function bindEvents() {
     deleteVocabulary(item.id);
   });
 
+  elements.wordPanelCloseBtn.addEventListener("click", closeWordPanel);
+
   elements.newAlbumBtn.addEventListener("click", () => openAlbumDialog());
   elements.newVocabBtn.addEventListener("click", () => openVocabDialog());
   elements.vocabSearch.addEventListener("input", renderVocab);
@@ -239,6 +242,15 @@ function bindEvents() {
       const values = collectDialogValues();
       const shouldClose = dialogSubmitHandler(values);
       if (shouldClose !== false) closeDialog();
+    }
+  });
+
+  document.addEventListener("click", closeWordPanelOnOutsideClick);
+  window.addEventListener("resize", positionWordPanel);
+  window.addEventListener("scroll", positionWordPanel, { passive: true });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && selectedWord) {
+      closeWordPanel();
     }
   });
 }
@@ -349,7 +361,7 @@ function appendClickableWords(container, sentence) {
     }
 
     const button = el("button", "word-button play-trigger");
-  const vocab = findVocabulary(word);
+    const vocab = findVocabulary(word);
     button.type = "button";
     button.lang = "fr";
     button.textContent = word;
@@ -373,6 +385,8 @@ function appendClickableWords(container, sentence) {
 function renderWordPanel() {
   if (!selectedWord) {
     elements.wordPanel.hidden = true;
+    elements.wordPanel.classList.remove("is-bottom-sheet");
+    resetWordPanelPosition();
     return;
   }
 
@@ -395,12 +409,69 @@ function renderWordPanel() {
   if (vocab) {
     elements.wordToggleBtn.querySelector("span").textContent = vocab.status === "got" ? "new" : "got";
   }
+
+  window.requestAnimationFrame(positionWordPanel);
 }
 
 function handleWordClick(word, element) {
   selectedWord = { raw: word, normalized: normalizeWord(word), info: resolveWordInfo(word), element };
   renderWordPanel();
   playItems([{ text: word, element, label: word, lang: "fr-FR", forceFrench: true }]);
+}
+
+function positionWordPanel() {
+  if (!selectedWord || elements.wordPanel.hidden) return;
+
+  const panel = elements.wordPanel;
+  const anchor = selectedWord.element;
+  const isMobile = window.matchMedia("(max-width: 620px)").matches;
+  panel.classList.toggle("is-bottom-sheet", isMobile);
+
+  if (isMobile) {
+    resetWordPanelPosition();
+    return;
+  }
+
+  if (!anchor || !document.body.contains(anchor)) return;
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const margin = 12;
+  const left = clamp(
+    anchorRect.left + anchorRect.width / 2 - panelRect.width / 2,
+    margin,
+    window.innerWidth - panelRect.width - margin
+  );
+  let top = anchorRect.bottom + 10;
+
+  if (top + panelRect.height > window.innerHeight - margin) {
+    top = anchorRect.top - panelRect.height - 10;
+  }
+
+  top = clamp(top, margin, Math.max(margin, window.innerHeight - panelRect.height - margin));
+  panel.style.left = `${left}px`;
+  panel.style.top = `${top}px`;
+}
+
+function resetWordPanelPosition() {
+  elements.wordPanel.style.left = "";
+  elements.wordPanel.style.top = "";
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function closeWordPanel() {
+  selectedWord = null;
+  renderWordPanel();
+}
+
+function closeWordPanelOnOutsideClick(event) {
+  if (!selectedWord) return;
+  const target = event.target;
+  if (target.closest?.(".word-panel") || target.closest?.(".word-button")) return;
+  closeWordPanel();
 }
 
 function renderLibrary() {
@@ -1160,10 +1231,7 @@ function getVocabulary(vocabId) {
 function lookupLexicon(rawWord) {
   const lexicon = window.OOFR_LEXICON || {};
   const normalized = normalizeWord(rawWord);
-  const compact = normalized.replace(/['-]/g, "");
-  const underscored = normalized.replace(/['-]/g, "_");
-  const pieces = normalized.split(/['-]/).filter(Boolean);
-  const candidates = [normalized, compact, underscored, ...pieces.slice().reverse()];
+  const candidates = wordLookupCandidates(normalized);
   return candidates.map((candidate) => lexicon[candidate]).find(Boolean) || null;
 }
 
@@ -1171,15 +1239,46 @@ function resolveWordInfo(rawWord) {
   const lexicon = window.OOFR_LEXICON || {};
   const forms = window.OOFR_FORM_LEMMAS || {};
   const normalized = normalizeWord(rawWord);
+  const candidates = wordLookupCandidates(normalized);
   const direct = lexicon[normalized];
-  const lemma = forms[normalized] || singularFallback(normalized, lexicon) || normalized;
+  const directHasMeaning = Boolean(direct?.zh);
+  const mappedLemma = directHasMeaning ? "" : candidates.map((candidate) => forms[candidate]).find(Boolean);
+  const fallbackLemma = directHasMeaning ? "" : candidates.map((candidate) => singularFallback(candidate, lexicon)).find(Boolean);
+  const directCandidate = candidates.map((candidate) => lexicon[candidate] ? candidate : "").find(Boolean);
+  const lemma = directHasMeaning
+    ? normalized
+    : mappedLemma || fallbackLemma || directCandidate || normalized;
   return {
     raw: rawWord,
     normalized,
     lemma,
-    lexicon: lexicon[lemma] || direct || null,
+    lexicon: lexicon[lemma] || direct || candidates.map((candidate) => lexicon[candidate]).find(Boolean) || null,
     formLexicon: direct || null
   };
+}
+
+function wordLookupCandidates(normalized) {
+  const candidates = [];
+  const add = (candidate) => {
+    if (candidate && !candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  };
+
+  add(normalized);
+  add(elidedCore(normalized));
+  add(normalized.replace(/['-]/g, ""));
+  add(normalized.replace(/['-]/g, "_"));
+  normalized.split(/['-]/).filter(Boolean).reverse().forEach(add);
+  return candidates;
+}
+
+function elidedCore(normalized) {
+  const parts = normalized.split("'").filter(Boolean);
+  if (parts.length < 2) return "";
+  const prefix = parts[0];
+  if (!ELIDED_PREFIXES.has(prefix)) return "";
+  return parts.slice(1).join("'");
 }
 
 function singularFallback(normalized, lexicon) {
@@ -1370,24 +1469,13 @@ function loadVoices() {
 }
 
 function preferredDefaultVoice() {
-  const target = isEdgeBrowser() ? EDGE_DEFAULT_VOICE : CHROME_DEFAULT_VOICE;
-  const exact = frenchVoices.find((voice) => voice.name === target && voice.lang.toLowerCase() === "fr-fr");
-  if (exact) return exact;
+  const chromeExact = frenchVoices.find((voice) => voice.name === CHROME_DEFAULT_VOICE && voice.lang.toLowerCase() === "fr-fr");
+  if (chromeExact) return chromeExact;
 
-  const browserFallback = frenchVoices.find((voice) => voice.name === target);
-  if (browserFallback) return browserFallback;
-
-  const edgeVoice = frenchVoices.find((voice) => voice.name === EDGE_DEFAULT_VOICE);
-  if (edgeVoice) return edgeVoice;
-
-  const chromeVoice = frenchVoices.find((voice) => voice.name === CHROME_DEFAULT_VOICE);
+  const chromeVoice = frenchVoices.find((voice) => /google/i.test(voice.name) && /^fr([-_]|$)/i.test(voice.lang));
   if (chromeVoice) return chromeVoice;
 
   return frenchVoices.find((voice) => voice.lang.toLowerCase() === "fr-fr") || frenchVoices[0] || null;
-}
-
-function isEdgeBrowser() {
-  return /\bEdg\//.test(window.navigator.userAgent);
 }
 
 function selectedVoice() {
@@ -1619,7 +1707,7 @@ function normalizeVocabularyList(items) {
 function normalizeVocabulary(item) {
   if (!item?.word) return null;
   const info = resolveWordInfo(item.word);
-  const normalized = item.lemma || info.lemma || item.normalized || normalizeWord(item.word);
+  const normalized = info.lemma || item.lemma || item.normalized || normalizeWord(item.word);
   if (!normalized) return null;
   const hint = info.lexicon || lookupLexicon(item.word);
   const originalForm = normalizeWord(item.word);
