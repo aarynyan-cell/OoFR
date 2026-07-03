@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OoFR 法语发音练习器</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <rect x="6" y="6" width="52" height="52" rx="8"></rect>
+              <path d="M18 39c5-14 11-14 16 0 3 8 7 8 12 0"></path>
+              <path d="M18 27c5-10 11-10 16 0 3 6 7 6 12 0"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">OoFR</p>
+            <h1>法语发音练习器</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="playAllTop" class="icon-button primary play-trigger" type="button" title="播放全部" aria-label="播放全部" data-icon="play"></button>
+          <button id="stopTop" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
+        </div>
+      </header>
+
+      <section class="workbench" aria-label="发音练习工作区">
+        <section class="tool-panel composer-panel" aria-labelledby="textPanelTitle">
+          <div class="panel-title-row">
+            <div>
+              <p class="eyebrow">Texte</p>
+              <h2 id="textPanelTitle">文本</h2>
+            </div>
+            <span id="textStats" class="stat-pill">0 句</span>
+          </div>
+
+          <label class="field-label" for="frenchInput">法语文字</label>
+          <textarea id="frenchInput" lang="fr" spellcheck="false"></textarea>
+
+          <div class="action-row">
+            <button id="refreshBtn" class="command-button play-trigger" type="button" data-icon="refresh">
+              <span>刷新分句</span>
+            </button>
+            <button id="sampleBtn" class="command-button muted" type="button" data-icon="spark">
+              <span>示例</span>
+            </button>
+            <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
+          </div>
+        </section>
+
+        <aside class="tool-panel settings-panel" aria-labelledby="settingsPanelTitle">
+          <div class="panel-title-row compact">
+            <div>
+              <p class="eyebrow">Audio</p>
+              <h2 id="settingsPanelTitle">播放</h2>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="field-label" for="voiceSelect">法语声音</label>
+            <select id="voiceSelect"></select>
+          </div>
+
+          <div class="control-group">
+            <div class="label-row">
+              <label class="field-label" for="rateControl">语速</label>
+              <output id="rateLabel" for="rateControl">0.85x</output>
+            </div>
+            <input id="rateControl" type="range" min="0.5" max="1.2" step="0.05" value="0.85">
+          </div>
+
+          <div class="control-group">
+            <span class="field-label">重复</span>
+            <div id="repeatGroup" class="segmented-control" role="radiogroup" aria-label="重复次数">
+              <button type="button" data-repeat="1" aria-pressed="true">1</button>
+              <button type="button" data-repeat="2" aria-pressed="false">2</button>
+              <button type="button" data-repeat="3" aria-pressed="false">3</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="label-row">
+              <label class="field-label" for="pauseControl">间隔</label>
+              <output id="pauseLabel" for="pauseControl">0.4s</output>
+            </div>
+            <input id="pauseControl" type="range" min="0" max="1.5" step="0.1" value="0.4">
+          </div>
+        </aside>
+
+        <section class="reader-panel" aria-labelledby="readerPanelTitle">
+          <div class="reader-title-row">
+            <div>
+              <p class="eyebrow">Lecture</p>
+              <h2 id="readerPanelTitle">朗读区</h2>
+              <p id="statusLine" class="status-line" role="status">准备好了</p>
+            </div>
+            <div class="reader-actions">
+              <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
+                <span>全文</span>
+              </button>
+              <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
+            </div>
+          </div>
+
+          <div id="sentenceList" class="sentence-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
