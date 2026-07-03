@@ -205,6 +205,7 @@ function bindEvents() {
   elements.wordToggleBtn.addEventListener("click", () => {
     if (!selectedWord) return;
     const item = ensureVocabularyItem(selectedWord.raw);
+    trackSeenForm(item, selectedWord.raw);
     item.status = item.status === "got" ? "new" : "got";
     item.updatedAt = nowIso();
     persist();
@@ -348,7 +349,7 @@ function appendClickableWords(container, sentence) {
     }
 
     const button = el("button", "word-button play-trigger");
-    const vocab = findVocabulary(word);
+  const vocab = findVocabulary(word);
     button.type = "button";
     button.lang = "fr";
     button.textContent = word;
@@ -375,14 +376,16 @@ function renderWordPanel() {
     return;
   }
 
+  const info = selectedWord.info || resolveWordInfo(selectedWord.raw);
   const vocab = findVocabulary(selectedWord.raw);
-  const hint = vocab || lookupLexicon(selectedWord.raw);
+  const hint = vocab || info.lexicon || lookupLexicon(selectedWord.raw);
   const status = vocab ? (vocab.status === "got" ? "got" : "生词") : "未加入";
   const ipa = hint?.ipa || "音标待补充";
   const zh = hint?.zh || "释义待补充";
+  const formLine = info.lemma !== info.normalized ? `${selectedWord.raw} → ${hint?.word || info.lemma}` : selectedWord.raw;
 
   elements.wordPanel.hidden = false;
-  elements.wordPanelTitle.textContent = selectedWord.raw;
+  elements.wordPanelTitle.textContent = formLine;
   elements.wordPanelMeta.textContent = `${status} · ${ipa} · ${zh}`;
   elements.wordAddBtn.hidden = Boolean(vocab);
   elements.wordToggleBtn.hidden = !vocab;
@@ -395,9 +398,9 @@ function renderWordPanel() {
 }
 
 function handleWordClick(word, element) {
-  selectedWord = { raw: word, normalized: normalizeWord(word), element };
+  selectedWord = { raw: word, normalized: normalizeWord(word), info: resolveWordInfo(word), element };
   renderWordPanel();
-  playItems([{ text: word, element, label: word }]);
+  playItems([{ text: word, element, label: word, lang: "fr-FR", forceFrench: true }]);
 }
 
 function renderLibrary() {
@@ -553,7 +556,7 @@ function renderVocab() {
   const items = state.vocabulary
     .filter((item) => {
       if (!query) return true;
-      return normalizeWord(`${item.word} ${item.ipa} ${item.zh}`).includes(query);
+      return normalizeWord(`${item.word} ${item.lemma || ""} ${item.ipa} ${item.zh} ${seenFormsText(item)}`).includes(query);
     })
     .sort((a, b) => a.word.localeCompare(b.word, "fr"));
 
@@ -571,11 +574,15 @@ function renderVocab() {
     const body = el("div");
     const word = el("div", "vocab-word");
     word.append(el("strong", "", item.word), el("span", "", item.ipa || "音标待补充"), el("span", "badge", item.status));
+    const forms = seenFormsText(item);
     body.append(word, el("p", "", item.zh || "释义待补充"));
+    if (forms) {
+      body.append(el("p", "", `见过：${forms}`));
+    }
 
     const actions = el("div", "row-actions");
     actions.append(
-      miniButton("播放", () => playItems([{ text: item.word, element: card, label: item.word }])),
+      miniButton("播放", () => playItems([{ text: item.word, element: card, label: item.word, forceFrench: true }])),
       miniButton(item.status === "got" ? "new" : "got", () => toggleVocabularyStatus(item.id)),
       miniButton("编辑", () => openVocabDialog(item.id)),
       miniButton("删除", () => deleteVocabulary(item.id))
@@ -622,7 +629,7 @@ async function playItems(items) {
       const repeat = getRepeat();
       for (let index = 0; index < repeat; index += 1) {
         if (token !== runToken) break;
-        await speakOnce(item.text, token);
+        await speakOnce(item.text, token, item);
         if (token !== runToken || index >= repeat - 1) break;
         await pause(getPauseMs(), token);
       }
@@ -636,16 +643,17 @@ async function playItems(items) {
   }
 }
 
-function speakOnce(text, token) {
+function speakOnce(text, token, options = {}) {
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "fr-FR";
+    utterance.lang = options.lang || "fr-FR";
     utterance.rate = Number(state.settings.rate);
     utterance.pitch = 1;
 
-    const voice = selectedVoice();
+    const voice = options.forceFrench ? selectedFrenchVoice() : selectedVoice();
     if (voice) {
       utterance.voice = voice;
+      utterance.lang = voice.lang || utterance.lang;
     }
 
     let settled = false;
@@ -850,31 +858,38 @@ function openVocabDialog(vocabId) {
       }
     ],
     onSubmit(values) {
-      const normalized = normalizeWord(values.word);
-      if (!normalized) return false;
+      const info = resolveWordInfo(values.word);
+      if (!info.lemma) return false;
 
-      const existing = state.vocabulary.find((word) => word.normalized === normalized && word.id !== item?.id);
+      const existing = state.vocabulary.find((word) => word.normalized === info.lemma && word.id !== item?.id);
       if (existing) {
         existing.word = values.word.trim();
+        existing.lemma = info.lemma;
+        existing.normalized = info.lemma;
         existing.ipa = values.ipa.trim();
         existing.zh = values.zh.trim();
         existing.status = values.status;
+        trackSeenForm(existing, values.word);
         existing.updatedAt = nowIso();
       } else if (item) {
         item.word = values.word.trim();
-        item.normalized = normalized;
+        item.lemma = info.lemma;
+        item.normalized = info.lemma;
         item.ipa = values.ipa.trim();
         item.zh = values.zh.trim();
         item.status = values.status;
+        trackSeenForm(item, values.word);
         item.updatedAt = nowIso();
       } else {
         state.vocabulary.push({
           id: makeId("word"),
           word: values.word.trim(),
-          normalized,
+          lemma: info.lemma,
+          normalized: info.lemma,
           ipa: values.ipa.trim(),
           zh: values.zh.trim(),
           status: values.status,
+          seenForms: [{ form: values.word.trim(), normalized: normalizeWord(values.word), count: 1 }],
           createdAt: nowIso(),
           updatedAt: nowIso()
         });
@@ -1079,7 +1094,9 @@ function recordPracticeIfEntry() {
 }
 
 function addWordToVocabulary(rawWord) {
-  return ensureVocabularyItem(rawWord);
+  const item = ensureVocabularyItem(rawWord);
+  trackSeenForm(item, rawWord);
+  return item;
 }
 
 function ensureVocabularyItem(rawWord) {
@@ -1091,15 +1108,17 @@ function ensureVocabularyItem(rawWord) {
 }
 
 function buildVocabularyItem(rawWord) {
-  const normalized = normalizeWord(rawWord);
-  const hint = lookupLexicon(rawWord);
+  const info = resolveWordInfo(rawWord);
+  const hint = info.lexicon || lookupLexicon(rawWord);
   return {
     id: makeId("word"),
     word: hint?.word || rawWord.trim(),
-    normalized,
+    lemma: info.lemma,
+    normalized: info.lemma,
     ipa: hint?.ipa || "",
     zh: hint?.zh || "",
     status: "new",
+    seenForms: [{ form: rawWord.trim(), normalized: info.normalized, count: 1 }],
     createdAt: nowIso(),
     updatedAt: nowIso()
   };
@@ -1120,7 +1139,7 @@ function deleteVocabulary(vocabId) {
   const item = getVocabulary(vocabId);
   if (!item || !window.confirm(`删除单词「${item.word}」？`)) return;
   state.vocabulary = state.vocabulary.filter((word) => word.id !== vocabId);
-  if (selectedWord && normalizeWord(selectedWord.raw) === item.normalized) {
+  if (selectedWord && resolveWordInfo(selectedWord.raw).lemma === item.normalized) {
     selectedWord = null;
   }
   persist();
@@ -1130,8 +1149,8 @@ function deleteVocabulary(vocabId) {
 }
 
 function findVocabulary(rawWord) {
-  const normalized = normalizeWord(rawWord);
-  return state.vocabulary.find((item) => item.normalized === normalized) || null;
+  const info = resolveWordInfo(rawWord);
+  return state.vocabulary.find((item) => item.normalized === info.lemma || item.lemma === info.lemma) || null;
 }
 
 function getVocabulary(vocabId) {
@@ -1146,6 +1165,59 @@ function lookupLexicon(rawWord) {
   const pieces = normalized.split(/['-]/).filter(Boolean);
   const candidates = [normalized, compact, underscored, ...pieces.slice().reverse()];
   return candidates.map((candidate) => lexicon[candidate]).find(Boolean) || null;
+}
+
+function resolveWordInfo(rawWord) {
+  const lexicon = window.OOFR_LEXICON || {};
+  const forms = window.OOFR_FORM_LEMMAS || {};
+  const normalized = normalizeWord(rawWord);
+  const direct = lexicon[normalized];
+  const lemma = forms[normalized] || singularFallback(normalized, lexicon) || normalized;
+  return {
+    raw: rawWord,
+    normalized,
+    lemma,
+    lexicon: lexicon[lemma] || direct || null,
+    formLexicon: direct || null
+  };
+}
+
+function singularFallback(normalized, lexicon) {
+  if (normalized.length <= 3) return "";
+  if (normalized.endsWith("aux") && lexicon[`${normalized.slice(0, -3)}al`]) {
+    return `${normalized.slice(0, -3)}al`;
+  }
+  if (normalized.endsWith("x") && lexicon[normalized.slice(0, -1)]) {
+    return normalized.slice(0, -1);
+  }
+  if (normalized.endsWith("s") && lexicon[normalized.slice(0, -1)]) {
+    return normalized.slice(0, -1);
+  }
+  return "";
+}
+
+function trackSeenForm(item, rawWord) {
+  const normalized = normalizeWord(rawWord);
+  if (!normalized) return;
+  if (!Array.isArray(item.seenForms)) item.seenForms = [];
+  const existing = item.seenForms.find((entry) => entry.normalized === normalized);
+  if (existing) {
+    existing.count = Number(existing.count || 0) + 1;
+    existing.form = rawWord.trim() || existing.form;
+  } else {
+    item.seenForms.push({ form: rawWord.trim(), normalized, count: 1 });
+  }
+  item.updatedAt = nowIso();
+}
+
+function seenFormsText(item) {
+  if (!Array.isArray(item.seenForms)) return "";
+  return item.seenForms
+    .filter((entry) => entry.normalized && entry.normalized !== item.normalized)
+    .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+    .slice(0, 6)
+    .map((entry) => `${entry.form || entry.normalized}${entry.count > 1 ? `×${entry.count}` : ""}`)
+    .join("、");
 }
 
 function normalizeWord(word) {
@@ -1323,6 +1395,10 @@ function selectedVoice() {
   return frenchVoices.find((voice) => voice.name === name) || null;
 }
 
+function selectedFrenchVoice() {
+  return selectedVoice() || preferredDefaultVoice() || frenchVoices.find((voice) => voice.lang.toLowerCase() === "fr-fr") || frenchVoices[0] || null;
+}
+
 function canSpeak() {
   return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 }
@@ -1411,7 +1487,7 @@ function ensureStateShape(raw) {
     albums: Array.isArray(stateLike.albums) ? stateLike.albums.map(normalizeAlbum).filter(Boolean) : [],
     tapes: Array.isArray(stateLike.tapes) ? stateLike.tapes.map(normalizeTape).filter(Boolean) : [],
     entries: Array.isArray(stateLike.entries) ? stateLike.entries.map(normalizeEntry).filter(Boolean) : [],
-    vocabulary: Array.isArray(stateLike.vocabulary) ? stateLike.vocabulary.map(normalizeVocabulary).filter(Boolean) : []
+    vocabulary: Array.isArray(stateLike.vocabulary) ? normalizeVocabularyList(stateLike.vocabulary) : []
   };
 
   if (next.albums.length === 0) {
@@ -1523,20 +1599,77 @@ function normalizeEntry(entry) {
   };
 }
 
+function normalizeVocabularyList(items) {
+  const byLemma = new Map();
+  items.map(normalizeVocabulary).filter(Boolean).forEach((item) => {
+    const existing = byLemma.get(item.normalized);
+    if (!existing) {
+      byLemma.set(item.normalized, item);
+      return;
+    }
+    existing.status = existing.status === "got" || item.status === "got" ? "got" : "new";
+    existing.ipa = existing.ipa || item.ipa;
+    existing.zh = existing.zh || item.zh;
+    existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
+    existing.updatedAt = item.updatedAt > existing.updatedAt ? item.updatedAt : existing.updatedAt;
+  });
+  return Array.from(byLemma.values());
+}
+
 function normalizeVocabulary(item) {
   if (!item?.word) return null;
-  const normalized = item.normalized || normalizeWord(item.word);
+  const info = resolveWordInfo(item.word);
+  const normalized = item.lemma || info.lemma || item.normalized || normalizeWord(item.word);
   if (!normalized) return null;
+  const hint = info.lexicon || lookupLexicon(item.word);
+  const originalForm = normalizeWord(item.word);
+  const seenForms = Array.isArray(item.seenForms)
+    ? item.seenForms.map(normalizeSeenForm).filter(Boolean)
+    : [{ form: String(item.word), normalized: originalForm, count: 1 }];
   return {
     id: item.id || makeId("word"),
-    word: String(item.word),
+    word: hint?.word || String(item.word),
+    lemma: normalized,
     normalized,
-    ipa: String(item.ipa || ""),
-    zh: String(item.zh || ""),
+    ipa: String(item.ipa || hint?.ipa || ""),
+    zh: String(item.zh || hint?.zh || ""),
     status: item.status === "got" ? "got" : "new",
+    seenForms,
     createdAt: item.createdAt || nowIso(),
     updatedAt: item.updatedAt || nowIso()
   };
+}
+
+function normalizeSeenForm(entry) {
+  if (!entry) return null;
+  const form = String(entry.form || entry.word || entry.normalized || "");
+  const normalized = normalizeWord(entry.normalized || form);
+  if (!normalized) return null;
+  return {
+    form,
+    normalized,
+    count: Math.max(1, Number(entry.count || 1))
+  };
+}
+
+function mergeSeenForms(left = [], right = []) {
+  const merged = new Map();
+  [...left, ...right].forEach((entry) => {
+    const normalized = normalizeWord(entry.normalized || entry.form);
+    if (!normalized) return;
+    const current = merged.get(normalized);
+    if (current) {
+      current.count += Math.max(1, Number(entry.count || 1));
+      current.form = entry.form || current.form;
+    } else {
+      merged.set(normalized, {
+        form: entry.form || normalized,
+        normalized,
+        count: Math.max(1, Number(entry.count || 1))
+      });
+    }
+  });
+  return Array.from(merged.values());
 }
 
 async function readJson(key) {

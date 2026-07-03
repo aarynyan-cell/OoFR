@@ -8,8 +8,9 @@ OoFR 是一个纯前端的法语发音练习 PWA，也可以作为 Microsoft Edg
 - 把练习过的段落保存到专辑下的磁带里。
 - 新增、编辑、删除专辑、磁带和段落条目。
 - 点击单词加入单词本；生词显示橙色，标为 `got` 后显示绿色。
-- 单词本支持法语音标、中文释义、状态编辑和搜索。
-- 内置法中词库会为常见词自动填充音标和释义，未命中时可手动补充。
+- 单词本按词条归并：`prend / prends / prennent` 会归到 `prendre`，`jours` 会归到 `jour`。
+- 单词本支持法语音标、中文释义、状态编辑、见过的词形记录和搜索。
+- 内置法中词库、IPA 数据和法语词形索引会自动填充音标、释义和词条归并，未命中时可手动补充。
 - 数据保存在本机浏览器，并支持 JSON 导入/导出。
 - 支持 PWA：通过 HTTP/HTTPS 访问时可离线缓存并添加到手机桌面。
 - 支持 Chrome / Edge Manifest V3 插件：点击插件图标打开完整 OoFR 页面。
@@ -71,7 +72,8 @@ http://localhost:4173/
 
 - `v0.0` 已用 git tag 保留为原始版本。
 - `v0.1` 已用 git tag 保留为第一版专辑/磁带/单词本。
-- 当前实现为 `v0.2`。
+- `v0.2` 已用 git tag 保留为第一版插件和扩充词库。
+- 当前实现为 `v0.3`。
 
 ## 数据
 
@@ -81,4 +83,4 @@ http://localhost:4173/
 
 ## 词库来源
 
-`lexicon.js` 由 `scripts/build_lexicon.py` 生成，主要来源为 FreeDict `French - Chinese` 和 open-dict-data `ipa-dict`。详见 `THIRD_PARTY_NOTICES.md`。
+`lexicon.js` 由 `scripts/build_lexicon.py` 生成，主要来源为 FreeDict `French - Chinese`、open-dict-data `ipa-dict` 和 LEFFF。详见 `THIRD_PARTY_NOTICES.md`。
