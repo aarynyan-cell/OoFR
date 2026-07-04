@@ -1779,15 +1779,11 @@ function normalizeWord(word) {
 }
 
 function splitSentences(text) {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) return [];
-
-  if ("Segmenter" in Intl) {
-    const segmenter = new Intl.Segmenter("fr", { granularity: "sentence" });
-    return Array.from(segmenter.segment(normalized), (item) => item.segment.trim()).filter(Boolean);
-  }
-
-  return normalized.match(/[^.!?…]+[.!?…]*/g)?.map((item) => item.trim()).filter(Boolean) || [normalized];
+  return String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function countWords(text) {
