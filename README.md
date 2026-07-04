@@ -53,6 +53,8 @@ http://localhost:4173/
 
 ## 浏览器插件
 
+当前 Edge 和 Chrome 都作为正式支持的插件目标。默认法语声音分别为 Edge 的 `Microsoft Henri Online (Natural) - French (France)` 和 Chrome 的 `Google français`。
+
 开发阶段可以用“加载已解压的扩展程序”的方式安装：
 
 ### Chrome
@@ -87,7 +89,7 @@ http://localhost:4173/
 - `v0.1` 已用 git tag 保留为第一版专辑/磁带/单词本。
 - `v0.2` 已用 git tag 保留为第一版插件和扩充词库。
 - `v0.3` 已用 git tag 保留为词元式单词本。
-- `v0.4` 已用 git tag 保留为 Chrome 优先、浮层生词框和 Lexique 词库。
+- `v0.4` 已用 git tag 保留为浮层生词框和 Lexique 词库。
 - `v0.5` 已用 git tag 保留为统一播放暂停、词本管理和“我的”页。
 - `v0.6` 已用 git tag 保留为可选范围的单词本导入/导出。
 - `v0.7` 已用 git tag 保留为第一版布局对齐优化。

@@ -25,6 +25,8 @@ GitHub Pages 可以直接托管这个静态项目。推荐用 `main` 分支的 `
 
 ## 插件商店
 
+当前 Edge 和 Chrome 都作为正式支持的插件目标。Edge 默认使用 `Microsoft Henri Online (Natural) - French (France)`，Chrome 默认使用 `Google français`。
+
 开发者模式只适合自己测试“已解压扩展”。普通用户从 Chrome Web Store 或 Microsoft Edge Add-ons 安装时，不需要打开开发者模式。
 
 Chrome Web Store 和 Microsoft Edge Add-ons 都要求上传插件 zip 包，不是直接上传整个 GitHub 仓库。生成审核包：
