@@ -1,7 +1,7 @@
 {
-  "name": "OoFR 法语发音练习器",
-  "short_name": "OoFR",
-  "description": "带专辑、磁带和单词本的法语发音练习工具。",
+  "name": "OoFR 法语磁带",
+  "short_name": "法语磁带",
+  "description": "复古磁带风格的法语朗读、学习记录和单词本工具。",
   "lang": "zh-CN",
   "start_url": ".",
   "scope": "./",

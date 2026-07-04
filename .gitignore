@@ -1,1 +1,25 @@
 .DS_Store
+Thumbs.db
+
+# Local secrets and machine-specific files
+.env
+.env.*
+!.env.example
+*.local.json
+
+# Dependencies, build output, reports
+node_modules/
+dist/
+build/
+coverage/
+release/
+*.log
+
+# Extension packaging artifacts
+*.zip
+*.crx
+*.pem
+
+# User-exported learning data
+oofr-backup-*.json
+oofr-wordbook*.json

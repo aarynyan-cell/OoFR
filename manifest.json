@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "OoFR 法语发音练习器",
-  "short_name": "OoFR",
+  "name": "OoFR 法语磁带",
+  "short_name": "法语磁带",
   "version": "0.8.0",
-  "description": "带专辑、磁带和单词本的法语发音练习工具。",
+  "description": "复古磁带风格的法语朗读、学习记录和单词本工具。",
   "permissions": ["storage"],
   "action": {
-    "default_title": "打开 OoFR",
+    "default_title": "打开 OoFR 法语磁带",
     "default_icon": {
       "16": "icons/icon-192.png",
       "32": "icons/icon-192.png",
