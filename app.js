@@ -2680,9 +2680,12 @@ function registerServiceWorker() {
   if (!/^https?:$/.test(window.location.protocol)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      setStatus("离线缓存未启用");
-    });
+    navigator.serviceWorker
+      .register("./sw.js", { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {
+        setStatus("离线缓存未启用");
+      });
   });
 }
 

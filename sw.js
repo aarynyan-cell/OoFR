@@ -1,10 +1,11 @@
-const CACHE_NAME = "oofr-v0.8.2";
+const CACHE_NAME = "oofr-v0.8.3";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=0.8.2",
-  "./lexicon.js?v=0.8.2",
-  "./app.js?v=0.8.2",
+  "./reset.html",
+  "./styles.css?v=0.8.3",
+  "./lexicon.js?v=0.8.3",
+  "./app.js?v=0.8.3",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
@@ -13,7 +14,7 @@ const APP_ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => Promise.all(
-      APP_ASSETS.map((asset) => fetch(asset).then((response) => {
+      APP_ASSETS.map((asset) => fetch(asset, { cache: "reload" }).then((response) => {
         if (!response.ok) {
           throw new Error(`Failed to cache ${asset}: ${response.status}`);
         }
