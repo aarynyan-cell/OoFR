@@ -1,10 +1,10 @@
-const CACHE_NAME = "oofr-v0.8.0";
+const CACHE_NAME = "oofr-v0.8.2";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=0.8.0",
-  "./lexicon.js?v=0.8.0",
-  "./app.js?v=0.8.1",
+  "./styles.css?v=0.8.2",
+  "./lexicon.js?v=0.8.2",
+  "./app.js?v=0.8.2",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
@@ -12,7 +12,14 @@ const APP_ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => Promise.all(
+      APP_ASSETS.map((asset) => fetch(asset).then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to cache ${asset}: ${response.status}`);
+        }
+        return cache.put(asset, response);
+      }))
+    ))
   );
   self.skipWaiting();
 });
@@ -34,8 +41,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          cacheOkResponse(event.request, response);
           return response;
         })
         .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
@@ -44,14 +50,17 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    fetch(event.request)
+      .then((response) => {
+        cacheOkResponse(event.request, response);
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
+
+function cacheOkResponse(request, response) {
+  if (!response?.ok) return;
+  const copy = response.clone();
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+}

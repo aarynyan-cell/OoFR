@@ -135,8 +135,12 @@ async function initApp() {
 
   if (canSpeak()) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
-  } else {
+  } else if (isLexiconReady()) {
     setStatus("当前浏览器不支持朗读");
+  }
+
+  if (!isLexiconReady()) {
+    setStatus("词库未加载，请刷新页面");
   }
 }
 
@@ -1682,6 +1686,10 @@ function lookupLexicon(rawWord) {
   const normalized = normalizeWord(rawWord);
   const candidates = wordLookupCandidates(normalized);
   return candidates.map((candidate) => lexicon[candidate]).find(Boolean) || null;
+}
+
+function isLexiconReady() {
+  return Boolean(window.OOFR_LEXICON_META?.entries && window.OOFR_LEXICON && window.OOFR_FORM_LEMMAS);
 }
 
 function resolveWordInfo(rawWord) {
