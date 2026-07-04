@@ -7,6 +7,7 @@ const SYNC_STORAGE_KEY = "oofr.sync.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
 const CHROME_DEFAULT_VOICE = "Google français";
+const EDGE_DEFAULT_VOICE = "Microsoft Henri Online (Natural) - French (France)";
 const ELIDED_PREFIXES = new Set(["c", "d", "j", "l", "m", "n", "qu", "s", "t", "jusqu", "lorsqu", "puisqu"]);
 const ALL_WORDBOOK_ID = "all";
 const NEW_WORDBOOK_ID = "new";
@@ -1905,7 +1906,7 @@ function loadVoices() {
     elements.voiceSelect.append(new Option(`${voice.name} · ${voice.lang}`, voice.name));
   });
 
-  if (frenchVoices.some((voice) => voice.name === currentValue)) {
+  if (state.settings.voiceLocked && frenchVoices.some((voice) => voice.name === currentValue)) {
     elements.voiceSelect.value = currentValue;
   } else {
     const preferred = preferredDefaultVoice();
@@ -1921,6 +1922,14 @@ function loadVoices() {
 }
 
 function preferredDefaultVoice() {
+  if (isEdgeBrowser()) {
+    const edgeExact = frenchVoices.find((voice) => voice.name === EDGE_DEFAULT_VOICE && voice.lang.toLowerCase() === "fr-fr");
+    if (edgeExact) return edgeExact;
+
+    const edgeVoice = frenchVoices.find((voice) => /microsoft\s+henri/i.test(voice.name) && voice.lang.toLowerCase() === "fr-fr");
+    if (edgeVoice) return edgeVoice;
+  }
+
   const chromeExact = frenchVoices.find((voice) => voice.name === CHROME_DEFAULT_VOICE && voice.lang.toLowerCase() === "fr-fr");
   if (chromeExact) return chromeExact;
 
@@ -1928,6 +1937,10 @@ function preferredDefaultVoice() {
   if (chromeVoice) return chromeVoice;
 
   return frenchVoices.find((voice) => voice.lang.toLowerCase() === "fr-fr") || frenchVoices[0] || null;
+}
+
+function isEdgeBrowser() {
+  return /Edg\//i.test(window.navigator.userAgent);
 }
 
 function selectedVoice() {
