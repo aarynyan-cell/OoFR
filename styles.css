@@ -47,6 +47,107 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.startup-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  color: var(--paper);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    var(--dark);
+  background-size: 24px 24px, 24px 24px, auto;
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.startup-loader.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.startup-card {
+  width: min(330px, 100%);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 22px;
+  border: 2px solid var(--paper);
+  border-radius: 8px;
+  background: rgba(38, 42, 37, 0.94);
+  box-shadow: 8px 8px 0 rgba(242, 200, 75, 0.9);
+  text-align: center;
+}
+
+.startup-card h2 {
+  color: var(--paper);
+}
+
+.startup-card p:last-child {
+  color: rgba(255, 253, 244, 0.78);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.startup-cassette {
+  position: relative;
+  width: 108px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 12px;
+  border: 3px solid var(--paper);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(242, 200, 75, 0.95), rgba(216, 107, 42, 0.95));
+}
+
+.startup-cassette::before,
+.startup-cassette::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  background: var(--dark);
+}
+
+.startup-cassette::before {
+  bottom: 9px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.startup-cassette::after {
+  top: 10px;
+  height: 5px;
+  border-radius: 999px;
+  opacity: 0.75;
+}
+
+.startup-cassette span {
+  width: 30px;
+  height: 30px;
+  border: 5px solid var(--dark);
+  border-top-color: var(--paper);
+  border-radius: 999px;
+  background: var(--paper);
+  animation: startup-reel 900ms linear infinite;
+}
+
+.startup-cassette span:nth-child(2) {
+  animation-direction: reverse;
+}
+
+@keyframes startup-reel {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 button,
 textarea,
 select,
@@ -163,6 +264,7 @@ h3 {
 }
 
 .nav-button {
+  min-width: 0;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -288,6 +390,23 @@ h3 {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.lexicon-status {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(18, 21, 20, 0.18);
+  border-radius: 999px;
+  color: var(--teal-deep);
+  background: rgba(22, 143, 136, 0.12);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.lexicon-status:empty {
+  display: none;
 }
 
 .field-label {
@@ -1099,6 +1218,8 @@ input[type="range"] {
     position: sticky;
     top: 8px;
     z-index: 5;
+    gap: 4px;
+    padding: 5px;
   }
 
   .section-heading {
@@ -1108,13 +1229,14 @@ input[type="range"] {
 
   .panel-title-row {
     align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .nav-button {
     min-height: 42px;
-    padding: 0 7px;
+    padding: 0 5px;
     gap: 5px;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .sentence-row {
@@ -1172,6 +1294,18 @@ input[type="range"] {
   }
 
   .command-button {
-    flex: 1 1 128px;
+    min-width: 0;
+    flex: 1 1 110px;
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-loader {
+    transition: none;
+  }
+
+  .startup-cassette span {
+    animation: none;
   }
 }

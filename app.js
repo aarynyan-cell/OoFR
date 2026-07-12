@@ -5,6 +5,8 @@ Est-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.`;
 const APP_STORAGE_KEY = "oofr.app.v1";
 const SYNC_STORAGE_KEY = "oofr.sync.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
+const ASSET_VERSION = "0.8.4";
+const LEXICON_SCRIPT_SRC = `./lexicon.js?v=${ASSET_VERSION}`;
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
 const CHROME_DEFAULT_VOICE = "Google français";
 const EDGE_DEFAULT_VOICE = "Microsoft Henri Online (Natural) - French (France)";
@@ -44,6 +46,7 @@ const icons = {
 };
 
 const elements = {
+  startupLoader: document.querySelector("#startupLoader"),
   navButtons: Array.from(document.querySelectorAll("[data-view-target]")),
   views: {
     reader: document.querySelector("#readerView"),
@@ -69,6 +72,7 @@ const elements = {
   pauseControl: document.querySelector("#pauseControl"),
   pauseLabel: document.querySelector("#pauseLabel"),
   statusLine: document.querySelector("#statusLine"),
+  lexiconStatus: document.querySelector("#lexiconStatus"),
   sentenceList: document.querySelector("#sentenceList"),
   wordPanel: document.querySelector("#wordPanel"),
   wordPanelTitle: document.querySelector("#wordPanelTitle"),
@@ -119,6 +123,8 @@ let playback = { status: "idle", key: "", label: "", token: 0 };
 let renderTimer = 0;
 let dialogSubmitHandler = null;
 let syncSettingsTimer = 0;
+let lexiconLoadState = isLexiconReady() ? "ready" : "idle";
+let lexiconLoadPromise = null;
 
 initApp();
 
@@ -131,17 +137,108 @@ async function initApp() {
   syncSettingsControls();
   loadVoices();
   renderAll();
+  hideStartupLoader();
   registerServiceWorker();
+  loadLexiconInBackground();
 
   if (canSpeak()) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
-  } else if (isLexiconReady()) {
+  } else {
     setStatus("当前浏览器不支持朗读");
   }
+}
 
-  if (!isLexiconReady()) {
-    setStatus("词库未加载，请刷新页面");
+function hideStartupLoader() {
+  if (!elements.startupLoader) return;
+  elements.startupLoader.classList.add("is-hidden");
+  window.setTimeout(() => elements.startupLoader?.remove(), 260);
+}
+
+function loadLexiconInBackground() {
+  if (isLexiconReady()) {
+    handleLexiconReady(false);
+    return Promise.resolve();
   }
+
+  if (lexiconLoadPromise) return lexiconLoadPromise;
+
+  lexiconLoadState = "loading";
+  renderLexiconLoadState();
+
+  lexiconLoadPromise = new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = LEXICON_SCRIPT_SRC;
+    script.async = true;
+    script.onload = () => {
+      if (isLexiconReady()) {
+        handleLexiconReady(true);
+      } else {
+        handleLexiconFailure();
+      }
+      resolve();
+    };
+    script.onerror = () => {
+      handleLexiconFailure();
+      resolve();
+    };
+    document.head.append(script);
+  });
+
+  return lexiconLoadPromise;
+}
+
+function handleLexiconReady(loadedInBackground) {
+  lexiconLoadState = "ready";
+  hydrateVocabularyFromLexicon();
+  renderLexiconLoadState();
+
+  if (loadedInBackground) {
+    window.setTimeout(() => {
+      if (lexiconLoadState === "ready") {
+        setLexiconStatus("");
+      }
+    }, 2200);
+  }
+}
+
+function handleLexiconFailure() {
+  lexiconLoadState = "failed";
+  renderLexiconLoadState();
+}
+
+function renderLexiconLoadState() {
+  if (lexiconLoadState === "loading") {
+    setLexiconStatus("词库后台加载中，朗读可先用");
+  } else if (lexiconLoadState === "ready") {
+    setLexiconStatus("词库已就绪");
+  } else if (lexiconLoadState === "failed") {
+    setLexiconStatus("词库暂时没加载成功，朗读仍可用");
+  } else {
+    setLexiconStatus("");
+  }
+}
+
+function setLexiconStatus(text) {
+  if (elements.lexiconStatus) {
+    elements.lexiconStatus.textContent = text;
+  }
+}
+
+function hydrateVocabularyFromLexicon() {
+  if (!state || !isLexiconReady()) return;
+  state.vocabulary = normalizeVocabularyList(state.vocabulary);
+  state.vocabulary.forEach((item) => {
+    item.wordbookIds = validWordbookIds(item.wordbookIds);
+  });
+  if (selectedWord) {
+    selectedWord.info = resolveWordInfo(selectedWord.raw);
+  }
+  persist();
+  renderWordbooks();
+  renderVocab();
+  renderSentences();
+  renderWordPanel();
+  renderMy();
 }
 
 function hydrateIcons() {
@@ -482,12 +579,13 @@ function renderWordPanel() {
     return;
   }
 
-  const info = selectedWord.info || resolveWordInfo(selectedWord.raw);
+  const info = isLexiconReady() ? resolveWordInfo(selectedWord.raw) : (selectedWord.info || resolveWordInfo(selectedWord.raw));
+  selectedWord.info = info;
   const vocab = findVocabulary(selectedWord.raw);
   const hint = vocab || info.lexicon || lookupLexicon(selectedWord.raw);
   const status = vocab ? (vocab.status === "got" ? "got" : "生词") : "未加入";
-  const ipa = hint?.ipa || "音标待补充";
-  const zh = hint?.zh || "释义待补充";
+  const ipa = hint?.ipa || (isLexiconLoading() ? "词库加载中" : "音标待补充");
+  const zh = hint?.zh || (isLexiconLoading() ? "稍后自动补全" : "释义待补充");
   const formLine = info.lemma !== info.normalized ? `${selectedWord.raw} → ${hint?.word || info.lemma}` : selectedWord.raw;
 
   elements.wordPanel.hidden = false;
@@ -816,10 +914,12 @@ function renderVocab() {
     const card = el("article", `vocab-item status-${item.status}`);
     const body = el("div");
     const word = el("div", "vocab-word");
-    word.append(el("strong", "", item.word), el("span", "", item.ipa || "音标待补充"), el("span", "badge", item.status));
+    const ipaText = item.ipa || (isLexiconLoading() ? "词库加载中" : "音标待补充");
+    const zhText = item.zh || (isLexiconLoading() ? "释义稍后补全" : "释义待补充");
+    word.append(el("strong", "", item.word), el("span", "", ipaText), el("span", "badge", item.status));
     const forms = seenFormsText(item);
     const books = wordbookNamesText(item);
-    body.append(word, el("p", "", item.zh || "释义待补充"));
+    body.append(word, el("p", "", zhText));
     if (forms) {
       body.append(el("p", "", `见过：${forms}`));
     }
@@ -1690,6 +1790,10 @@ function lookupLexicon(rawWord) {
 
 function isLexiconReady() {
   return Boolean(window.OOFR_LEXICON_META?.entries && window.OOFR_LEXICON && window.OOFR_FORM_LEMMAS);
+}
+
+function isLexiconLoading() {
+  return !isLexiconReady() && lexiconLoadState !== "failed";
 }
 
 function resolveWordInfo(rawWord) {
