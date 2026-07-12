@@ -1,9 +1,9 @@
-const CACHE_NAME = "multape-v1.0.0-alpha-core";
+const CACHE_NAME = "multape-v1.0.1-alpha-core";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=1.0.0-alpha",
-  "./app/main.js?v=1.0.0-alpha",
+  "./styles.css?v=1.0.1-alpha",
+  "./app/main.js?v=1.0.1-alpha",
   "./app/languages.js",
   "./app/i18n.js",
   "./app/lexicon-store.js",

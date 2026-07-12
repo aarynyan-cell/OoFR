@@ -19,7 +19,7 @@ MulTape 是基于 OoFR 法语磁带重新拆分的新项目。旧版文件不被
 
 ## 词库构建
 
-词库包位于 `lexicons/*.json`，发布前需要生成。默认 manifest 里是 `build-required`，应用会显示“未生成”，不会假装已经有完整词库。
+词库包位于 `lexicons/{pair}/` 的分块 JSON 文件中，发布前需要生成。默认 manifest 里是 `build-required`，应用会显示“未生成”，不会假装已经有完整词库。
 
 ```sh
 ./scripts/build_lexicons.py --pair all
@@ -43,6 +43,13 @@ MulTape 是基于 OoFR 法语磁带重新拆分的新项目。旧版文件不被
 - `forms`: 词形到词元的映射
 - `sources`: 实际参与构建的来源
 - `entries/forms/bytes/builtAt`: 写回 `lexicons/manifest.json`
+- `chunks`: 移动端友好的分块文件清单，应用会按块下载、解析并写入 IndexedDB
+
+如果本地已有旧版 `lexicons/{pair}.json` 单文件，可以转换成分块格式：
+
+```sh
+./scripts/split_lexicons.py --pair all
+```
 
 ## 本地运行
 
@@ -56,7 +63,7 @@ python3 -m http.server 4174
 http://localhost:4174/MulTape/
 ```
 
-PWA service worker 只缓存核心文件和词库清单，不预缓存 `lexicons/*.json`。词库只有用户点击下载后才进入本机 IndexedDB。
+PWA service worker 只缓存核心文件和词库清单，不预缓存 `lexicons/**/*.json`。词库只有用户点击下载后才进入本机 IndexedDB。
 
 ## 发布形态
 

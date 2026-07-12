@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MulTape 外语磁带",
   "short_name": "MulTape",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "多语言磁带风格的外语朗读、学习记录和按需词库工具。",
   "permissions": ["storage"],
   "action": {

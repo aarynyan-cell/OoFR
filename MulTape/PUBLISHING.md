@@ -30,13 +30,13 @@ cd MulTape
 ./scripts/package_extension.sh
 ```
 
-The package is written to `MulTape/release/multape-extension.zip`. The zip includes `lexicons/*.json` so downloads work from inside the extension without a separate server.
+The package is written to `MulTape/release/multape-extension.zip`. The zip includes the chunked `lexicons/` directory so downloads work from inside the extension without a separate server.
 
 ## Lexicons
 
 The app shell does not install lexicons by default. Users pick a language pair in My -> Languages, then click Download Lexicon. Downloaded lexicons are stored in IndexedDB on the current device.
 
-Published lexicon packages are currently about 268 MB total. Do not commit `.lexicon-cache/`; it only contains build inputs and is ignored by Git.
+Published lexicon packages are currently about 268 MB total, split into small JSON chunks for mobile Safari and Chromium browsers. Do not commit `.lexicon-cache/`; it only contains build inputs and is ignored by Git.
 
 ## Quick Checks Before Publishing
 

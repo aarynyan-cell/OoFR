@@ -1,14 +1,13 @@
 {
   "type": "multape.lexicon-manifest.v1",
-  "version": "1.0.0-alpha",
+  "version": "1.0.1-alpha",
   "updatedAt": "2026-07-12",
-  "notes": "Lexicon packages are intentionally not cached with the application shell. Generate complete packages with scripts/build_lexicons.py before publishing.",
+  "notes": "Lexicon packages are split into small JSON chunks and intentionally not cached with the application shell. Generate complete packages with scripts/build_lexicons.py before publishing.",
   "packages": [
     {
       "pair": "fr-zh",
       "sourceLanguage": "fr",
       "targetLanguage": "zh",
-      "file": "fr-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -18,14 +17,104 @@
       ],
       "entries": 368873,
       "forms": 345581,
-      "bytes": 30573087,
-      "builtAt": "2026-07-08T17:10:24.911248+00:00"
+      "bytes": 30573081,
+      "builtAt": "2026-07-08T17:10:24.911248+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "fr-zh/meta.json",
+          "bytes": 277
+        },
+        "entries": [
+          {
+            "file": "fr-zh/entries-0000.json",
+            "count": 36916,
+            "bytes": 2097101
+          },
+          {
+            "file": "fr-zh/entries-0001.json",
+            "count": 37223,
+            "bytes": 2097117
+          },
+          {
+            "file": "fr-zh/entries-0002.json",
+            "count": 36081,
+            "bytes": 2097112
+          },
+          {
+            "file": "fr-zh/entries-0003.json",
+            "count": 37173,
+            "bytes": 2097114
+          },
+          {
+            "file": "fr-zh/entries-0004.json",
+            "count": 36794,
+            "bytes": 2097127
+          },
+          {
+            "file": "fr-zh/entries-0005.json",
+            "count": 36073,
+            "bytes": 2097133
+          },
+          {
+            "file": "fr-zh/entries-0006.json",
+            "count": 36625,
+            "bytes": 2097040
+          },
+          {
+            "file": "fr-zh/entries-0007.json",
+            "count": 36261,
+            "bytes": 2097129
+          },
+          {
+            "file": "fr-zh/entries-0008.json",
+            "count": 36596,
+            "bytes": 2097139
+          },
+          {
+            "file": "fr-zh/entries-0009.json",
+            "count": 36988,
+            "bytes": 2097108
+          },
+          {
+            "file": "fr-zh/entries-0010.json",
+            "count": 2143,
+            "bytes": 106834
+          }
+        ],
+        "forms": [
+          {
+            "file": "fr-zh/forms-0000.json",
+            "count": 76650,
+            "bytes": 2097145
+          },
+          {
+            "file": "fr-zh/forms-0001.json",
+            "count": 75355,
+            "bytes": 2097149
+          },
+          {
+            "file": "fr-zh/forms-0002.json",
+            "count": 77448,
+            "bytes": 2097137
+          },
+          {
+            "file": "fr-zh/forms-0003.json",
+            "count": 75632,
+            "bytes": 2097123
+          },
+          {
+            "file": "fr-zh/forms-0004.json",
+            "count": 40496,
+            "bytes": 1106296
+          }
+        ]
+      }
     },
     {
       "pair": "de-zh",
       "sourceLanguage": "de",
       "targetLanguage": "zh",
-      "file": "de-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -33,14 +122,174 @@
       ],
       "entries": 334380,
       "forms": 1285645,
-      "bytes": 62168947,
-      "builtAt": "2026-07-08T17:10:54.287280+00:00"
+      "bytes": 62168955,
+      "builtAt": "2026-07-08T17:10:54.287280+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "de-zh/meta.json",
+          "bytes": 226
+        },
+        "entries": [
+          {
+            "file": "de-zh/entries-0000.json",
+            "count": 38653,
+            "bytes": 2097109
+          },
+          {
+            "file": "de-zh/entries-0001.json",
+            "count": 37666,
+            "bytes": 2097106
+          },
+          {
+            "file": "de-zh/entries-0002.json",
+            "count": 39165,
+            "bytes": 2097148
+          },
+          {
+            "file": "de-zh/entries-0003.json",
+            "count": 37532,
+            "bytes": 2097136
+          },
+          {
+            "file": "de-zh/entries-0004.json",
+            "count": 37679,
+            "bytes": 2097139
+          },
+          {
+            "file": "de-zh/entries-0005.json",
+            "count": 37970,
+            "bytes": 2097130
+          },
+          {
+            "file": "de-zh/entries-0006.json",
+            "count": 37250,
+            "bytes": 2097134
+          },
+          {
+            "file": "de-zh/entries-0007.json",
+            "count": 38976,
+            "bytes": 2097121
+          },
+          {
+            "file": "de-zh/entries-0008.json",
+            "count": 29489,
+            "bytes": 1698572
+          }
+        ],
+        "forms": [
+          {
+            "file": "de-zh/forms-0000.json",
+            "count": 67970,
+            "bytes": 2097132
+          },
+          {
+            "file": "de-zh/forms-0001.json",
+            "count": 64667,
+            "bytes": 2097147
+          },
+          {
+            "file": "de-zh/forms-0002.json",
+            "count": 60665,
+            "bytes": 2097147
+          },
+          {
+            "file": "de-zh/forms-0003.json",
+            "count": 60971,
+            "bytes": 2097116
+          },
+          {
+            "file": "de-zh/forms-0004.json",
+            "count": 60949,
+            "bytes": 2097115
+          },
+          {
+            "file": "de-zh/forms-0005.json",
+            "count": 60649,
+            "bytes": 2097132
+          },
+          {
+            "file": "de-zh/forms-0006.json",
+            "count": 57405,
+            "bytes": 2097120
+          },
+          {
+            "file": "de-zh/forms-0007.json",
+            "count": 59050,
+            "bytes": 2097146
+          },
+          {
+            "file": "de-zh/forms-0008.json",
+            "count": 65356,
+            "bytes": 2097121
+          },
+          {
+            "file": "de-zh/forms-0009.json",
+            "count": 64290,
+            "bytes": 2097119
+          },
+          {
+            "file": "de-zh/forms-0010.json",
+            "count": 62196,
+            "bytes": 2097127
+          },
+          {
+            "file": "de-zh/forms-0011.json",
+            "count": 62393,
+            "bytes": 2097096
+          },
+          {
+            "file": "de-zh/forms-0012.json",
+            "count": 55884,
+            "bytes": 2097135
+          },
+          {
+            "file": "de-zh/forms-0013.json",
+            "count": 66878,
+            "bytes": 2097140
+          },
+          {
+            "file": "de-zh/forms-0014.json",
+            "count": 68128,
+            "bytes": 2097146
+          },
+          {
+            "file": "de-zh/forms-0015.json",
+            "count": 66215,
+            "bytes": 2097132
+          },
+          {
+            "file": "de-zh/forms-0016.json",
+            "count": 62893,
+            "bytes": 2097147
+          },
+          {
+            "file": "de-zh/forms-0017.json",
+            "count": 55244,
+            "bytes": 2097142
+          },
+          {
+            "file": "de-zh/forms-0018.json",
+            "count": 58184,
+            "bytes": 2097144
+          },
+          {
+            "file": "de-zh/forms-0019.json",
+            "count": 56304,
+            "bytes": 2097142
+          },
+          {
+            "file": "de-zh/forms-0020.json",
+            "count": 49354,
+            "bytes": 1750488
+          }
+        ]
+      }
     },
     {
       "pair": "sv-zh",
       "sourceLanguage": "sv",
       "targetLanguage": "zh",
-      "file": "sv-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -50,14 +299,84 @@
       ],
       "entries": 297788,
       "forms": 323472,
-      "bytes": 23842969,
-      "builtAt": "2026-07-08T17:11:28.145275+00:00"
+      "bytes": 23842959,
+      "builtAt": "2026-07-08T17:11:28.145275+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "sv-zh/meta.json",
+          "bytes": 275
+        },
+        "entries": [
+          {
+            "file": "sv-zh/entries-0000.json",
+            "count": 42788,
+            "bytes": 2097119
+          },
+          {
+            "file": "sv-zh/entries-0001.json",
+            "count": 42446,
+            "bytes": 2097117
+          },
+          {
+            "file": "sv-zh/entries-0002.json",
+            "count": 42481,
+            "bytes": 2097119
+          },
+          {
+            "file": "sv-zh/entries-0003.json",
+            "count": 42543,
+            "bytes": 2097124
+          },
+          {
+            "file": "sv-zh/entries-0004.json",
+            "count": 42756,
+            "bytes": 2097131
+          },
+          {
+            "file": "sv-zh/entries-0005.json",
+            "count": 42669,
+            "bytes": 2097143
+          },
+          {
+            "file": "sv-zh/entries-0006.json",
+            "count": 42105,
+            "bytes": 2085283
+          }
+        ],
+        "forms": [
+          {
+            "file": "sv-zh/forms-0000.json",
+            "count": 74722,
+            "bytes": 2097151
+          },
+          {
+            "file": "sv-zh/forms-0001.json",
+            "count": 73852,
+            "bytes": 2097126
+          },
+          {
+            "file": "sv-zh/forms-0002.json",
+            "count": 72143,
+            "bytes": 2097141
+          },
+          {
+            "file": "sv-zh/forms-0003.json",
+            "count": 74928,
+            "bytes": 2097124
+          },
+          {
+            "file": "sv-zh/forms-0004.json",
+            "count": 27827,
+            "bytes": 786106
+          }
+        ]
+      }
     },
     {
       "pair": "es-zh",
       "sourceLanguage": "es",
       "targetLanguage": "zh",
-      "file": "es-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -66,14 +385,184 @@
       ],
       "entries": 683432,
       "forms": 982916,
-      "bytes": 64667940,
-      "builtAt": "2026-07-08T17:12:42.288761+00:00"
+      "bytes": 64667950,
+      "builtAt": "2026-07-08T17:12:42.288761+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "es-zh/meta.json",
+          "bytes": 259
+        },
+        "entries": [
+          {
+            "file": "es-zh/entries-0000.json",
+            "count": 38464,
+            "bytes": 2097099
+          },
+          {
+            "file": "es-zh/entries-0001.json",
+            "count": 38849,
+            "bytes": 2097124
+          },
+          {
+            "file": "es-zh/entries-0002.json",
+            "count": 39002,
+            "bytes": 2097133
+          },
+          {
+            "file": "es-zh/entries-0003.json",
+            "count": 38506,
+            "bytes": 2097123
+          },
+          {
+            "file": "es-zh/entries-0004.json",
+            "count": 37089,
+            "bytes": 2097148
+          },
+          {
+            "file": "es-zh/entries-0005.json",
+            "count": 36424,
+            "bytes": 2097114
+          },
+          {
+            "file": "es-zh/entries-0006.json",
+            "count": 37461,
+            "bytes": 2097110
+          },
+          {
+            "file": "es-zh/entries-0007.json",
+            "count": 37700,
+            "bytes": 2097108
+          },
+          {
+            "file": "es-zh/entries-0008.json",
+            "count": 38128,
+            "bytes": 2097058
+          },
+          {
+            "file": "es-zh/entries-0009.json",
+            "count": 39366,
+            "bytes": 2097107
+          },
+          {
+            "file": "es-zh/entries-0010.json",
+            "count": 38088,
+            "bytes": 2097119
+          },
+          {
+            "file": "es-zh/entries-0011.json",
+            "count": 39065,
+            "bytes": 2097114
+          },
+          {
+            "file": "es-zh/entries-0012.json",
+            "count": 39026,
+            "bytes": 2097126
+          },
+          {
+            "file": "es-zh/entries-0013.json",
+            "count": 38264,
+            "bytes": 2097110
+          },
+          {
+            "file": "es-zh/entries-0014.json",
+            "count": 39460,
+            "bytes": 2097098
+          },
+          {
+            "file": "es-zh/entries-0015.json",
+            "count": 38462,
+            "bytes": 2097118
+          },
+          {
+            "file": "es-zh/entries-0016.json",
+            "count": 38754,
+            "bytes": 2097149
+          },
+          {
+            "file": "es-zh/entries-0017.json",
+            "count": 31324,
+            "bytes": 1662485
+          }
+        ],
+        "forms": [
+          {
+            "file": "es-zh/forms-0000.json",
+            "count": 79061,
+            "bytes": 2097132
+          },
+          {
+            "file": "es-zh/forms-0001.json",
+            "count": 77290,
+            "bytes": 2097123
+          },
+          {
+            "file": "es-zh/forms-0002.json",
+            "count": 75167,
+            "bytes": 2097117
+          },
+          {
+            "file": "es-zh/forms-0003.json",
+            "count": 71599,
+            "bytes": 2097121
+          },
+          {
+            "file": "es-zh/forms-0004.json",
+            "count": 70872,
+            "bytes": 2097136
+          },
+          {
+            "file": "es-zh/forms-0005.json",
+            "count": 75052,
+            "bytes": 2097126
+          },
+          {
+            "file": "es-zh/forms-0006.json",
+            "count": 77800,
+            "bytes": 2097135
+          },
+          {
+            "file": "es-zh/forms-0007.json",
+            "count": 75998,
+            "bytes": 2097142
+          },
+          {
+            "file": "es-zh/forms-0008.json",
+            "count": 76237,
+            "bytes": 2097134
+          },
+          {
+            "file": "es-zh/forms-0009.json",
+            "count": 75287,
+            "bytes": 2097136
+          },
+          {
+            "file": "es-zh/forms-0010.json",
+            "count": 73718,
+            "bytes": 2097133
+          },
+          {
+            "file": "es-zh/forms-0011.json",
+            "count": 74315,
+            "bytes": 2097147
+          },
+          {
+            "file": "es-zh/forms-0012.json",
+            "count": 76969,
+            "bytes": 2097132
+          },
+          {
+            "file": "es-zh/forms-0013.json",
+            "count": 3551,
+            "bytes": 91534
+          }
+        ]
+      }
     },
     {
       "pair": "it-zh",
       "sourceLanguage": "it",
       "targetLanguage": "zh",
-      "file": "it-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -81,14 +570,149 @@
       ],
       "entries": 576516,
       "forms": 672262,
-      "bytes": 49353223,
-      "builtAt": "2026-07-12T15:55:46.615845+00:00"
+      "bytes": 49353226,
+      "builtAt": "2026-07-12T15:55:46.615845+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "it-zh/meta.json",
+          "bytes": 227
+        },
+        "entries": [
+          {
+            "file": "it-zh/entries-0000.json",
+            "count": 41167,
+            "bytes": 2097128
+          },
+          {
+            "file": "it-zh/entries-0001.json",
+            "count": 40703,
+            "bytes": 2097105
+          },
+          {
+            "file": "it-zh/entries-0002.json",
+            "count": 40496,
+            "bytes": 2097130
+          },
+          {
+            "file": "it-zh/entries-0003.json",
+            "count": 40039,
+            "bytes": 2097116
+          },
+          {
+            "file": "it-zh/entries-0004.json",
+            "count": 40920,
+            "bytes": 2097115
+          },
+          {
+            "file": "it-zh/entries-0005.json",
+            "count": 40772,
+            "bytes": 2097124
+          },
+          {
+            "file": "it-zh/entries-0006.json",
+            "count": 40440,
+            "bytes": 2097143
+          },
+          {
+            "file": "it-zh/entries-0007.json",
+            "count": 40379,
+            "bytes": 2097149
+          },
+          {
+            "file": "it-zh/entries-0008.json",
+            "count": 40928,
+            "bytes": 2097150
+          },
+          {
+            "file": "it-zh/entries-0009.json",
+            "count": 39908,
+            "bytes": 2097139
+          },
+          {
+            "file": "it-zh/entries-0010.json",
+            "count": 41269,
+            "bytes": 2097139
+          },
+          {
+            "file": "it-zh/entries-0011.json",
+            "count": 41603,
+            "bytes": 2097151
+          },
+          {
+            "file": "it-zh/entries-0012.json",
+            "count": 41425,
+            "bytes": 2097113
+          },
+          {
+            "file": "it-zh/entries-0013.json",
+            "count": 41380,
+            "bytes": 2097123
+          },
+          {
+            "file": "it-zh/entries-0014.json",
+            "count": 5087,
+            "bytes": 240980
+          }
+        ],
+        "forms": [
+          {
+            "file": "it-zh/forms-0000.json",
+            "count": 72459,
+            "bytes": 2097132
+          },
+          {
+            "file": "it-zh/forms-0001.json",
+            "count": 70919,
+            "bytes": 2097131
+          },
+          {
+            "file": "it-zh/forms-0002.json",
+            "count": 72719,
+            "bytes": 2097140
+          },
+          {
+            "file": "it-zh/forms-0003.json",
+            "count": 72273,
+            "bytes": 2097128
+          },
+          {
+            "file": "it-zh/forms-0004.json",
+            "count": 72449,
+            "bytes": 2097147
+          },
+          {
+            "file": "it-zh/forms-0005.json",
+            "count": 69574,
+            "bytes": 2097126
+          },
+          {
+            "file": "it-zh/forms-0006.json",
+            "count": 71292,
+            "bytes": 2097129
+          },
+          {
+            "file": "it-zh/forms-0007.json",
+            "count": 69013,
+            "bytes": 2097148
+          },
+          {
+            "file": "it-zh/forms-0008.json",
+            "count": 71869,
+            "bytes": 2097130
+          },
+          {
+            "file": "it-zh/forms-0009.json",
+            "count": 29695,
+            "bytes": 877983
+          }
+        ]
+      }
     },
     {
       "pair": "ja-zh",
       "sourceLanguage": "ja",
       "targetLanguage": "zh",
-      "file": "ja-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -97,14 +721,114 @@
       ],
       "entries": 170802,
       "forms": 771265,
-      "bytes": 35856710,
-      "builtAt": "2026-07-12T15:58:02.836227+00:00"
+      "bytes": 35856706,
+      "builtAt": "2026-07-12T15:58:02.836227+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "ja-zh/meta.json",
+          "bytes": 257
+        },
+        "entries": [
+          {
+            "file": "ja-zh/entries-0000.json",
+            "count": 41811,
+            "bytes": 2097125
+          },
+          {
+            "file": "ja-zh/entries-0001.json",
+            "count": 32180,
+            "bytes": 2097108
+          },
+          {
+            "file": "ja-zh/entries-0002.json",
+            "count": 25626,
+            "bytes": 2097083
+          },
+          {
+            "file": "ja-zh/entries-0003.json",
+            "count": 28077,
+            "bytes": 2097144
+          },
+          {
+            "file": "ja-zh/entries-0004.json",
+            "count": 28946,
+            "bytes": 2097059
+          },
+          {
+            "file": "ja-zh/entries-0005.json",
+            "count": 14162,
+            "bytes": 1008768
+          }
+        ],
+        "forms": [
+          {
+            "file": "ja-zh/forms-0000.json",
+            "count": 72380,
+            "bytes": 2097117
+          },
+          {
+            "file": "ja-zh/forms-0001.json",
+            "count": 72912,
+            "bytes": 2097145
+          },
+          {
+            "file": "ja-zh/forms-0002.json",
+            "count": 72686,
+            "bytes": 2097132
+          },
+          {
+            "file": "ja-zh/forms-0003.json",
+            "count": 66669,
+            "bytes": 2097139
+          },
+          {
+            "file": "ja-zh/forms-0004.json",
+            "count": 59268,
+            "bytes": 2097132
+          },
+          {
+            "file": "ja-zh/forms-0005.json",
+            "count": 59634,
+            "bytes": 2097128
+          },
+          {
+            "file": "ja-zh/forms-0006.json",
+            "count": 59271,
+            "bytes": 2097126
+          },
+          {
+            "file": "ja-zh/forms-0007.json",
+            "count": 57407,
+            "bytes": 2097123
+          },
+          {
+            "file": "ja-zh/forms-0008.json",
+            "count": 66825,
+            "bytes": 2097150
+          },
+          {
+            "file": "ja-zh/forms-0009.json",
+            "count": 69983,
+            "bytes": 2097147
+          },
+          {
+            "file": "ja-zh/forms-0010.json",
+            "count": 70153,
+            "bytes": 2097138
+          },
+          {
+            "file": "ja-zh/forms-0011.json",
+            "count": 44077,
+            "bytes": 1293685
+          }
+        ]
+      }
     },
     {
       "pair": "ko-zh",
       "sourceLanguage": "ko",
       "targetLanguage": "zh",
-      "file": "ko-zh.json",
       "status": "ready",
       "sources": [
         "FreeDict eng-zho bridge",
@@ -113,8 +837,59 @@
       ],
       "entries": 55526,
       "forms": 346526,
-      "bytes": 14957092,
-      "builtAt": "2026-07-12T15:56:49.473021+00:00"
+      "bytes": 14957078,
+      "builtAt": "2026-07-12T15:56:49.473021+00:00",
+      "format": "chunks-v1",
+      "chunks": {
+        "meta": {
+          "file": "ko-zh/meta.json",
+          "bytes": 255
+        },
+        "entries": [
+          {
+            "file": "ko-zh/entries-0000.json",
+            "count": 37007,
+            "bytes": 2097086
+          },
+          {
+            "file": "ko-zh/entries-0001.json",
+            "count": 18519,
+            "bytes": 1560601
+          }
+        ],
+        "forms": [
+          {
+            "file": "ko-zh/forms-0000.json",
+            "count": 69507,
+            "bytes": 2097124
+          },
+          {
+            "file": "ko-zh/forms-0001.json",
+            "count": 63778,
+            "bytes": 2097139
+          },
+          {
+            "file": "ko-zh/forms-0002.json",
+            "count": 63034,
+            "bytes": 2097114
+          },
+          {
+            "file": "ko-zh/forms-0003.json",
+            "count": 62620,
+            "bytes": 2097145
+          },
+          {
+            "file": "ko-zh/forms-0004.json",
+            "count": 63145,
+            "bytes": 2097139
+          },
+          {
+            "file": "ko-zh/forms-0005.json",
+            "count": 24442,
+            "bytes": 813475
+          }
+        ]
+      }
     }
   ]
 }

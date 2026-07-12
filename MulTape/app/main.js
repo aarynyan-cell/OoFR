@@ -1154,18 +1154,19 @@ async function loadActiveLexicon() {
     const installed = await loadInstalledLexicon(pair);
     if (installed) {
       activeLexicon = installed;
-    state.installedLexicons[pair] = {
-      pair,
-      entriesCount: installed.entriesCount,
-      formsCount: installed.formsCount,
-      installedAt: state.installedLexicons[pair]?.installedAt || nowIso(),
-      version: installed.meta?.version || "",
-      packageBuiltAt: installed.meta?.builtAt || state.installedLexicons[pair]?.packageBuiltAt || "",
-      packageBytes: state.installedLexicons[pair]?.packageBytes || 0
-    };
+      state.installedLexicons[pair] = {
+        pair,
+        entriesCount: installed.entriesCount,
+        formsCount: installed.formsCount,
+        installedAt: state.installedLexicons[pair]?.installedAt || nowIso(),
+        version: installed.meta?.version || "",
+        packageBuiltAt: installed.meta?.builtAt || state.installedLexicons[pair]?.packageBuiltAt || "",
+        packageBytes: installed.meta?.packageBytes || state.installedLexicons[pair]?.packageBytes || 0
+      };
       setStatus(t("lexicon.loaded", { count: installed.entriesCount }));
     }
-  } catch {
+  } catch (error) {
+    console.warn("Installed lexicon could not be loaded", error);
     delete state.installedLexicons[pair];
   }
 }
@@ -1181,10 +1182,10 @@ async function installActiveLexicon() {
   elements.lexiconProgress.value = 2;
   elements.lexiconActionBtn.disabled = true;
   elements.lexiconBadge.textContent = t("lexicon.downloading");
+  let failedMessage = "";
   try {
     activeLexicon = await downloadLexiconPackage(packageInfo, (progress) => {
-      elements.lexiconProgress.value = progress;
-      elements.lexiconDescription.textContent = `${progress}%`;
+      renderLexiconProgress(progress);
     });
     state.installedLexicons[pair] = {
       pair,
@@ -1197,13 +1198,28 @@ async function installActiveLexicon() {
     };
     persist();
     setStatus(t("lexicon.loaded", { count: activeLexicon.entriesCount }));
-  } catch {
+  } catch (error) {
+    console.error("Lexicon download failed", error);
+    failedMessage = error?.message || t("lexicon.failed");
     setStatus(t("lexicon.failed"));
   } finally {
     elements.lexiconProgress.hidden = true;
     elements.lexiconActionBtn.disabled = false;
     renderAll();
+    if (failedMessage) {
+      elements.lexiconDescription.textContent = failedMessage;
+    }
   }
+}
+
+function renderLexiconProgress(progress) {
+  const update = typeof progress === "number" ? { percent: progress, stage: "downloading" } : progress;
+  const percent = Math.max(0, Math.min(100, Math.round(Number(update.percent || 0))));
+  const stage = update.stage || "downloading";
+  const stageLabel = t(`lexicon.progress.${stage}`);
+  const detail = update.detail ? ` · ${update.detail}` : "";
+  elements.lexiconProgress.value = percent;
+  elements.lexiconDescription.textContent = `${percent}% · ${stageLabel}${detail}`;
 }
 
 async function deleteActiveLexicon() {

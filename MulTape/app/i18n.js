@@ -46,6 +46,12 @@ const DICTIONARIES = {
     "lexicon.outdated": "本机词库早于当前版本，建议更新。",
     "lexicon.failed": "词库下载失败，请稍后重试或确认词库文件已生成",
     "lexicon.noPackage": "这个语言对的词库还没有生成文件",
+    "lexicon.progress.preparing": "准备安装",
+    "lexicon.progress.downloading": "下载分块",
+    "lexicon.progress.indexing": "建立索引",
+    "lexicon.progress.parsing": "解析词库",
+    "lexicon.progress.saving": "保存到本机",
+    "lexicon.progress.done": "安装完成",
     "backup.imported": "完整数据导入完成",
     "backup.failed": "导入失败"
   },
@@ -96,6 +102,12 @@ const DICTIONARIES = {
     "lexicon.outdated": "The local lexicon is older than the current package.",
     "lexicon.failed": "Lexicon download failed; try again or build the package first",
     "lexicon.noPackage": "No generated lexicon file for this language pair yet",
+    "lexicon.progress.preparing": "Preparing",
+    "lexicon.progress.downloading": "Downloading chunks",
+    "lexicon.progress.indexing": "Building index",
+    "lexicon.progress.parsing": "Parsing lexicon",
+    "lexicon.progress.saving": "Saving locally",
+    "lexicon.progress.done": "Installed",
     "backup.imported": "Backup imported",
     "backup.failed": "Import failed"
   }
