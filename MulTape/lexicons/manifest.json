@@ -1,0 +1,120 @@
+{
+  "type": "multape.lexicon-manifest.v1",
+  "version": "1.0.0-alpha",
+  "updatedAt": "2026-07-12",
+  "notes": "Lexicon packages are intentionally not cached with the application shell. Generate complete packages with scripts/build_lexicons.py before publishing.",
+  "packages": [
+    {
+      "pair": "fr-zh",
+      "sourceLanguage": "fr",
+      "targetLanguage": "zh",
+      "file": "fr-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "open-dict-data ipa-dict fr_FR",
+        "Kaikki French Wiktionary dump",
+        "FreeDict fra-zho"
+      ],
+      "entries": 368873,
+      "forms": 345581,
+      "bytes": 30573087,
+      "builtAt": "2026-07-08T17:10:24.911248+00:00"
+    },
+    {
+      "pair": "de-zh",
+      "sourceLanguage": "de",
+      "targetLanguage": "zh",
+      "file": "de-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "Kaikki German Wiktionary dump"
+      ],
+      "entries": 334380,
+      "forms": 1285645,
+      "bytes": 62168947,
+      "builtAt": "2026-07-08T17:10:54.287280+00:00"
+    },
+    {
+      "pair": "sv-zh",
+      "sourceLanguage": "sv",
+      "targetLanguage": "zh",
+      "file": "sv-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "open-dict-data ipa-dict sv",
+        "Kaikki Swedish Wiktionary dump",
+        "FreeDict swe-zho"
+      ],
+      "entries": 297788,
+      "forms": 323472,
+      "bytes": 23842969,
+      "builtAt": "2026-07-08T17:11:28.145275+00:00"
+    },
+    {
+      "pair": "es-zh",
+      "sourceLanguage": "es",
+      "targetLanguage": "zh",
+      "file": "es-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "open-dict-data ipa-dict es_ES",
+        "Kaikki Spanish Wiktionary dump"
+      ],
+      "entries": 683432,
+      "forms": 982916,
+      "bytes": 64667940,
+      "builtAt": "2026-07-08T17:12:42.288761+00:00"
+    },
+    {
+      "pair": "it-zh",
+      "sourceLanguage": "it",
+      "targetLanguage": "zh",
+      "file": "it-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "Kaikki Italian Wiktionary dump"
+      ],
+      "entries": 576516,
+      "forms": 672262,
+      "bytes": 49353223,
+      "builtAt": "2026-07-12T15:55:46.615845+00:00"
+    },
+    {
+      "pair": "ja-zh",
+      "sourceLanguage": "ja",
+      "targetLanguage": "zh",
+      "file": "ja-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "open-dict-data ipa-dict ja",
+        "Kaikki Japanese Wiktionary dump"
+      ],
+      "entries": 170802,
+      "forms": 771265,
+      "bytes": 35856710,
+      "builtAt": "2026-07-12T15:58:02.836227+00:00"
+    },
+    {
+      "pair": "ko-zh",
+      "sourceLanguage": "ko",
+      "targetLanguage": "zh",
+      "file": "ko-zh.json",
+      "status": "ready",
+      "sources": [
+        "FreeDict eng-zho bridge",
+        "open-dict-data ipa-dict ko",
+        "Kaikki Korean Wiktionary dump"
+      ],
+      "entries": 55526,
+      "forms": 346526,
+      "bytes": 14957092,
+      "builtAt": "2026-07-12T15:56:49.473021+00:00"
+    }
+  ]
+}

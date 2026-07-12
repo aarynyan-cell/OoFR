@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111513">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MulTape">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MulTape 外语磁带</title>
+    <link rel="icon" href="./icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="./styles.css?v=1.0.0-alpha">
+  </head>
+  <body>
+    <div id="bootOverlay" class="boot-overlay" role="status" aria-live="polite">
+      <div class="boot-card">
+        <div class="brand-mark boot-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <rect x="6" y="8" width="52" height="48" rx="8"></rect>
+            <circle cx="22" cy="32" r="8"></circle>
+            <circle cx="42" cy="32" r="8"></circle>
+            <path d="M22 32h20M16 47h32"></path>
+          </svg>
+        </div>
+        <div class="boot-spinner" aria-hidden="true"></div>
+        <h1>MulTape</h1>
+        <p id="bootStatus">正在装入外语磁带...</p>
+        <p class="micro-copy">移动端首次打开可能需要几秒，请保持这个页面开启。</p>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <rect x="6" y="8" width="52" height="48" rx="8"></rect>
+              <circle cx="22" cy="32" r="8"></circle>
+              <circle cx="42" cy="32" r="8"></circle>
+              <path d="M22 32h20M16 47h32"></path>
+            </svg>
+          </div>
+          <div>
+            <p id="appEyebrow" class="eyebrow">MulTape · v1.0 alpha</p>
+            <h1 id="appTitle">外语磁带</h1>
+          </div>
+        </div>
+
+        <nav class="top-nav" aria-label="主导航">
+          <button type="button" class="nav-button" data-view-target="reader" aria-pressed="true">
+            <span data-icon="play"></span>
+            <span data-i18n="nav.reader">朗读</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="library" aria-pressed="false">
+            <span data-icon="album"></span>
+            <span data-i18n="nav.library">专辑</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="vocab" aria-pressed="false">
+            <span data-icon="book"></span>
+            <span data-i18n="nav.vocab">单词本</span>
+          </button>
+          <button type="button" class="nav-button" data-view-target="my" aria-pressed="false">
+            <span data-icon="user"></span>
+            <span data-i18n="nav.my">我的</span>
+          </button>
+        </nav>
+      </header>
+
+      <main>
+        <section id="readerView" class="view is-active" aria-labelledby="readerTitle">
+          <div class="reader-grid">
+            <section class="deck-panel" aria-labelledby="readerTitle">
+              <div class="panel-title-row">
+                <div>
+                  <p id="readerEyebrow" class="eyebrow">Lecture</p>
+                  <h2 id="readerTitle">朗读</h2>
+                  <p id="activeEntryLine" class="micro-copy">临时练习草稿</p>
+                </div>
+                <div class="reader-header-actions">
+                  <span id="textStats" class="stat-pill">0 句</span>
+                  <button id="audioSettingsToggle" class="icon-button" type="button" title="播放设置" aria-label="播放设置" aria-controls="audioSettingsPanel" aria-expanded="false" data-icon="speaker"></button>
+                </div>
+              </div>
+
+              <section id="audioSettingsPanel" class="console-panel settings-panel" aria-labelledby="settingsTitle" hidden>
+                <div class="panel-title-row compact">
+                  <div>
+                    <p class="eyebrow">Audio</p>
+                    <h2 id="settingsTitle">播放</h2>
+                  </div>
+                </div>
+
+                <div class="settings-grid">
+                  <div class="control-group">
+                    <label id="studyVoiceLabel" class="field-label" for="studyVoiceSelect">学习语言声音</label>
+                    <select id="studyVoiceSelect"></select>
+                    <button id="refreshVoicesBtn" class="mini-button" type="button">刷新语音</button>
+                  </div>
+
+                  <div class="control-group">
+                    <div class="label-row">
+                      <label class="field-label" for="rateControl">语速</label>
+                      <output id="rateLabel" for="rateControl">0.85x</output>
+                    </div>
+                    <input id="rateControl" type="range" min="0.5" max="1.25" step="0.05" value="0.85">
+                  </div>
+
+                  <div class="control-group">
+                    <span class="field-label">重复</span>
+                    <div id="repeatGroup" class="segmented-control" role="radiogroup" aria-label="重复次数">
+                      <button type="button" data-repeat="1" aria-pressed="true">1</button>
+                      <button type="button" data-repeat="2" aria-pressed="false">2</button>
+                      <button type="button" data-repeat="3" aria-pressed="false">3</button>
+                    </div>
+                  </div>
+
+                  <div class="control-group">
+                    <div class="label-row">
+                      <label class="field-label" for="pauseControl">间隔</label>
+                      <output id="pauseLabel" for="pauseControl">0.4s</output>
+                    </div>
+                    <input id="pauseControl" type="range" min="0" max="1.5" step="0.1" value="0.4">
+                  </div>
+                </div>
+              </section>
+
+              <label id="textInputLabel" class="field-label" for="textInput">外语文字</label>
+              <textarea id="textInput" spellcheck="false"></textarea>
+
+              <div class="action-row">
+                <button id="playAllReader" class="command-button primary play-trigger" type="button" data-icon="play">
+                  <span>全文</span>
+                </button>
+                <button id="stopReader" class="icon-button" type="button" title="停止" aria-label="停止" data-icon="stop"></button>
+                <button id="saveEntryBtn" class="command-button" type="button" data-icon="save">
+                  <span>保存</span>
+                </button>
+                <button id="refreshBtn" class="icon-button play-trigger" type="button" title="刷新分行" aria-label="刷新分行" data-icon="refresh"></button>
+                <button id="sampleBtn" class="icon-button" type="button" title="示例" aria-label="示例" data-icon="spark"></button>
+                <button id="clearBtn" class="icon-button" type="button" title="清空" aria-label="清空" data-icon="trash"></button>
+              </div>
+            </section>
+
+            <section class="reader-panel" aria-labelledby="sentenceTitle">
+              <div class="reader-title-row">
+                <div>
+                  <p id="sentenceEyebrow" class="eyebrow">Phrases</p>
+                  <h2 id="sentenceTitle">朗读区</h2>
+                  <p id="statusLine" class="status-line" role="status">准备好了</p>
+                </div>
+              </div>
+
+              <div id="wordPanel" class="word-panel" hidden>
+                <div>
+                  <p id="wordPanelEyebrow" class="eyebrow">Word</p>
+                  <h3 id="wordPanelTitle"></h3>
+                  <p id="wordPanelMeta" class="micro-copy"></p>
+                </div>
+                <div class="word-actions">
+                  <button id="wordPlayBtn" class="icon-button play-trigger" type="button" title="播放单词" aria-label="播放单词" data-icon="speaker"></button>
+                  <button id="wordAddBtn" class="command-button" type="button" data-icon="plus">
+                    <span>加入</span>
+                  </button>
+                  <button id="wordToggleBtn" class="command-button" type="button" data-icon="check">
+                    <span>got</span>
+                  </button>
+                  <button id="wordEditBtn" class="icon-button" type="button" title="编辑" aria-label="编辑" data-icon="edit"></button>
+                  <button id="wordDeleteBtn" class="icon-button danger" type="button" title="删除" aria-label="删除" data-icon="trash"></button>
+                  <button id="wordPanelCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+                </div>
+              </div>
+
+              <div id="sentenceList" class="sentence-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="libraryView" class="view" aria-labelledby="libraryTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Albums & Cassettes</p>
+              <h2 id="libraryTitle">专辑</h2>
+            </div>
+            <button id="newAlbumBtn" class="command-button primary" type="button" data-icon="plus">
+              <span>专辑</span>
+            </button>
+          </div>
+
+          <div class="library-layout">
+            <section class="album-shelf" aria-label="专辑列表">
+              <div id="albumShelf" class="album-grid"></div>
+            </section>
+            <section class="cassette-board" aria-label="磁带和条目">
+              <div id="libraryDetail" class="library-detail"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="vocabView" class="view" aria-labelledby="vocabTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Vocabulary</p>
+              <h2 id="vocabTitle">单词本</h2>
+            </div>
+            <button id="newVocabBtn" class="command-button primary" type="button" data-icon="plus">
+              <span>单词</span>
+            </button>
+            <button id="newWordbookBtn" class="command-button" type="button" data-icon="book">
+              <span>单词本</span>
+            </button>
+          </div>
+
+          <div id="wordbookShelf" class="wordbook-grid" aria-label="单词本列表"></div>
+
+          <div class="vocab-toolbar">
+            <label class="field-label" for="vocabSearch">搜索</label>
+            <input id="vocabSearch" class="text-input" type="search" autocomplete="off">
+            <span id="vocabStats" class="stat-pill">0 词</span>
+          </div>
+          <p id="selectedWordbookLine" class="micro-copy">all · 0 词</p>
+
+          <div id="vocabList" class="vocab-list"></div>
+        </section>
+
+        <section id="myView" class="view" aria-labelledby="myTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">My MulTape</p>
+              <h2 id="myTitle">我的</h2>
+              <p id="myStats" class="micro-copy">0 专辑 · 0 磁带 · 0 段落 · 0 词</p>
+            </div>
+          </div>
+
+          <div class="my-grid">
+            <section class="my-panel" aria-labelledby="languageTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Languages</p>
+                  <h3 id="languageTitle">语言</h3>
+                </div>
+              </div>
+              <div class="settings-grid">
+                <label class="control-group">
+                  <span class="field-label">母语</span>
+                  <select id="nativeLanguageSelect"></select>
+                </label>
+                <label class="control-group">
+                  <span class="field-label">想学的语言</span>
+                  <select id="studyLanguageSelect"></select>
+                </label>
+              </div>
+              <p id="languageHint" class="micro-copy">系统会按这两种语言调整朗读、词库和界面提示。</p>
+            </section>
+
+            <section class="my-panel" aria-labelledby="lexiconTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Lexicon</p>
+                  <h3 id="lexiconTitle">词库</h3>
+                </div>
+                <span id="lexiconBadge" class="badge">未下载</span>
+              </div>
+              <p id="lexiconDescription" class="micro-copy">默认不下载词库；需要释义、音标和词形归并时再安装。</p>
+              <div class="split-actions">
+                <button id="lexiconActionBtn" class="command-button primary" type="button" data-icon="download">
+                  <span>下载词库</span>
+                </button>
+                <button id="lexiconDeleteBtn" class="command-button danger" type="button" data-icon="trash">
+                  <span>删除</span>
+                </button>
+              </div>
+              <progress id="lexiconProgress" class="lexicon-progress" value="0" max="100" hidden></progress>
+            </section>
+
+            <section class="my-panel" aria-labelledby="voiceTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Voices</p>
+                  <h3 id="voiceTitle">默认语音</h3>
+                </div>
+              </div>
+              <div class="settings-grid">
+                <label class="control-group">
+                  <span id="myStudyVoiceLabel" class="field-label">学习语言声音</span>
+                  <select id="myStudyVoiceSelect"></select>
+                </label>
+                <label class="control-group">
+                  <span id="myNativeVoiceLabel" class="field-label">母语声音</span>
+                  <select id="nativeVoiceSelect"></select>
+                </label>
+              </div>
+              <div class="split-actions">
+                <button id="myRefreshVoicesBtn" class="command-button" type="button" data-icon="refresh">
+                  <span>刷新语音</span>
+                </button>
+                <button id="preferNaturalVoicesBtn" class="command-button primary" type="button" data-icon="spark">
+                  <span>使用推荐自然语音</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="my-panel" aria-labelledby="backupTitle">
+              <div class="panel-title-row compact">
+                <div>
+                  <p class="eyebrow">Backup</p>
+                  <h3 id="backupTitle">完整数据</h3>
+                </div>
+              </div>
+              <div class="split-actions">
+                <button id="exportBtn" class="command-button" type="button" data-icon="download">
+                  <span>导出</span>
+                </button>
+                <button id="importBtn" class="command-button" type="button" data-icon="upload">
+                  <span>导入</span>
+                </button>
+                <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json">
+              </div>
+              <p class="micro-copy">迁移专辑、磁带、段落、单词本和播放设置。</p>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="appDialog" class="app-dialog">
+      <form id="dialogForm" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">MulTape</p>
+            <h2 id="dialogTitle"></h2>
+          </div>
+          <button id="dialogCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+        </div>
+        <div id="dialogBody" class="dialog-body"></div>
+        <div class="dialog-actions">
+          <button id="dialogCancelBtn" class="command-button" type="button">取消</button>
+          <button id="dialogSubmitBtn" class="command-button primary" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./app/main.js?v=1.0.0-alpha"></script>
+  </body>
+</html>
