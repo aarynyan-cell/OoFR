@@ -121,6 +121,9 @@
         email,
         create_user: true,
         gotrue_meta_security: {},
+        // GoTrue expects `redirect_to` for the post-magic-link callback.
+        // Keep the legacy field as well for compatibility with older gateways.
+        redirect_to: global.location.href.split("#")[0],
         email_redirect_to: global.location.href.split("#")[0]
       })
     });
