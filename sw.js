@@ -1,11 +1,12 @@
-const CACHE_NAME = "oofr-v0.8.4";
+const CACHE_NAME = "oofr-v0.19.3";
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./reset.html",
-  "./styles.css?v=0.8.4",
-  "./lexicon.js?v=0.8.4",
-  "./app.js?v=0.8.4",
+  "./styles.css?v=0.19.3",
+  "./supabase-config.js?v=0.19.3",
+  "./cloud-sync.js?v=0.19.3",
+  "./app.js?v=0.19.3",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"

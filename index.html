@@ -7,7 +7,7 @@
     <title>OoFR 法语磁带</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.8.4">
+    <link rel="stylesheet" href="./styles.css?v=0.19.3">
   </head>
   <body>
     <div id="startupLoader" class="startup-loader" role="status" aria-live="polite">
@@ -18,7 +18,20 @@
         </div>
         <p class="eyebrow">OoFR</p>
         <h2>正在打开法语磁带</h2>
-        <p>首次访问会准备词库，页面会先出来。</p>
+        <p id="startupStage" class="startup-stage">准备基础界面</p>
+        <div class="startup-progress-row">
+          <div class="startup-progress-track" role="progressbar" aria-label="启动进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="startupProgressBar"></span>
+          </div>
+          <strong id="startupProgressValue">0%</strong>
+        </div>
+        <ol class="startup-steps" aria-label="启动步骤">
+          <li data-startup-step="state" class="is-current"><span>1</span>读取课程</li>
+          <li data-startup-step="settings"><span>2</span>恢复设置</li>
+          <li data-startup-step="screen"><span>3</span>绘制界面</li>
+          <li data-startup-step="ready"><span>4</span>可以开始</li>
+        </ol>
+        <p id="startupHint">词库会在界面打开后继续后台准备，不会阻塞播放。</p>
       </div>
     </div>
 
@@ -34,23 +47,23 @@
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR · v0.8</p>
+            <p class="eyebrow">OoFR · v0.19.3</p>
             <h1>法语磁带</h1>
           </div>
         </div>
 
         <nav class="top-nav" aria-label="主导航">
-          <button type="button" class="nav-button" data-view-target="reader" aria-pressed="true">
+          <button type="button" class="nav-button" data-view-target="course" aria-pressed="false">
             <span data-icon="play"></span>
-            <span>朗读</span>
+            <span>课程</span>
           </button>
           <button type="button" class="nav-button" data-view-target="library" aria-pressed="false">
             <span data-icon="album"></span>
-            <span>专辑</span>
+            <span>磁带</span>
           </button>
           <button type="button" class="nav-button" data-view-target="vocab" aria-pressed="false">
             <span data-icon="book"></span>
-            <span>单词本</span>
+            <span>词句本</span>
           </button>
           <button type="button" class="nav-button" data-view-target="my" aria-pressed="false">
             <span data-icon="user"></span>
@@ -60,6 +73,208 @@
       </header>
 
       <main>
+        <section id="courseView" class="view" aria-labelledby="courseTitle">
+          <div class="course-demo-shell">
+            <div class="course-hero">
+              <div>
+                <p class="eyebrow">Material studio · Demo</p>
+                <h2 id="courseTitle">把任意文本变成一节课</h2>
+                <p class="micro-copy">输入文章、对话、歌词或笔记，逐句朗读、录音和复习。</p>
+              </div>
+            </div>
+
+            <section id="courseLibraryPanel" class="course-stage" hidden aria-hidden="true">
+              <div id="courseLessonCards" class="course-card-grid"></div>
+            </section>
+
+            <section id="courseComposerPanel" class="course-stage" aria-labelledby="courseComposerTitle" hidden>
+              <div class="section-heading compact-section-heading">
+                <div>
+                  <p class="eyebrow">New material</p>
+                  <h3 id="courseComposerTitle">新建学习素材</h3>
+                </div>
+                <button id="courseBackToLibraryBtn" class="command-button" type="button">返回课程</button>
+              </div>
+              <div class="course-composer-grid">
+                <div class="course-form-card">
+                  <label class="dialog-field">
+                    <span class="field-label">标题</span>
+                    <input id="courseTitleInput" class="text-input" type="text" value="我的学习素材">
+                  </label>
+                  <div class="course-form-row">
+                    <label class="dialog-field">
+                      <span class="field-label">学习语言</span>
+                      <select id="courseLanguageSelect"><option value="fr">法语</option><option value="en">英语</option></select>
+                    </label>
+                    <select id="courseExplainLanguageSelect" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="zh">中文</option><option value="en">English</option><option value="fr">Français</option></select>
+                  </div>
+                  <label class="dialog-field">
+                    <span class="field-label">素材类型</span>
+                    <select id="courseMaterialTypeSelect"><option>自定义文本</option><option>情景对话</option><option>文章</option><option>歌词</option><option>笔记</option></select>
+                  </label>
+                  <label class="dialog-field">
+                    <span class="field-label">粘贴文本</span>
+                    <textarea id="courseMaterialInput" class="course-material-input" spellcheck="false"></textarea>
+                  </label>
+                  <section id="courseAnalysisPanel" class="course-analysis-panel" hidden aria-labelledby="courseAnalysisTitle">
+                    <div class="course-analysis-heading">
+                      <div><p class="eyebrow">Smart review</p><h4 id="courseAnalysisTitle">素材识别与整理建议</h4></div>
+                      <span id="courseAnalysisSource" class="badge">本地规则</span>
+                    </div>
+                    <p id="courseAnalysisSummary" class="micro-copy"></p>
+                    <div id="courseAnalysisReasons" class="course-analysis-reasons"></div>
+                    <div class="course-analysis-actions">
+                      <button id="courseApplySentenceBreaksBtn" class="command-button" type="button">拆成单句并换行</button>
+                      <button id="courseApplySpeakersBtn" class="command-button" type="button">应用说话人标记</button>
+                      <button id="courseApplyCorrectionsBtn" class="command-button primary" type="button">确认并替换为修正版</button>
+                    </div>
+                  </section>
+                  <div class="course-form-actions">
+                    <label class="command-button ghost-button" for="courseMaterialFile">导入 TXT/MD</label>
+                    <input id="courseMaterialFile" class="visually-hidden" type="file" accept=".txt,.md,text/plain,text/markdown">
+                    <button id="courseAnalyzeBtn" class="command-button" type="button" data-icon="spark"><span>重新智能分析</span></button>
+                    <button id="courseGenerateBtn" class="command-button primary" type="button" data-icon="spark"><span>生成课程</span></button>
+                  </div>
+                  <p id="courseAnalysisStatus" class="micro-copy">粘贴或导入文本后会自动识别语言、类型、标题和说话人。</p>
+                </div>
+                <aside class="course-tip-card">
+                  <p class="eyebrow">Tips</p>
+                  <h3>先按行整理，之后随时可以改</h3>
+                  <p>每一行会变成一句字幕。文章统一使用“旁白”；只有真正的多人对话才会整理为 A/B/C。</p>
+                  <div class="mini-flow"><span>素材</span><b>→</b><span>句子</span><b>→</b><span>练习</span></div>
+                </aside>
+              </div>
+            </section>
+
+            <section id="coursePlayerPanel" class="course-stage" aria-labelledby="coursePlayerTitle" hidden>
+              <div class="course-player-heading">
+                <div>
+                  <p class="eyebrow">Lesson player</p>
+                  <h3 id="coursePlayerTitle">学习素材</h3>
+                  <p id="coursePlayerMeta" class="micro-copy"></p>
+                  <p id="courseMicHint" class="course-mic-hint">逐句录音使用本机麦克风，音频只保存在当前设备。</p>
+                </div>
+                <div class="course-heading-actions">
+                  <button id="courseNewBtn" class="command-button primary" type="button" data-icon="plus"><span>新建素材</span></button>
+                  <button id="courseEditBtn" class="command-button" type="button" data-icon="edit"><span>编辑素材</span></button>
+                  <button id="coursePracticeBtn" class="command-button primary" type="button" data-icon="book"><span>单词练习</span></button>
+                  <button id="courseExportRecordingsBtn" class="command-button" type="button" data-icon="download"><span>导出我的录音</span></button>
+                </div>
+              </div>
+
+              <div class="course-player-layout">
+                <article class="course-transcript-card">
+                  <div class="course-card-header"><div><p class="eyebrow">Transcript</p><h3>逐句字幕</h3></div><label class="toggle-control"><input id="courseTranslationToggle" type="checkbox" checked><span>显示译文</span></label></div>
+                  <div id="courseTranscriptList" class="course-transcript-list"></div>
+                </article>
+                <aside class="course-learning-rail">
+                  <section class="course-rail-card">
+                    <div class="course-card-header"><div><p class="eyebrow">Word insight</p><h3>重点词汇</h3></div><span id="courseWordCount" class="badge">0 词</span></div>
+                    <div id="courseWordList" class="course-word-list"></div>
+                  </section>
+                </aside>
+              </div>
+
+              <section class="course-bottom-player" aria-label="播放控制">
+                <div class="course-player-sr-status" aria-live="polite">
+                  <strong id="courseBottomTitle" class="visually-hidden">学习素材</strong>
+                  <span id="coursePlaybackStatus" class="visually-hidden">准备好开始学习</span>
+                  <span id="courseBottomHint" class="visually-hidden">时间轴按句定位</span>
+                </div>
+                <div class="course-bottom-timeline">
+                  <span id="courseElapsed">00:00</span>
+                  <input id="courseTimeline" type="range" min="0" max="1000" value="0" step="any" aria-label="课程时间轴">
+                  <span id="courseDuration">00:00</span>
+                </div>
+                <div class="course-bottom-actions">
+                  <div class="course-bottom-settings">
+                    <label class="course-bottom-select">语速 <select id="courseRateSelect"><option value="0.75">0.75x</option><option value="0.9" selected>0.9x</option><option value="1">1.0x</option><option value="1.2">1.2x</option></select></label>
+                    <div class="course-voice-menu">
+                      <button id="courseVoiceButton" class="course-voice-button" type="button" aria-haspopup="listbox" aria-expanded="false">系统默认</button>
+                      <div id="courseVoiceOptions" class="course-voice-options" role="listbox" hidden></div>
+                      <select id="courseVoiceSelect" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">系统默认</option></select>
+                    </div>
+                    <label class="course-bottom-check"><input id="courseBottomTranslationToggle" type="checkbox" checked> 显示译文</label>
+                  </div>
+                  <div class="course-transport-controls" aria-label="播放定位">
+                    <button id="courseFastBackBtn" class="course-bottom-icon" type="button" title="后退一句" aria-label="后退一句" data-icon="rewind"></button>
+                    <button id="courseBottomPlayBtn" class="course-bottom-play" type="button" title="播放" aria-label="播放" data-icon="play"></button>
+                    <button id="courseFastForwardBtn" class="course-bottom-icon" type="button" title="前进一句" aria-label="前进一句" data-icon="forward"></button>
+                  </div>
+                  <div class="course-custom-menu course-bottom-custom-menu">
+                    <button id="courseCustomButton" class="course-custom-button" type="button" aria-haspopup="menu" aria-expanded="false">全文播放</button>
+                    <div id="courseCustomOptions" class="course-custom-options" role="menu" hidden>
+                      <button type="button" class="course-custom-option is-selected" data-course-mode="all">全文播放</button>
+                      <button type="button" class="course-custom-option" data-course-mode="single">单句循环</button>
+                      <button type="button" class="course-custom-option" data-course-mode="loop">选段循环</button>
+                      <button type="button" class="course-custom-option" data-course-mode="speaker">对话练习</button>
+                      <div class="course-custom-details">
+                        <label>说话人 <select id="courseSpeakerSelect" class="course-speaker-select" aria-label="选择说话人"><option value="all">全部说话人</option></select></label>
+                        <div class="course-segment-controls" aria-label="片段范围">
+                          <label>从 <select id="courseSegmentStart" aria-label="片段开始"></select></label>
+                          <label>到 <select id="courseSegmentEnd" aria-label="片段结束"></select></label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </section>
+
+            <aside id="courseWordPopover" class="course-word-popover" hidden aria-live="polite">
+              <div class="course-word-popover-head">
+                <div>
+                  <h3 id="coursePopoverWord"></h3>
+                  <p id="coursePopoverMeta" class="micro-copy"></p>
+                </div>
+                <div class="course-word-popover-head-actions">
+                  <button id="courseWordFavoriteBtn" class="icon-button" type="button" title="收藏词语" aria-label="收藏词语" data-icon="heart"></button>
+                  <button id="courseWordPopoverCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+                </div>
+              </div>
+              <div class="course-word-pronunciations">
+                <button id="coursePopoverWordPlayBtn" class="icon-button" type="button" title="播放发音" aria-label="播放发音" data-icon="speaker"></button>
+                <span id="coursePopoverPronunciation"></span>
+              </div>
+              <p id="coursePopoverMeaning" class="course-word-meaning"></p>
+              <p id="coursePopoverForms" class="micro-copy"></p>
+              <button id="coursePopoverLookupBtn" class="command-button" type="button">查看详情</button>
+            </aside>
+
+            <dialog id="courseWordDetailDialog" class="course-word-detail-dialog" aria-labelledby="courseWordDetailTitle">
+              <article>
+                <header class="course-word-detail-head">
+                  <div>
+                    <p class="eyebrow">Word detail</p>
+                    <h3 id="courseWordDetailTitle">词语详解</h3>
+                    <p id="courseWordDetailMeta" class="micro-copy"></p>
+                  </div>
+                  <button id="courseWordDetailCloseBtn" class="icon-button" type="button" title="关闭详解" aria-label="关闭详解" data-icon="close"></button>
+                </header>
+                <div id="courseWordDetailBody" class="course-word-detail-body"></div>
+                <p id="courseWordDetailStatus" class="course-word-detail-status" aria-live="polite"></p>
+              </article>
+            </dialog>
+
+            <section id="coursePracticePanel" class="course-stage" aria-labelledby="coursePracticeTitle" hidden>
+              <div class="section-heading compact-section-heading">
+                <div><p class="eyebrow">Practice</p><h3 id="coursePracticeTitle">单词卡片</h3><p id="coursePracticeMeta" class="micro-copy"></p></div>
+                <button id="courseBackToPlayerBtn" class="command-button" type="button">返回播放器</button>
+              </div>
+              <div class="practice-demo-card">
+                <p class="eyebrow">Flashcard</p>
+                <div id="coursePracticePrompt" class="practice-prompt"></div>
+                <div id="coursePracticeAnswer" class="practice-answer" hidden></div>
+                <div class="practice-actions">
+                  <button id="courseRevealBtn" class="command-button primary" type="button">显示答案</button>
+                  <button id="courseAgainBtn" class="command-button" type="button" hidden>再练一次</button>
+                  <button id="courseKnownBtn" class="command-button" type="button" hidden>我记住了</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
         <section id="readerView" class="view is-active" aria-labelledby="readerTitle">
           <div class="reader-grid">
             <section class="deck-panel" aria-labelledby="readerTitle">
@@ -169,22 +384,44 @@
         </section>
 
         <section id="libraryView" class="view" aria-labelledby="libraryTitle">
-          <div class="section-heading">
+          <div class="section-heading material-library-heading">
             <div>
-              <p class="eyebrow">Albums & Cassettes</p>
-              <h2 id="libraryTitle">专辑</h2>
+              <p class="eyebrow">Material library</p>
+              <h2 id="libraryTitle">磁带 · 素材管理</h2>
+              <p class="micro-copy">用磁带分类素材，每条素材都能进入对应课程。</p>
             </div>
-            <button id="newAlbumBtn" class="command-button primary" type="button" data-icon="plus">
-              <span>专辑</span>
+            <button id="newMaterialBtn" class="command-button primary" type="button" data-icon="plus">
+              <span>新建素材</span>
             </button>
           </div>
 
-          <div class="library-layout">
-            <section class="album-shelf" aria-label="专辑列表">
+          <div class="material-library-layout">
+            <aside class="material-category-panel" aria-label="磁带分类">
+              <div class="material-category-heading">
+                <p class="eyebrow">Categories</p>
+                <h3>我的磁带</h3>
+              </div>
               <div id="albumShelf" class="album-grid"></div>
-            </section>
+              <button id="newAlbumBtn" class="command-button material-new-tape-button" type="button" data-icon="plus">
+                <span>新建磁带</span>
+              </button>
+              <p class="material-category-note">磁带只是分类；素材才是课程入口。</p>
+            </aside>
 
-            <section class="cassette-board" aria-label="磁带和条目">
+            <section class="material-browser-panel" aria-label="素材列表">
+              <div class="material-browser-toolbar">
+                <div class="material-filter-tabs" aria-label="素材状态筛选">
+                  <button class="material-filter-tab is-selected" type="button" data-material-filter="all">全部</button>
+                  <button class="material-filter-tab" type="button" data-material-filter="recent">最近学习</button>
+                  <button class="material-filter-tab" type="button" data-material-filter="pending">待整理</button>
+                  <button class="material-filter-tab" type="button" data-material-filter="learning">学习中</button>
+                  <button class="material-filter-tab" type="button" data-material-filter="completed">已完成</button>
+                </div>
+                <label class="material-search-field">
+                  <span class="visually-hidden">搜索素材</span>
+                  <input id="materialSearchInput" class="text-input" type="search" placeholder="搜索素材" autocomplete="off">
+                </label>
+              </div>
               <div id="libraryDetail" class="library-detail"></div>
             </section>
           </div>
@@ -193,27 +430,57 @@
         <section id="vocabView" class="view" aria-labelledby="vocabTitle">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Vocabulaire</p>
-              <h2 id="vocabTitle">单词本</h2>
+              <p class="eyebrow">Phrasebook</p>
+              <h2 id="vocabTitle">词句本</h2>
             </div>
+            <button id="phrasePracticeBtn" class="command-button primary" type="button" data-icon="play">
+              <span>开始练习</span>
+            </button>
             <button id="newVocabBtn" class="command-button primary" type="button" data-icon="plus">
-              <span>单词</span>
+              <span>词条</span>
             </button>
             <button id="newWordbookBtn" class="command-button" type="button" data-icon="book">
-              <span>单词本</span>
+              <span>词句本</span>
             </button>
           </div>
 
-          <div id="wordbookShelf" class="wordbook-grid" aria-label="单词本列表"></div>
+          <div id="wordbookShelf" class="wordbook-grid" aria-label="词句本列表"></div>
 
           <div class="vocab-toolbar">
             <label class="field-label" for="vocabSearch">搜索</label>
             <input id="vocabSearch" class="text-input" type="search" autocomplete="off">
-            <span id="vocabStats" class="stat-pill">0 词</span>
+            <div class="vocab-filter-selects" aria-label="词句筛选">
+              <select id="phraseSourceFilter" aria-label="来源筛选"><option value="all">所有来源</option></select>
+              <select id="phraseDateFilter" aria-label="日期筛选"><option value="all">所有日期</option><option value="today">今天</option><option value="week">最近 7 天</option></select>
+              <select id="phraseStatusFilter" aria-label="状态筛选"><option value="all">所有状态</option><option value="new">待学习</option><option value="learning">学习中</option><option value="got">已掌握</option></select>
+            </div>
+            <span id="vocabStats" class="stat-pill">0 词句</span>
           </div>
-          <p id="selectedWordbookLine" class="micro-copy">all · 0 词</p>
+          <p id="selectedWordbookLine" class="micro-copy">all · 0 词句</p>
 
           <div id="vocabList" class="vocab-list"></div>
+
+          <section id="phrasePracticePanel" class="phrase-practice-panel" hidden aria-labelledby="phrasePracticeTitle">
+            <div class="section-heading compact-section-heading">
+              <div><p class="eyebrow">PhrasePump style</p><h3 id="phrasePracticeTitle">词句卡片练习</h3><p id="phrasePracticeMeta" class="micro-copy"></p></div>
+              <div class="phrase-practice-settings">
+                <label>卡片显示 <select id="phrasePracticeDisplayMode" aria-label="卡片显示语言"><option value="original">原文</option><option value="translation">译文</option><option value="random">随机</option></select></label>
+                <span id="phrasePracticeVoiceHint" class="micro-copy"></span>
+              </div>
+              <button id="phrasePracticeBackBtn" class="command-button" type="button">返回词句本</button>
+            </div>
+            <div class="phrase-card">
+              <div class="phrase-card-top"><span id="phrasePracticeSource" class="badge"></span><span id="phrasePracticeProgress" class="micro-copy"></span></div>
+              <button id="phrasePracticeSpeakBtn" class="phrase-card-play" type="button" title="播放卡片" aria-label="播放卡片" data-icon="speaker"></button>
+              <p id="phrasePracticePrompt" class="phrase-card-prompt"></p>
+              <p id="phrasePracticeAnswer" class="phrase-card-answer" hidden></p>
+              <div class="phrase-card-actions">
+                <button id="phrasePracticeRevealBtn" class="command-button primary" type="button">显示翻译</button>
+                <button id="phrasePracticeAgainBtn" class="command-button" type="button" hidden>再练一次</button>
+                <button id="phrasePracticeKnownBtn" class="command-button" type="button" hidden>记住了</button>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section id="myView" class="view" aria-labelledby="myTitle">
@@ -221,9 +488,18 @@
             <div>
               <p class="eyebrow">Mon OoFR</p>
               <h2 id="myTitle">我的</h2>
-              <p id="myStats" class="micro-copy">0 专辑 · 0 磁带 · 0 段落 · 0 词</p>
+              <p id="myStats" class="micro-copy">0 磁带 · 0 素材 · 0 词句</p>
             </div>
           </div>
+
+          <section class="study-summary-panel" aria-labelledby="studySummaryTitle">
+            <div class="section-heading compact-section-heading">
+              <div><p class="eyebrow">Progress</p><h3 id="studySummaryTitle">学习记录</h3><p id="studySummaryHint" class="micro-copy">完成一轮词句卡，就会记录今天的学习。</p></div>
+              <div class="study-summary-actions"><button id="studyCheckinBtn" class="command-button primary" type="button">今日打卡</button><button id="studyShareBtn" class="command-button" type="button">分享成就</button></div>
+            </div>
+            <div id="studyStatsCards" class="study-stats-grid"></div>
+            <div id="studyAchievements" class="study-achievements"></div>
+          </section>
 
           <section class="notice-panel" aria-labelledby="noticeTitle">
             <div>
@@ -233,20 +509,65 @@
             <ul class="notice-list">
               <li>
                 <strong>完整数据导入</strong>
-                <span>会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置，导入后会变成文件里的版本。</span>
+                <span>会覆盖当前设备上的磁带、素材、词句本和播放设置，导入后会变成文件里的版本。</span>
               </li>
               <li>
-                <strong>单词本导入</strong>
-                <span>只合并词条和自定义单词本，不会清空本地数据；重复词可以保留本地 got/new 状态，或使用导入文件状态。</span>
+                <strong>词句本导入</strong>
+                <span>只合并词条和自定义词句本，不会清空本地数据；重复词可以保留本地 got/new 状态，或使用导入文件状态。</span>
               </li>
               <li>
                 <strong>迁移建议</strong>
-                <span>换设备用完整数据备份；只交换生词、DIY 词或某个自定义单词本时，用单词本导入/导出。导入前先留一份备份。</span>
+                <span>换设备用完整数据备份；只交换生词、DIY 词或某个自定义词句本时，用词句本导入/导出。导入前先留一份备份。</span>
               </li>
             </ul>
           </section>
 
+          <section class="my-panel cloud-sync-panel" aria-labelledby="cloudSyncTitle">
+            <div class="panel-title-row compact">
+              <div>
+                <p class="eyebrow">Cloud sync</p>
+                <h3 id="cloudSyncTitle">电脑与手机同步</h3>
+              </div>
+              <span id="cloudSyncBadge" class="badge">本地模式</span>
+            </div>
+            <p id="cloudSyncStatus" class="micro-copy">未登录时，学习数据只保存在当前设备。</p>
+            <div id="cloudSyncLoggedOut" class="cloud-sync-form">
+              <label class="dialog-field">
+                <span class="field-label">邮箱</span>
+                <input id="cloudSyncEmail" class="text-input" type="email" autocomplete="email" placeholder="you@example.com">
+              </label>
+              <div class="split-actions">
+                <button id="cloudSyncLoginBtn" class="command-button primary" type="button">发送登录链接</button>
+                <span id="cloudSyncLoginHint" class="micro-copy">登录链接会发到你的邮箱。</span>
+              </div>
+            </div>
+            <div id="cloudSyncLoggedIn" class="cloud-sync-form" hidden>
+              <p id="cloudSyncAccount" class="contact-line"></p>
+              <div class="split-actions">
+                <button id="cloudSyncNowBtn" class="command-button primary" type="button">立即同步</button>
+                <button id="cloudSyncSignOutBtn" class="command-button" type="button">退出登录</button>
+              </div>
+            </div>
+            <p class="micro-copy">课程、磁带、词句本和学习进度会同步；逐句录音暂时仍只保存在录音设备。</p>
+          </section>
+
           <div class="my-grid">
+            <section class="my-panel system-settings-panel" aria-labelledby="systemSettingsTitle">
+              <div class="panel-title-row compact">
+                <div><p class="eyebrow">Language & local AI</p><h3 id="systemSettingsTitle">语言与智能工具</h3></div>
+              </div>
+              <label class="dialog-field">
+                <span class="field-label">系统语言</span>
+                <select id="systemLanguageSelect"><option value="zh">中文</option><option value="en">English</option><option value="fr">Français</option></select>
+              </label>
+              <div class="local-ai-settings">
+                <label class="dialog-field"><span class="field-label">本地 AI 地址</span><input id="localAiEndpointInput" class="text-input" type="url" value="http://127.0.0.1:11434"></label>
+                <label class="dialog-field"><span class="field-label">开源模型</span><input id="localAiModelInput" class="text-input" type="text" value="gemma3:4b"></label>
+              </div>
+              <div class="split-actions"><button id="localAiTestBtn" class="command-button" type="button">检测本地 AI</button><span id="localAiStatus" class="micro-copy">未检测</span></div>
+              <p class="micro-copy">词典使用开放的 Wiktionary。深度分类、纠错和说话人识别可使用本机 Ollama，不按 token 收费。</p>
+            </section>
+
             <section class="my-panel" aria-labelledby="backupTitle">
               <div class="panel-title-row compact">
                 <div>
@@ -263,14 +584,14 @@
                 </button>
                 <input id="importFile" class="visually-hidden" type="file" accept="application/json,.json">
               </div>
-              <p class="micro-copy">迁移专辑、磁带、段落、单词本和播放设置。</p>
+              <p class="micro-copy">迁移专辑、磁带、段落、词句本和播放设置。</p>
             </section>
 
             <section class="my-panel" aria-labelledby="wordbookBackupTitle">
               <div class="panel-title-row compact">
                 <div>
                   <p class="eyebrow">Vocabulaire</p>
-                  <h3 id="wordbookBackupTitle">单词本</h3>
+                  <h3 id="wordbookBackupTitle">词句本</h3>
                 </div>
               </div>
               <div class="wordbook-transfer">
@@ -286,7 +607,7 @@
                 </button>
                 <input id="wordbookImportFile" class="visually-hidden" type="file" accept="application/json,.json">
               </div>
-              <p class="micro-copy">可按 all、new、got、DIY 或自定义单词本导出；导入时会先预览再合并。</p>
+              <p class="micro-copy">可按 all、new、got、DIY 或自定义词句本导出；导入时会先预览再合并。</p>
             </section>
 
             <section class="my-panel" aria-labelledby="feedbackTitle">
@@ -322,6 +643,8 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=0.8.4"></script>
+    <script src="./supabase-config.js?v=0.19.3"></script>
+    <script src="./cloud-sync.js?v=0.19.3"></script>
+    <script src="./app.js?v=0.19.3"></script>
   </body>
 </html>

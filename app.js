@@ -4,13 +4,44 @@ Est-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.`;
 
 const APP_STORAGE_KEY = "oofr.app.v1";
 const SYNC_STORAGE_KEY = "oofr.sync.v1";
+const CLOUD_LOCAL_META_KEY = "oofr.cloud.local-meta.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
-const ASSET_VERSION = "0.8.4";
+const ASSET_VERSION = "0.19.3";
 const LEXICON_SCRIPT_SRC = `./lexicon.js?v=${ASSET_VERSION}`;
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
 const CHROME_DEFAULT_VOICE = "Google français";
 const EDGE_DEFAULT_VOICE = "Microsoft Henri Online (Natural) - French (France)";
 const ELIDED_PREFIXES = new Set(["c", "d", "j", "l", "m", "n", "qu", "s", "t", "jusqu", "lorsqu", "puisqu"]);
+const KNOWN_LEXICAL_UNITS = {
+  "les liaisons": { lemma: "liaison", ipa: "/ljɛ.zɔ̃/", pos: "locution nominale", zh: "法语中的连音现象", en: "liaison between adjacent words", fr: "enchaînement phonétique entre deux mots", forms: "原型：une liaison · 复数：les liaisons" },
+  "s'appeler": { lemma: "s’appeler", ipa: "/sa.ple/", pos: "verbe pronominal", zh: "名叫；称为", en: "to be called", fr: "porter un nom", forms: "je m’appelle · tu t’appelles · il/elle s’appelle" },
+  "m'appelle": { lemma: "s’appeler", ipa: "/ma.pɛl/", pos: "verbe pronominal · 1re personne", zh: "我叫……；原型为 s’appeler", en: "I am called; infinitive: s’appeler", fr: "forme de s’appeler à la première personne", forms: "原型：s’appeler · je m’appelle" },
+  "j'apprends": { lemma: "apprendre", ipa: "/ʒa.pʁɑ̃/", pos: "verbe · 1re personne", zh: "我学习；原型为 apprendre", en: "I learn; infinitive: apprendre", fr: "forme d’apprendre à la première personne", forms: "原型：apprendre · j’apprends · nous apprenons" }
+};
+const COURSE_WORD_OVERRIDES = {
+  organiser: { lemma: "organiser", pos: "动词", zh: "组织；安排；筹办", en: "to organise; to arrange", fr: "préparer et coordonner une activité" },
+  esperer: { lemma: "espérer", pos: "动词", zh: "希望；期望", en: "to hope", fr: "souhaiter qu’une chose se réalise" },
+  individuel: { lemma: "individuel", pos: "形容词", zh: "个人的；单独的；个体的", en: "individual; personal", fr: "qui concerne une seule personne" }
+};
+const LOCAL_TRANSLATIONS = {
+  "fr:zh:bonjour": "你好",
+  "fr:zh:je m'appelle camille, et j'apprends le francais tous les jours": "我叫 Camille，我每天都学习法语。",
+  "fr:zh:aujourd'hui, je voudrais pratiquer les liaisons : les amis, vous avez, nous allons": "今天，我想练习法语中的连音：les amis、vous avez、nous allons。",
+  "fr:zh:est-ce que tu peux repeter cette phrase plus lentement": "你可以把这句话说得慢一点吗？",
+  "fr:zh:bonsoir": "晚上好",
+  "fr:zh:bonne journee": "祝你今天愉快",
+  "fr:zh:bonne nuit": "晚安",
+  "fr:zh:au revoir": "再见",
+  "fr:zh:a bientot": "回头见",
+  "fr:zh:merci": "谢谢",
+  "fr:zh:merci beaucoup": "非常感谢",
+  "fr:zh:s'il vous plait": "请",
+  "en:zh:hello": "你好",
+  "en:zh:good morning": "早上好",
+  "en:zh:good afternoon": "下午好",
+  "en:zh:good night": "晚安",
+  "en:zh:thank you": "谢谢"
+};
 const ALL_WORDBOOK_ID = "all";
 const NEW_WORDBOOK_ID = "new";
 const GOT_WORDBOOK_ID = "got";
@@ -18,9 +49,9 @@ const DIY_WORDBOOK_ID = "diy";
 const WORDBOOK_CONFLICT_KEEP_LOCAL = "keep-local";
 const WORDBOOK_CONFLICT_USE_IMPORTED = "use-imported";
 const SYSTEM_WORDBOOKS = [
-  { id: ALL_WORDBOOK_ID, title: "all", description: "全部单词" },
-  { id: NEW_WORDBOOK_ID, title: "new", description: "还没 got 的词" },
-  { id: GOT_WORDBOOK_ID, title: "got", description: "已经掌握的词" },
+  { id: ALL_WORDBOOK_ID, title: "all", description: "全部词句" },
+  { id: NEW_WORDBOOK_ID, title: "new", description: "还没 got 的词句" },
+  { id: GOT_WORDBOOK_ID, title: "got", description: "已经掌握的词句" },
   { id: DIY_WORDBOOK_ID, title: "DIY", description: "待补音标或释义" }
 ];
 
@@ -32,8 +63,12 @@ const icons = {
   download: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>`,
   edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="m4 16-.5 4 4-.5L19 8l-3.5-3.5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="m14 6 4 4"/></svg>`,
   feedback: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 5h16v11H8l-4 4z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M8 9h8M8 13h5"/></svg>`,
+  heart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.8 8.8c0 5.2-8.8 10.1-8.8 10.1S3.2 14 3.2 8.8A4.8 4.8 0 0 1 12 6.2a4.8 4.8 0 0 1 8.8 2.6Z"/></svg>`,
   pause: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>`,
   play: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.14v13.72c0 .74.82 1.18 1.44.78l10.08-6.86a.93.93 0 0 0 0-1.56L9.44 4.36A.94.94 0 0 0 8 5.14Z"/></svg>`,
+  forward: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m20 12-8-7v4H5v6h7v4z"/></svg>`,
+  rewind: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 12 8-7v4h7v6h-7v4z"/></svg>`,
+  mic: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" d="M12 5v14M5 12h14"/></svg>`,
   refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 11a8.1 8.1 0 0 0-14.4-4.8L4 8m0 0V4m0 4h4m-4 5a8.1 8.1 0 0 0 14.4 4.8L20 16m0 0v4m0-4h-4"/></svg>`,
   save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M5 4h12l2 2v14H5z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 4v6h8V4M8 20v-6h8v6"/></svg>`,
@@ -47,8 +82,14 @@ const icons = {
 
 const elements = {
   startupLoader: document.querySelector("#startupLoader"),
+  startupStage: document.querySelector("#startupStage"),
+  startupProgressBar: document.querySelector("#startupProgressBar"),
+  startupProgressValue: document.querySelector("#startupProgressValue"),
+  startupProgressTrack: document.querySelector(".startup-progress-track"),
+  startupSteps: Array.from(document.querySelectorAll("[data-startup-step]")),
   navButtons: Array.from(document.querySelectorAll("[data-view-target]")),
   views: {
+    course: document.querySelector("#courseView"),
     reader: document.querySelector("#readerView"),
     library: document.querySelector("#libraryView"),
     vocab: document.querySelector("#vocabView"),
@@ -85,6 +126,9 @@ const elements = {
   wordPanelCloseBtn: document.querySelector("#wordPanelCloseBtn"),
   newAlbumBtn: document.querySelector("#newAlbumBtn"),
   albumShelf: document.querySelector("#albumShelf"),
+  newMaterialBtn: document.querySelector("#newMaterialBtn"),
+  materialSearchInput: document.querySelector("#materialSearchInput"),
+  materialFilterButtons: Array.from(document.querySelectorAll("[data-material-filter]")),
   libraryDetail: document.querySelector("#libraryDetail"),
   newVocabBtn: document.querySelector("#newVocabBtn"),
   newWordbookBtn: document.querySelector("#newWordbookBtn"),
@@ -93,6 +137,23 @@ const elements = {
   vocabSearch: document.querySelector("#vocabSearch"),
   vocabStats: document.querySelector("#vocabStats"),
   vocabList: document.querySelector("#vocabList"),
+  phraseSourceFilter: document.querySelector("#phraseSourceFilter"),
+  phraseDateFilter: document.querySelector("#phraseDateFilter"),
+  phraseStatusFilter: document.querySelector("#phraseStatusFilter"),
+  phrasePracticeBtn: document.querySelector("#phrasePracticeBtn"),
+  phrasePracticePanel: document.querySelector("#phrasePracticePanel"),
+  phrasePracticeBackBtn: document.querySelector("#phrasePracticeBackBtn"),
+  phrasePracticeMeta: document.querySelector("#phrasePracticeMeta"),
+  phrasePracticeSource: document.querySelector("#phrasePracticeSource"),
+  phrasePracticeProgress: document.querySelector("#phrasePracticeProgress"),
+  phrasePracticeSpeakBtn: document.querySelector("#phrasePracticeSpeakBtn"),
+  phrasePracticeDisplayMode: document.querySelector("#phrasePracticeDisplayMode"),
+  phrasePracticeVoiceHint: document.querySelector("#phrasePracticeVoiceHint"),
+  phrasePracticePrompt: document.querySelector("#phrasePracticePrompt"),
+  phrasePracticeAnswer: document.querySelector("#phrasePracticeAnswer"),
+  phrasePracticeRevealBtn: document.querySelector("#phrasePracticeRevealBtn"),
+  phrasePracticeAgainBtn: document.querySelector("#phrasePracticeAgainBtn"),
+  phrasePracticeKnownBtn: document.querySelector("#phrasePracticeKnownBtn"),
   exportBtn: document.querySelector("#exportBtn"),
   importBtn: document.querySelector("#importBtn"),
   importFile: document.querySelector("#importFile"),
@@ -101,6 +162,26 @@ const elements = {
   wordbookImportBtn: document.querySelector("#wordbookImportBtn"),
   wordbookImportFile: document.querySelector("#wordbookImportFile"),
   myStats: document.querySelector("#myStats"),
+  studyStatsCards: document.querySelector("#studyStatsCards"),
+  studyAchievements: document.querySelector("#studyAchievements"),
+  studySummaryHint: document.querySelector("#studySummaryHint"),
+  studyCheckinBtn: document.querySelector("#studyCheckinBtn"),
+  studyShareBtn: document.querySelector("#studyShareBtn"),
+  cloudSyncBadge: document.querySelector("#cloudSyncBadge"),
+  cloudSyncStatus: document.querySelector("#cloudSyncStatus"),
+  cloudSyncLoggedOut: document.querySelector("#cloudSyncLoggedOut"),
+  cloudSyncLoggedIn: document.querySelector("#cloudSyncLoggedIn"),
+  cloudSyncEmail: document.querySelector("#cloudSyncEmail"),
+  cloudSyncLoginBtn: document.querySelector("#cloudSyncLoginBtn"),
+  cloudSyncLoginHint: document.querySelector("#cloudSyncLoginHint"),
+  cloudSyncAccount: document.querySelector("#cloudSyncAccount"),
+  cloudSyncNowBtn: document.querySelector("#cloudSyncNowBtn"),
+  cloudSyncSignOutBtn: document.querySelector("#cloudSyncSignOutBtn"),
+  systemLanguageSelect: document.querySelector("#systemLanguageSelect"),
+  localAiEndpointInput: document.querySelector("#localAiEndpointInput"),
+  localAiModelInput: document.querySelector("#localAiModelInput"),
+  localAiTestBtn: document.querySelector("#localAiTestBtn"),
+  localAiStatus: document.querySelector("#localAiStatus"),
   dialog: document.querySelector("#appDialog"),
   dialogForm: document.querySelector("#dialogForm"),
   dialogTitle: document.querySelector("#dialogTitle"),
@@ -108,6 +189,89 @@ const elements = {
   dialogSubmitBtn: document.querySelector("#dialogSubmitBtn"),
   dialogCloseBtn: document.querySelector("#dialogCloseBtn"),
   dialogCancelBtn: document.querySelector("#dialogCancelBtn")
+  ,courseLibraryPanel: document.querySelector("#courseLibraryPanel"),
+  courseComposerPanel: document.querySelector("#courseComposerPanel"),
+  coursePlayerPanel: document.querySelector("#coursePlayerPanel"),
+  coursePracticePanel: document.querySelector("#coursePracticePanel"),
+  courseNewBtn: document.querySelector("#courseNewBtn"),
+  courseBackToLibraryBtn: document.querySelector("#courseBackToLibraryBtn"),
+  courseGenerateBtn: document.querySelector("#courseGenerateBtn"),
+  courseMaterialFile: document.querySelector("#courseMaterialFile"),
+  courseTitleInput: document.querySelector("#courseTitleInput"),
+  courseLanguageSelect: document.querySelector("#courseLanguageSelect"),
+  courseExplainLanguageSelect: document.querySelector("#courseExplainLanguageSelect"),
+  courseMaterialTypeSelect: document.querySelector("#courseMaterialTypeSelect"),
+  courseMaterialInput: document.querySelector("#courseMaterialInput"),
+  courseAnalyzeBtn: document.querySelector("#courseAnalyzeBtn"),
+  courseAnalysisPanel: document.querySelector("#courseAnalysisPanel"),
+  courseAnalysisSource: document.querySelector("#courseAnalysisSource"),
+  courseAnalysisSummary: document.querySelector("#courseAnalysisSummary"),
+  courseAnalysisReasons: document.querySelector("#courseAnalysisReasons"),
+  courseAnalysisStatus: document.querySelector("#courseAnalysisStatus"),
+  courseApplySentenceBreaksBtn: document.querySelector("#courseApplySentenceBreaksBtn"),
+  courseApplySpeakersBtn: document.querySelector("#courseApplySpeakersBtn"),
+  courseApplyCorrectionsBtn: document.querySelector("#courseApplyCorrectionsBtn"),
+  courseLessonCards: document.querySelector("#courseLessonCards"),
+  coursePlayerTitle: document.querySelector("#coursePlayerTitle"),
+  coursePlayerMeta: document.querySelector("#coursePlayerMeta"),
+  courseMicHint: document.querySelector("#courseMicHint"),
+  courseEditBtn: document.querySelector("#courseEditBtn"),
+  coursePracticeBtn: document.querySelector("#coursePracticeBtn"),
+  courseExportRecordingsBtn: document.querySelector("#courseExportRecordingsBtn"),
+  courseSpeakerSelect: document.querySelector("#courseSpeakerSelect"),
+  courseSegmentStart: document.querySelector("#courseSegmentStart"),
+  courseSegmentEnd: document.querySelector("#courseSegmentEnd"),
+  courseProgressFill: document.querySelector("#courseProgressFill"),
+  coursePlaybackStatus: document.querySelector("#coursePlaybackStatus"),
+  coursePrevBtn: document.querySelector("#coursePrevBtn"),
+  coursePlayBtn: document.querySelector("#coursePlayBtn"),
+  courseNextBtn: document.querySelector("#courseNextBtn"),
+  courseRateSelect: document.querySelector("#courseRateSelect"),
+  courseTranslationToggle: document.querySelector("#courseTranslationToggle"),
+  courseBottomTitle: document.querySelector("#courseBottomTitle"),
+  courseBottomHint: document.querySelector("#courseBottomHint"),
+  courseCustomButton: document.querySelector("#courseCustomButton"),
+  courseCustomOptions: document.querySelector("#courseCustomOptions"),
+  courseElapsed: document.querySelector("#courseElapsed"),
+  courseTimeline: document.querySelector("#courseTimeline"),
+  courseDuration: document.querySelector("#courseDuration"),
+  courseFastBackBtn: document.querySelector("#courseFastBackBtn"),
+  courseBottomPlayBtn: document.querySelector("#courseBottomPlayBtn"),
+  courseFastForwardBtn: document.querySelector("#courseFastForwardBtn"),
+  courseVoiceSelect: document.querySelector("#courseVoiceSelect"),
+  courseVoiceButton: document.querySelector("#courseVoiceButton"),
+  courseVoiceOptions: document.querySelector("#courseVoiceOptions"),
+  courseSentenceLoop: document.querySelector("#courseSentenceLoop"),
+  courseBottomTranslationToggle: document.querySelector("#courseBottomTranslationToggle"),
+  courseWordHelpBtn: document.querySelector("#courseWordHelpBtn"),
+  courseTranscriptList: document.querySelector("#courseTranscriptList"),
+  courseWordCount: document.querySelector("#courseWordCount"),
+  courseWordList: document.querySelector("#courseWordList"),
+  courseExplanationTitle: document.querySelector("#courseExplanationTitle"),
+  courseExplanationBody: document.querySelector("#courseExplanationBody"),
+  courseWordPopover: document.querySelector("#courseWordPopover"),
+  coursePopoverWord: document.querySelector("#coursePopoverWord"),
+  coursePopoverMeta: document.querySelector("#coursePopoverMeta"),
+  courseWordFavoriteBtn: document.querySelector("#courseWordFavoriteBtn"),
+  courseWordPopoverCloseBtn: document.querySelector("#courseWordPopoverCloseBtn"),
+  coursePopoverWordPlayBtn: document.querySelector("#coursePopoverWordPlayBtn"),
+  coursePopoverPronunciation: document.querySelector("#coursePopoverPronunciation"),
+  coursePopoverMeaning: document.querySelector("#coursePopoverMeaning"),
+  coursePopoverForms: document.querySelector("#coursePopoverForms"),
+  coursePopoverLookupBtn: document.querySelector("#coursePopoverLookupBtn"),
+  courseWordDetailDialog: document.querySelector("#courseWordDetailDialog"),
+  courseWordDetailTitle: document.querySelector("#courseWordDetailTitle"),
+  courseWordDetailMeta: document.querySelector("#courseWordDetailMeta"),
+  courseWordDetailBody: document.querySelector("#courseWordDetailBody"),
+  courseWordDetailStatus: document.querySelector("#courseWordDetailStatus"),
+  courseWordDetailCloseBtn: document.querySelector("#courseWordDetailCloseBtn"),
+  courseBackToPlayerBtn: document.querySelector("#courseBackToPlayerBtn"),
+  coursePracticeMeta: document.querySelector("#coursePracticeMeta"),
+  coursePracticePrompt: document.querySelector("#coursePracticePrompt"),
+  coursePracticeAnswer: document.querySelector("#coursePracticeAnswer"),
+  courseRevealBtn: document.querySelector("#courseRevealBtn"),
+  courseAgainBtn: document.querySelector("#courseAgainBtn"),
+  courseKnownBtn: document.querySelector("#courseKnownBtn")
 };
 
 const storageDriver = createStorageDriver();
@@ -123,20 +287,64 @@ let playback = { status: "idle", key: "", label: "", token: 0 };
 let renderTimer = 0;
 let dialogSubmitHandler = null;
 let syncSettingsTimer = 0;
+let cloudSyncTimer = 0;
+let cloudSyncState = { session: null, busy: false, lastSyncAt: null, configured: false };
+let cloudHydrating = false;
 let lexiconLoadState = isLexiconReady() ? "ready" : "idle";
 let lexiconLoadPromise = null;
+let courseDraft = null;
+let courseActiveLessonId = null;
+let courseMode = "all";
+let courseCurrentTurnIndex = 0;
+let courseRecordingTimers = new Map();
+let courseRecordingSession = null;
+let courseRecordingAudio = null;
+let courseRecordingUrls = new Map();
+let audioDbPromise = null;
+let courseSegmentStart = 0;
+let courseSegmentEnd = 0;
+let courseSentenceLoop = false;
+let courseProgressTimer = 0;
+let courseProgressRatio = 0;
+let courseProgressTickerState = null;
+let phrasePracticeDisplayMode = "original";
+let phrasePracticePromptLanguage = "original";
+let phrasePracticeSpeaking = false;
+let selectedCourseWord = null;
+let dictionaryCache = new Map();
+let courseWordDetailRunId = 0;
+let translationCache = new Map();
+let coursePracticeIndex = 0;
+let coursePracticeRevealed = false;
+let phrasePracticeItems = [];
+let phrasePracticeIndex = 0;
+let phrasePracticeRevealed = false;
+let phrasePracticeLastSpokenKey = "";
+let phrasePracticeFinished = false;
+let libraryAlbumScope = "";
+let libraryMaterialFilter = "all";
+let libraryMaterialSearch = "";
+let courseMaterialAnalysis = null;
+let courseAnalysisTimer = 0;
+let courseAnalysisRunId = 0;
 
 initApp();
 
 async function initApp() {
   hydrateIcons();
+  updateStartupProgress("state", "读取本地课程和词句", 18);
   state = await loadAppState();
+  updateStartupProgress("settings", "恢复播放和显示设置", 38);
   await applySyncedSettings();
+  await initCloudSync();
+  updateStartupProgress("settings", "准备课程操作", 52);
   bindEvents();
   ensureSelections();
   syncSettingsControls();
   loadVoices();
+  updateStartupProgress("screen", "绘制课程、磁带和词句本", 72);
   renderAll();
+  updateStartupProgress("ready", "基础界面已就绪", 100);
   hideStartupLoader();
   registerServiceWorker();
   loadLexiconInBackground();
@@ -146,6 +354,174 @@ async function initApp() {
   } else {
     setStatus("当前浏览器不支持朗读");
   }
+}
+
+async function initCloudSync() {
+  cloudSyncState.configured = Boolean(globalThis.OoFRCloud?.isConfigured?.());
+  const localMeta = readCloudLocalMeta();
+  cloudSyncState.lastSyncAt = localMeta.lastSyncAt || null;
+  if (!cloudSyncState.configured) {
+    renderCloudSync();
+    return;
+  }
+
+  try {
+    cloudSyncState.session = await globalThis.OoFRCloud.getSession();
+    renderCloudSync();
+    if (cloudSyncState.session) {
+      await syncCloudNow({ prefer: "smart", silent: true });
+    }
+  } catch (error) {
+    cloudSyncState.session = null;
+    renderCloudSync();
+    setStatus(`云端登录状态暂时不可用：${error.message}`);
+  }
+}
+
+function readCloudLocalMeta() {
+  try {
+    const raw = window.localStorage.getItem(CLOUD_LOCAL_META_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCloudLocalMeta(next) {
+  window.localStorage.setItem(CLOUD_LOCAL_META_KEY, JSON.stringify({
+    ...readCloudLocalMeta(),
+    ...next
+  }));
+}
+
+function renderCloudSync() {
+  if (!elements.cloudSyncStatus) return;
+  const configured = cloudSyncState.configured;
+  const session = cloudSyncState.session;
+  elements.cloudSyncLoggedOut.hidden = Boolean(session);
+  elements.cloudSyncLoggedIn.hidden = !session;
+  elements.cloudSyncLoginBtn.disabled = cloudSyncState.busy || !configured;
+  elements.cloudSyncNowBtn.disabled = cloudSyncState.busy;
+  elements.cloudSyncSignOutBtn.disabled = cloudSyncState.busy;
+
+  if (!configured) {
+    elements.cloudSyncBadge.textContent = "本地模式";
+    elements.cloudSyncStatus.textContent = "云端尚未配置；当前仍可完整使用本地学习功能。";
+    elements.cloudSyncLoginHint.textContent = "完成 Supabase 配置后即可登录同步。";
+    return;
+  }
+
+  if (!session) {
+    elements.cloudSyncBadge.textContent = "未登录";
+    elements.cloudSyncStatus.textContent = "未登录时，学习数据只保存在当前设备。";
+    elements.cloudSyncLoginHint.textContent = "登录链接会发到你的邮箱。";
+    return;
+  }
+
+  const email = session.user?.email || "已登录账户";
+  elements.cloudSyncBadge.textContent = cloudSyncState.busy ? "同步中" : "已登录";
+  elements.cloudSyncAccount.textContent = `账户：${email}`;
+  elements.cloudSyncStatus.textContent = cloudSyncState.lastSyncAt
+    ? `已登录 · 上次同步：${formatCloudSyncTime(cloudSyncState.lastSyncAt)}`
+    : "已登录 · 尚未完成首次同步";
+}
+
+function formatCloudSyncTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "刚刚" : date.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+}
+
+async function requestCloudLogin() {
+  const email = String(elements.cloudSyncEmail?.value || "").trim();
+  if (!email || !email.includes("@")) {
+    setStatus("请输入有效邮箱");
+    elements.cloudSyncEmail?.focus();
+    return;
+  }
+  if (!cloudSyncState.configured) {
+    setStatus("云端尚未配置，请先完成 Supabase 设置");
+    return;
+  }
+  cloudSyncState.busy = true;
+  renderCloudSync();
+  try {
+    await globalThis.OoFRCloud.requestMagicLink(email);
+    elements.cloudSyncLoginHint.textContent = "登录链接已发送，请打开邮箱中的链接完成登录。";
+    setStatus("登录链接已发送");
+  } catch (error) {
+    setStatus(`登录链接发送失败：${error.message}`);
+  } finally {
+    cloudSyncState.busy = false;
+    renderCloudSync();
+  }
+}
+
+async function signOutCloud() {
+  if (!cloudSyncState.session) return;
+  cloudSyncState.busy = true;
+  renderCloudSync();
+  await globalThis.OoFRCloud.signOut(cloudSyncState.session);
+  cloudSyncState.session = null;
+  cloudSyncState.busy = false;
+  renderCloudSync();
+  setStatus("已退出云端账户，本地数据仍保留");
+}
+
+async function syncCloudNow({ prefer = "local", silent = false } = {}) {
+  if (!cloudSyncState.session || cloudSyncState.busy) return;
+  cloudSyncState.busy = true;
+  renderCloudSync();
+  try {
+    const snapshot = await globalThis.OoFRCloud.fetchSnapshot(cloudSyncState.session);
+    const localMeta = readCloudLocalMeta();
+    const remoteIsNewer = snapshot?.updated_at && localMeta.lastLocalChangeAt
+      ? new Date(snapshot.updated_at).getTime() >= new Date(localMeta.lastLocalChangeAt).getTime()
+      : Boolean(snapshot?.payload && !localMeta.lastLocalChangeAt);
+    const shouldPull = snapshot?.payload && (prefer === "remote" || (prefer === "smart" && remoteIsNewer));
+    if (shouldPull) {
+      cloudHydrating = true;
+      state = ensureStateShape(snapshot.payload);
+      ensureSelections();
+      persist({ skipCloud: true });
+      cloudHydrating = false;
+      renderAll();
+    } else {
+      await globalThis.OoFRCloud.saveSnapshot(cloudSyncState.session, state);
+    }
+    const syncedAt = new Date().toISOString();
+    cloudSyncState.lastSyncAt = syncedAt;
+    writeCloudLocalMeta({ lastSyncAt: syncedAt });
+    if (!silent) setStatus(shouldPull ? "已从云端恢复学习数据" : "学习数据已同步到云端");
+  } catch (error) {
+    if (!silent) setStatus(`云端同步失败，本地数据仍可使用：${error.message}`);
+  } finally {
+    cloudHydrating = false;
+    cloudSyncState.busy = false;
+    renderCloudSync();
+  }
+}
+
+function queueCloudSync() {
+  if (!cloudSyncState.session || cloudHydrating) return;
+  window.clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = window.setTimeout(() => {
+    syncCloudNow({ prefer: "local", silent: true });
+  }, 1200);
+}
+
+function updateStartupProgress(step, message, progress) {
+  if (!elements.startupLoader) return;
+  const stepOrder = ["state", "settings", "screen", "ready"];
+  const currentIndex = Math.max(0, stepOrder.indexOf(step));
+  elements.startupLoader.dataset.startupStep = step;
+  if (elements.startupStage) elements.startupStage.textContent = message;
+  if (elements.startupProgressBar) elements.startupProgressBar.style.width = `${progress}%`;
+  if (elements.startupProgressValue) elements.startupProgressValue.textContent = `${progress}%`;
+  if (elements.startupProgressTrack) elements.startupProgressTrack.setAttribute("aria-valuenow", String(progress));
+  elements.startupSteps.forEach((node, index) => {
+    node.classList.toggle("is-done", index < currentIndex);
+    node.classList.toggle("is-current", index === currentIndex);
+  });
 }
 
 function hideStartupLoader() {
@@ -260,6 +636,26 @@ function bindEvents() {
     });
   });
 
+  elements.studyCheckinBtn.addEventListener("click", markTodayCheckin);
+  elements.studyShareBtn.addEventListener("click", shareStudyAchievement);
+  elements.cloudSyncLoginBtn?.addEventListener("click", requestCloudLogin);
+  elements.cloudSyncNowBtn?.addEventListener("click", () => syncCloudNow({ prefer: "local" }));
+  elements.cloudSyncSignOutBtn?.addEventListener("click", signOutCloud);
+  elements.systemLanguageSelect.addEventListener("change", () => {
+    state.settings.systemLanguage = elements.systemLanguageSelect.value;
+    document.documentElement.lang = state.settings.systemLanguage === "fr" ? "fr" : state.settings.systemLanguage === "en" ? "en" : "zh-CN";
+    if (courseDraft) courseDraft.explainLanguage = systemExplainLanguage();
+    if (elements.courseExplainLanguageSelect) elements.courseExplainLanguageSelect.value = systemExplainLanguage();
+    persist();
+    renderCoursePlayer();
+    setStatus("系统语言设置已保存");
+  });
+  elements.localAiEndpointInput.addEventListener("change", saveLocalAiSettings);
+  elements.localAiModelInput.addEventListener("change", saveLocalAiSettings);
+  elements.localAiTestBtn.addEventListener("click", testLocalAiConnection);
+
+  bindCourseEvents();
+
   elements.input.addEventListener("input", () => {
     state.currentText = elements.input.value;
     state.activeEntryId = null;
@@ -308,6 +704,7 @@ function bindEvents() {
   elements.voiceSelect.addEventListener("change", () => {
     state.settings.voice = elements.voiceSelect.value;
     state.settings.voiceLocked = true;
+    elements.courseVoiceSelect.value = elements.voiceSelect.value;
     persist();
   });
 
@@ -373,9 +770,37 @@ function bindEvents() {
   elements.wordPanelCloseBtn.addEventListener("click", closeWordPanel);
 
   elements.newAlbumBtn.addEventListener("click", () => openAlbumDialog());
+  elements.newMaterialBtn.addEventListener("click", openNewMaterialFromLibrary);
+  elements.materialSearchInput.addEventListener("input", () => {
+    libraryMaterialSearch = elements.materialSearchInput.value.trim();
+    renderLibraryDetail();
+  });
+  elements.materialFilterButtons.forEach((filterButton) => {
+    filterButton.addEventListener("click", () => {
+      libraryMaterialFilter = filterButton.dataset.materialFilter || "all";
+      renderLibraryDetail();
+    });
+  });
   elements.newVocabBtn.addEventListener("click", () => openVocabDialog());
   elements.newWordbookBtn.addEventListener("click", () => openWordbookDialog());
   elements.vocabSearch.addEventListener("input", renderVocab);
+  elements.phraseSourceFilter.addEventListener("change", renderVocab);
+  elements.phraseDateFilter.addEventListener("change", renderVocab);
+  elements.phraseStatusFilter.addEventListener("change", renderVocab);
+  elements.phrasePracticeBtn.addEventListener("click", openPhrasePractice);
+  elements.phrasePracticeBackBtn.addEventListener("click", closePhrasePractice);
+  elements.phrasePracticeSpeakBtn.addEventListener("click", () => speakCurrentPhraseCard(true));
+  elements.phrasePracticeDisplayMode.addEventListener("change", () => {
+    phrasePracticeDisplayMode = elements.phrasePracticeDisplayMode.value;
+    phrasePracticePromptLanguage = phrasePracticeDisplayMode === "random"
+      ? (Math.random() > 0.5 ? "translation" : "original")
+      : phrasePracticeDisplayMode;
+    phrasePracticeLastSpokenKey = "";
+    renderPhrasePractice();
+  });
+  elements.phrasePracticeRevealBtn.addEventListener("click", revealPhrasePracticeAnswer);
+  elements.phrasePracticeAgainBtn.addEventListener("click", () => advancePhrasePractice(false));
+  elements.phrasePracticeKnownBtn.addEventListener("click", () => advancePhrasePractice(true));
 
   elements.dialogCloseBtn.addEventListener("click", closeDialog);
   elements.dialogCancelBtn.addEventListener("click", closeDialog);
@@ -389,8 +814,11 @@ function bindEvents() {
   });
 
   document.addEventListener("click", closeWordPanelOnOutsideClick);
+  document.addEventListener("click", closeCourseWordPopoverOnOutsideClick);
   window.addEventListener("resize", positionWordPanel);
   window.addEventListener("scroll", positionWordPanel, { passive: true });
+  window.addEventListener("resize", positionCourseWordPopover);
+  window.addEventListener("scroll", positionCourseWordPopover, { passive: true });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && selectedWord) {
       closeWordPanel();
@@ -398,9 +826,1932 @@ function bindEvents() {
   });
 }
 
+function closeCourseWordPopoverOnOutsideClick(event) {
+  if (!selectedCourseWord || elements.courseWordPopover.hidden) return;
+  if (event.target.closest?.("#courseWordPopover") || event.target.closest?.(".course-word-button") || event.target.closest?.(".course-word-list-item")) return;
+  closeCourseWordPopover();
+}
+
+function bindCourseEvents() {
+  if (!elements.courseNewBtn) return;
+
+  elements.courseNewBtn.addEventListener("click", () => {
+    courseDraft = createEmptyCourseDraft();
+    courseMaterialAnalysis = null;
+    renderCourseMaterialAnalysis();
+    syncCourseComposer();
+    setCourseStage("composer");
+  });
+
+  elements.courseBackToLibraryBtn.addEventListener("click", () => setCourseStage("player"));
+  elements.courseBackToPlayerBtn.addEventListener("click", () => setCourseStage("player"));
+  elements.courseGenerateBtn.addEventListener("click", generateDemoCourse);
+  elements.courseEditBtn.addEventListener("click", () => {
+    const lesson = getActiveCourseLesson();
+    if (!lesson) return;
+    courseDraft = draftFromCourseLesson(lesson);
+    syncCourseComposer();
+    setCourseStage("composer");
+  });
+  elements.coursePracticeBtn.addEventListener("click", openCoursePractice);
+  elements.courseSpeakerSelect.addEventListener("change", () => {
+    if (elements.courseSpeakerSelect.value !== "all") courseMode = "speaker";
+    renderCoursePlayer();
+  });
+  elements.courseTranslationToggle.addEventListener("change", renderCoursePlayer);
+  elements.courseBottomTranslationToggle.addEventListener("change", () => {
+    elements.courseTranslationToggle.checked = elements.courseBottomTranslationToggle.checked;
+    renderCoursePlayer();
+  });
+  elements.courseRateSelect.addEventListener("change", () => {
+    state.settings.rate = elements.courseRateSelect.value;
+    persist();
+  });
+  elements.courseVoiceSelect.addEventListener("change", () => {
+    state.settings.voice = elements.courseVoiceSelect.value;
+    state.settings.voiceLocked = Boolean(elements.courseVoiceSelect.value);
+    elements.voiceSelect.value = elements.courseVoiceSelect.value;
+    persist();
+    renderCompactVoiceMenu();
+  });
+  elements.courseSegmentStart.addEventListener("change", () => {
+    courseSegmentStart = Number(elements.courseSegmentStart.value || 0);
+    courseSegmentEnd = Math.max(courseSegmentEnd, courseSegmentStart);
+    renderCoursePlayer();
+  });
+  elements.courseSegmentEnd.addEventListener("change", () => {
+    courseSegmentEnd = Math.max(courseSegmentStart, Number(elements.courseSegmentEnd.value || courseSegmentStart));
+    renderCoursePlayer();
+  });
+  if (elements.courseSentenceLoop) elements.courseSentenceLoop.addEventListener("change", () => {
+    courseSentenceLoop = elements.courseSentenceLoop.checked;
+  });
+  if (elements.coursePlayBtn) elements.coursePlayBtn.addEventListener("click", playCourseSelection);
+  if (elements.coursePrevBtn) elements.coursePrevBtn.addEventListener("click", () => moveCourseTurn(-1));
+  if (elements.courseNextBtn) elements.courseNextBtn.addEventListener("click", () => moveCourseTurn(1));
+  elements.courseFastBackBtn.addEventListener("click", () => seekCourseBy(-1));
+  elements.courseFastForwardBtn.addEventListener("click", () => seekCourseBy(1));
+  elements.courseBottomPlayBtn.addEventListener("click", playCourseSelection);
+  elements.courseTimeline.addEventListener("input", () => {
+    const lesson = getActiveCourseLesson();
+    const total = lesson?.turns.length || 1;
+    courseCurrentTurnIndex = Math.min(total - 1, Math.max(0, Math.round((Number(elements.courseTimeline.value || 0) / 1000) * total)));
+    stopSpeech();
+    renderCoursePlayer();
+    setStatus(`已定位到第 ${courseCurrentTurnIndex + 1} 句`);
+  });
+  elements.courseVoiceButton.addEventListener("click", toggleCompactVoiceMenu);
+  elements.courseExportRecordingsBtn.addEventListener("click", exportCourseRecordings);
+  elements.courseWordPopoverCloseBtn.addEventListener("click", closeCourseWordPopover);
+  elements.courseWordFavoriteBtn.addEventListener("click", toggleCourseWordFavorite);
+  elements.coursePopoverWordPlayBtn.addEventListener("click", playSelectedCourseWord);
+  elements.coursePopoverLookupBtn.addEventListener("click", openCourseWordDetail);
+  elements.courseWordDetailCloseBtn?.addEventListener("click", closeCourseWordDetail);
+  elements.courseWordDetailDialog?.addEventListener("click", (event) => {
+    if (event.target === elements.courseWordDetailDialog) closeCourseWordDetail();
+  });
+  elements.courseWordDetailDialog?.addEventListener("close", () => { courseWordDetailRunId += 1; });
+  if (elements.courseWordHelpBtn) elements.courseWordHelpBtn.addEventListener("click", () => setStatus("快捷键：←/→ 切换句子，空格播放/暂停，S 收藏当前词句"));
+  elements.courseRevealBtn.addEventListener("click", revealCoursePracticeAnswer);
+  elements.courseAgainBtn.addEventListener("click", () => advanceCoursePractice(false));
+  elements.courseKnownBtn.addEventListener("click", () => advanceCoursePractice(true));
+  elements.courseMaterialInput.addEventListener("input", () => {
+    if (courseDraft) courseDraft.text = elements.courseMaterialInput.value;
+    scheduleCourseMaterialAnalysis({ deep: false });
+  });
+  elements.courseMaterialInput.addEventListener("paste", () => {
+    window.setTimeout(() => scheduleCourseMaterialAnalysis({ deep: true, immediate: true }), 0);
+  });
+  elements.courseTitleInput.addEventListener("input", () => {
+    if (courseDraft) courseDraft.title = elements.courseTitleInput.value;
+  });
+  elements.courseLanguageSelect.addEventListener("change", () => {
+    if (courseDraft) courseDraft.language = elements.courseLanguageSelect.value;
+  });
+  elements.courseExplainLanguageSelect.addEventListener("change", () => {
+    if (courseDraft) courseDraft.explainLanguage = elements.courseExplainLanguageSelect.value;
+  });
+  elements.courseMaterialTypeSelect.addEventListener("change", () => {
+    if (courseDraft) courseDraft.materialType = elements.courseMaterialTypeSelect.value;
+  });
+  elements.courseMaterialFile.addEventListener("change", handleCourseMaterialFile);
+  elements.courseAnalyzeBtn.addEventListener("click", () => analyzeCourseMaterial({ deep: true }));
+  elements.courseApplySentenceBreaksBtn.addEventListener("click", applyDetectedSentenceBreaks);
+  elements.courseApplySpeakersBtn.addEventListener("click", applyDetectedSpeakers);
+  elements.courseApplyCorrectionsBtn.addEventListener("click", applySuggestedCorrections);
+  elements.courseCustomButton.addEventListener("click", toggleCourseCustomMenu);
+  document.querySelectorAll("[data-course-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      courseMode = button.dataset.courseMode;
+      if (courseMode !== "speaker") elements.courseSpeakerSelect.value = "all";
+      syncCourseCustomMenu();
+      renderCoursePlayer();
+    });
+  });
+  document.addEventListener("click", closeCompactVoiceMenuOnOutsideClick);
+  document.addEventListener("click", closeCourseCustomMenuOnOutsideClick);
+}
+
+function createEmptyCourseDraft() {
+  return {
+    title: "我的学习素材",
+    language: "fr",
+    explainLanguage: systemExplainLanguage(),
+    materialType: "自定义文本",
+    text: ""
+  };
+}
+
+function createDemoCourseLesson() {
+  const timestamp = nowIso();
+  return normalizeCourseLesson({
+    id: "demo_lesson",
+    title: "每天十分钟法语",
+    language: "fr",
+    explainLanguage: "zh",
+    materialType: "情景对话",
+    description: "用一段轻量对话练习问候、重复和时间表达。",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    turns: [
+      { id: "demo_turn_1", text: "Bonjour, comment allez-vous aujourd'hui ?", translation: "你好，今天过得怎么样？", speakerId: "a", speakerLabel: "A · Camille", recording: { status: "recorded", durationMs: 1800, mediaKey: "demo:turn-1" } },
+      { id: "demo_turn_2", text: "Je vais bien, merci. Et vous ?", translation: "我很好，谢谢。你呢？", speakerId: "b", speakerLabel: "B · Alex", recording: { status: "none", durationMs: 0, mediaKey: "" } },
+      { id: "demo_turn_3", text: "Je voudrais pratiquer le français pendant dix minutes.", translation: "我想练习十分钟法语。", speakerId: "a", speakerLabel: "A · Camille", recording: { status: "recorded", durationMs: 2200, mediaKey: "demo:turn-3" } },
+      { id: "demo_turn_4", text: "Bien sûr, on peut commencer quand vous voulez.", translation: "当然，你想什么时候开始都可以。", speakerId: "b", speakerLabel: "B · Alex", recording: { status: "none", durationMs: 0, mediaKey: "" } },
+      { id: "demo_turn_5", text: "Pouvez-vous répéter cette phrase plus lentement ?", translation: "你可以把这句话说慢一点吗？", speakerId: "a", speakerLabel: "A · Camille", recording: { status: "none", durationMs: 0, mediaKey: "" } },
+      { id: "demo_turn_6", text: "Bien sûr. À tout à l'heure !", translation: "当然。待会儿见！", speakerId: "b", speakerLabel: "B · Alex", recording: { status: "none", durationMs: 0, mediaKey: "" } }
+    ],
+    practice: { completed: 0, correct: 0 }
+  });
+}
+
+function createDemoPhraseItems() {
+  const timestamp = nowIso();
+  return [
+    normalizePhraseItem({ id: "demo_phrase_1", type: "phrase", text: "Bonjour, comment allez-vous aujourd'hui ?", translation: "你好，今天过得怎么样？", sourceLessonId: "demo_lesson", sourceTitle: "每天十分钟法语", language: "fr", status: "learning", wordbookIds: [], createdAt: timestamp, updatedAt: timestamp }),
+    normalizePhraseItem({ id: "demo_phrase_2", type: "phrase", text: "Pouvez-vous répéter cette phrase plus lentement ?", translation: "你可以把这句话说慢一点吗？", sourceLessonId: "demo_lesson", sourceTitle: "每天十分钟法语", language: "fr", status: "new", wordbookIds: [], createdAt: timestamp, updatedAt: timestamp }),
+    normalizePhraseItem({ id: "demo_word_1", type: "word", text: "pratiquer", translation: "练习；实践", sourceLessonId: "demo_lesson", sourceTitle: "每天十分钟法语", language: "fr", status: "got", wordbookIds: [], createdAt: timestamp, updatedAt: timestamp })
+  ].filter(Boolean);
+}
+
+function normalizePhraseItem(item) {
+  if (!item?.text) return null;
+  const status = ["new", "learning", "got"].includes(item.status) ? item.status : "new";
+  return {
+    id: String(item.id || makeId("phrase")),
+    type: item.type === "word" ? "word" : "phrase",
+    text: String(item.text).trim(),
+    translation: String(item.translation || "").trim(),
+    sourceLessonId: String(item.sourceLessonId || ""),
+    sourceTitle: String(item.sourceTitle || "自定义素材"),
+    language: item.language === "en" ? "en" : "fr",
+    status,
+    wordbookIds: cleanWordbookIds(Array.isArray(item.wordbookIds) ? item.wordbookIds : []),
+    createdAt: item.createdAt || nowIso(),
+    updatedAt: item.updatedAt || nowIso(),
+    lastPracticedAt: item.lastPracticedAt || null,
+    dueDate: item.dueDate || null,
+    practiceCount: Math.max(0, Number(item.practiceCount || 0))
+  };
+}
+
+function normalizeCourseLesson(lesson) {
+  if (!lesson?.id || !lesson?.title) return null;
+  const materialType = String(lesson.materialType || "自定义文本");
+  const forceNarration = ["文章", "笔记", "歌词"].includes(materialType);
+  const usedTurnIds = new Set();
+  const turns = Array.isArray(lesson.turns) ? lesson.turns.map((turn, index) => {
+    const proposedId = String(turn.id || "");
+    const id = proposedId && !usedTurnIds.has(proposedId)
+      ? proposedId
+      : `${lesson.id}_turn_${index + 1}`;
+    usedTurnIds.add(id);
+    return {
+      id,
+      text: String(turn.text || "").trim(),
+      translation: String(turn.translation || "").trim(),
+      speakerId: forceNarration ? "narrator" : String(turn.speakerId || (index % 2 === 0 ? "a" : "b")),
+      speakerLabel: forceNarration ? "旁白" : String(turn.speakerLabel || (index % 2 === 0 ? "A" : "B")),
+      recording: normalizeCourseRecording(turn.recording)
+    };
+  }).filter((turn) => turn.text) : [];
+  return {
+    id: String(lesson.id),
+    title: String(lesson.title),
+    language: lesson.language === "en" ? "en" : "fr",
+    explainLanguage: ["zh", "en", "fr"].includes(lesson.explainLanguage) ? lesson.explainLanguage : "zh",
+    materialType,
+    description: String(lesson.description || ""),
+    createdAt: lesson.createdAt || nowIso(),
+    updatedAt: lesson.updatedAt || nowIso(),
+    turns,
+    lexicalUnits: Array.isArray(lesson.lexicalUnits) ? lesson.lexicalUnits.map((item) => ({
+      text: String(item.text || "").trim(),
+      lemma: String(item.lemma || item.text || "").trim(),
+      type: String(item.type || "expression").trim()
+    })).filter((item) => item.text) : [],
+    practice: {
+      completed: Math.max(0, Number(lesson.practice?.completed || 0)),
+      correct: Math.max(0, Number(lesson.practice?.correct || 0))
+    }
+  };
+}
+
+function normalizeCourseRecording(recording) {
+  const mediaKey = String(recording?.mediaKey || "");
+  const isDemoRecording = mediaKey.startsWith("demo:");
+  return {
+    status: !isDemoRecording && recording?.status === "recorded" ? "recorded" : "none",
+    durationMs: isDemoRecording ? 0 : Math.max(0, Number(recording?.durationMs || 0)),
+    mediaKey: isDemoRecording ? "" : mediaKey,
+    mimeType: isDemoRecording ? "" : String(recording?.mimeType || ""),
+    size: isDemoRecording ? 0 : Math.max(0, Number(recording?.size || 0))
+  };
+}
+
+function draftFromCourseLesson(lesson) {
+  const includeSpeakers = lesson.materialType === "情景对话";
+  return {
+    title: lesson.title,
+    language: lesson.language,
+    explainLanguage: lesson.explainLanguage,
+    materialType: lesson.materialType,
+    text: lesson.turns.map((turn) => includeSpeakers ? `${turn.speakerLabel}: ${turn.text}` : turn.text).join("\n"),
+    editingId: lesson.id,
+    lexicalUnits: lesson.lexicalUnits || []
+  };
+}
+
+function getActiveCourseLesson() {
+  return state.courseLessons?.find((lesson) => lesson.id === courseActiveLessonId) || state.courseLessons?.[0] || null;
+}
+
+function setCourseStage(stage) {
+  if (!elements.courseLibraryPanel) return;
+  if (stage === "library") stage = "player";
+  elements.courseLibraryPanel.hidden = true;
+  elements.courseComposerPanel.hidden = stage !== "composer";
+  elements.coursePlayerPanel.hidden = stage !== "player";
+  elements.coursePracticePanel.hidden = stage !== "practice";
+  if (stage === "library") renderCourseLibrary();
+  if (stage === "player") renderCoursePlayer();
+  if (stage === "practice") renderCoursePractice();
+}
+
+function syncCourseComposer() {
+  if (!courseDraft) return;
+  elements.courseTitleInput.value = courseDraft.title;
+  elements.courseLanguageSelect.value = courseDraft.language;
+  elements.courseExplainLanguageSelect.value = courseDraft.explainLanguage;
+  elements.courseMaterialTypeSelect.value = courseDraft.materialType;
+  elements.courseMaterialInput.value = courseDraft.text;
+  renderCourseMaterialAnalysis();
+}
+
+function handleCourseMaterialFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    if (!courseDraft) courseDraft = createEmptyCourseDraft();
+    courseDraft.text = String(reader.result || "");
+    syncCourseComposer();
+    setStatus(`已载入素材：${file.name}`);
+    void analyzeCourseMaterial({ deep: true });
+  });
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+function systemExplainLanguage() {
+  const language = state?.settings?.systemLanguage || "zh";
+  return ["zh", "en", "fr"].includes(language) ? language : "zh";
+}
+
+function saveLocalAiSettings() {
+  state.settings.localAiEndpoint = String(elements.localAiEndpointInput.value || "http://127.0.0.1:11434").trim().replace(/\/$/, "");
+  state.settings.localAiModel = String(elements.localAiModelInput.value || "gemma3:4b").trim();
+  persist();
+  elements.localAiStatus.textContent = "设置已保存，尚未检测";
+}
+
+async function testLocalAiConnection() {
+  saveLocalAiSettings();
+  elements.localAiStatus.textContent = "正在检测…";
+  try {
+    const response = await fetch(`${state.settings.localAiEndpoint}/api/tags`, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const models = (payload.models || []).map((item) => item.name);
+    const wanted = state.settings.localAiModel;
+    elements.localAiStatus.textContent = models.some((name) => name === wanted || name.startsWith(`${wanted}:`))
+      ? `已连接 · ${wanted}`
+      : `已连接，但尚未安装 ${wanted}`;
+  } catch {
+    elements.localAiStatus.textContent = "未连接；仍可使用本地规则和开放词典";
+  }
+}
+
+function scheduleCourseMaterialAnalysis({ deep = false, immediate = false } = {}) {
+  window.clearTimeout(courseAnalysisTimer);
+  const delay = immediate ? 0 : 650;
+  courseAnalysisTimer = window.setTimeout(() => analyzeCourseMaterial({ deep }), delay);
+}
+
+async function analyzeCourseMaterial({ deep = false } = {}) {
+  const text = String(elements.courseMaterialInput.value || "").trim();
+  if (!text || text.length < 4) {
+    courseMaterialAnalysis = null;
+    renderCourseMaterialAnalysis();
+    return;
+  }
+  const runId = ++courseAnalysisRunId;
+  const local = analyzeMaterialLocally(text);
+  courseMaterialAnalysis = local;
+  applyDetectedMaterialMetadata(local);
+  renderCourseMaterialAnalysis();
+  if (!deep) return;
+
+  elements.courseAnalysisStatus.textContent = "本地规则已完成，正在尝试本机开源 AI…";
+  const aiResult = await analyzeMaterialWithLocalAi(text, local);
+  if (runId !== courseAnalysisRunId) return;
+  if (!aiResult) {
+    elements.courseAnalysisStatus.textContent = "已使用本地规则；未连接本机 AI，不影响继续生成课程。";
+    return;
+  }
+  courseMaterialAnalysis = mergeMaterialAnalysis(local, aiResult);
+  applyDetectedMaterialMetadata(courseMaterialAnalysis);
+  renderCourseMaterialAnalysis();
+}
+
+function analyzeMaterialLocally(text) {
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n").map((line) => line.trim()).filter(Boolean);
+  const lower = ` ${text.toLocaleLowerCase()} `;
+  const frenchScore = (lower.match(/[àâçéèêëîïôùûüÿœæ]/g) || []).length * 2
+    + (lower.match(/\b(je|tu|vous|nous|le|la|les|des|une|est|suis|avec|pour|pas|bonjour|merci)\b/g) || []).length;
+  const englishScore = (lower.match(/\b(the|and|you|i|we|is|are|with|for|not|hello|thanks|would)\b/g) || []).length;
+  const language = frenchScore >= englishScore ? "fr" : "en";
+  const speakerMap = new Map();
+  const dialogueLines = [];
+  lines.forEach((line) => {
+    const match = line.match(/^([^:：]{1,24})[:：]\s*(.+)$/u);
+    if (!match) return;
+    const sourceSpeaker = match[1].trim();
+    if (!speakerMap.has(sourceSpeaker)) speakerMap.set(sourceSpeaker, String.fromCharCode(65 + Math.min(25, speakerMap.size)));
+    dialogueLines.push({ speaker: speakerMap.get(sourceSpeaker), text: match[2].trim(), sourceSpeaker });
+  });
+  const isDialogue = speakerMap.size >= 2 && dialogueLines.length >= 2;
+  const speakerText = isDialogue ? dialogueLines.map((line) => `${line.speaker}: ${line.text}`).join("\n") : "";
+  const sentenceCount = lines.flatMap(splitSentenceChunks).length;
+  const lyricLikeLines = lines.filter((line) => line.length < 72 && !/[.!?。！？]$/.test(line)).length;
+  const looksLikeLyrics = lines.length > 5 && (new Set(lines).size < lines.length || lyricLikeLines / lines.length > 0.65);
+  const materialType = isDialogue ? "情景对话" : looksLikeLyrics ? "歌词" : text.length > 280 || sentenceCount >= 4 ? "文章" : "笔记";
+  const firstContent = (dialogueLines[0]?.text || lines[0] || "我的学习素材").replace(/[.!?。！？].*$/u, "").trim();
+  const title = firstContent.length > 28 ? `${firstContent.slice(0, 28)}…` : firstContent;
+  let correctedText = String(text).replace(/\r\n?/g, "\n");
+  const corrections = [];
+  const trimmedLines = correctedText.split("\n").map((line) => line.trim().replace(/[ \t]{2,}/g, " ")).join("\n").trim();
+  if (trimmedLines !== correctedText) {
+    const original = correctedText;
+    correctedText = trimmedLines;
+    corrections.push({ type: "format", original, replacement: correctedText, reason: "清理行首尾空格和连续空格，让逐句拆分更稳定。" });
+  }
+  const spaced = correctedText.replace(/([.!?。！？,，;；:：])(?=[\p{L}\p{N}])/gu, "$1 ");
+  if (spaced !== correctedText) {
+    const original = correctedText;
+    correctedText = spaced;
+    corrections.push({ type: "format", original, replacement: correctedText, reason: "补充标点后的必要空格，避免两个句子或词被错误连在一起。" });
+  }
+  const lexicalUnits = Object.keys(KNOWN_LEXICAL_UNITS)
+    .filter((unit) => lower.includes(` ${unit.toLocaleLowerCase()} `) || lower.includes(unit.toLocaleLowerCase()))
+    .map((unit) => ({ text: unit, lemma: KNOWN_LEXICAL_UNITS[unit].lemma, type: "expression" }));
+  const sentenceText = formatMaterialIntoSentenceLines(correctedText, { isDialogue });
+  return { source: "rules", language, materialType, title, isDialogue, dialogueLines, speakerText, sentenceText, correctedText, corrections, lexicalUnits };
+}
+
+async function analyzeMaterialWithLocalAi(text, fallback) {
+  const endpoint = String(state.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
+  const model = String(state.settings.localAiModel || "gemma3:4b");
+  const schema = {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      language: { type: "string", enum: ["fr", "en"] },
+      materialType: { type: "string", enum: ["情景对话", "文章", "歌词", "笔记", "自定义文本"] },
+      isDialogue: { type: "boolean" },
+      dialogueLines: { type: "array", items: { type: "object", properties: { speaker: { type: "string" }, text: { type: "string" } }, required: ["speaker", "text"] } },
+      sentenceText: { type: "string" },
+      correctedText: { type: "string" },
+      corrections: { type: "array", items: { type: "object", properties: { type: { type: "string" }, original: { type: "string" }, replacement: { type: "string" }, reason: { type: "string" } }, required: ["type", "original", "replacement", "reason"] } },
+      lexicalUnits: { type: "array", items: { type: "object", properties: { text: { type: "string" }, lemma: { type: "string" }, type: { type: "string" } }, required: ["text", "lemma", "type"] } }
+    },
+    required: ["title", "language", "materialType", "isDialogue", "dialogueLines", "sentenceText", "correctedText", "corrections", "lexicalUnits"]
+  };
+  const prompt = `Analyze this language-learning material. Detect French or English and classify it. Set isDialogue=true only when the text genuinely contains two or more people taking turns speaking; an article, narration, list, heading, colon, quotation, or reported speech is not automatically a dialogue. Only for genuine dialogue, identify speakers and rename them A/B/C in order. Find fixed expressions and inflected verbs with their lemmas. Return sentenceText with every sentence on its own line; preserve A/B/C labels only for genuine dialogue and never add speaker labels to an article or narration. Review spelling, grammar, word choice, register, ambiguity, and content that may be inappropriate for the apparent context. Propose a corrected version while preserving the author's intent and every meaningful detail. For every change, include the exact original excerpt, proposed replacement, type, and a concise reason. Do not silently rewrite or omit content. If no correction is needed, keep correctedText identical and return an empty corrections array. Correction explanations must use ${systemExplainLanguage()}. Return only the required JSON.\n\nMATERIAL:\n${text}`;
+  try {
+    const response = await fetch(`${endpoint}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, stream: false, format: schema, messages: [{ role: "user", content: prompt }], options: { temperature: 0 } }),
+      signal: AbortSignal.timeout(30000)
+    });
+    if (!response.ok) throw new Error(`Ollama ${response.status}`);
+    const payload = await response.json();
+    const result = JSON.parse(payload?.message?.content || "{}");
+    result.source = "ollama";
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+function mergeMaterialAnalysis(local, ai) {
+  const dialogueLines = Array.isArray(ai.dialogueLines)
+    ? ai.dialogueLines.filter((line) => line?.text).map((line, index) => ({ ...line, sourceSpeaker: local.dialogueLines[index]?.sourceSpeaker || "" }))
+    : local.dialogueLines;
+  const isDialogue = ai.isDialogue === true && ai.materialType === "情景对话" && new Set(dialogueLines.map((line) => line.speaker)).size >= 2;
+  return {
+    ...local,
+    ...ai,
+    source: "ollama",
+    isDialogue,
+    dialogueLines: isDialogue ? dialogueLines : [],
+    speakerText: isDialogue ? dialogueLines.map((line, index) => `${String(line.speaker || String.fromCharCode(65 + index)).toUpperCase()}: ${line.text}`).join("\n") : "",
+    sentenceText: String(ai.sentenceText || local.sentenceText),
+    corrections: Array.isArray(ai.corrections) ? ai.corrections : local.corrections,
+    lexicalUnits: Array.isArray(ai.lexicalUnits) ? ai.lexicalUnits : local.lexicalUnits
+  };
+}
+
+function applyDetectedMaterialMetadata(analysis) {
+  if (!courseDraft || !analysis) return;
+  const previous = courseDraft.autoValues || {};
+  const titleCanChange = !courseDraft.title || courseDraft.title === "我的学习素材" || courseDraft.title === previous.title;
+  const languageCanChange = !previous.language || courseDraft.language === previous.language;
+  const typeCanChange = !previous.materialType || courseDraft.materialType === previous.materialType || courseDraft.materialType === "自定义文本";
+  if (titleCanChange && analysis.title) courseDraft.title = analysis.title;
+  if (languageCanChange && ["fr", "en"].includes(analysis.language)) courseDraft.language = analysis.language;
+  if (typeCanChange && analysis.materialType) courseDraft.materialType = analysis.materialType;
+  courseDraft.lexicalUnits = analysis.lexicalUnits || [];
+  courseDraft.autoValues = { title: analysis.title, language: analysis.language, materialType: analysis.materialType };
+  elements.courseTitleInput.value = courseDraft.title;
+  elements.courseLanguageSelect.value = courseDraft.language;
+  elements.courseMaterialTypeSelect.value = courseDraft.materialType;
+}
+
+function renderCourseMaterialAnalysis() {
+  if (!elements.courseAnalysisPanel) return;
+  const analysis = courseMaterialAnalysis;
+  elements.courseAnalysisPanel.hidden = !analysis;
+  if (!analysis) {
+    elements.courseAnalysisStatus.textContent = "粘贴或导入文本后会自动识别语言、类型、标题和说话人。";
+    return;
+  }
+  elements.courseAnalysisSource.textContent = analysis.source === "ollama" ? "本机开源 AI" : "本地规则";
+  const speakers = new Set((analysis.dialogueLines || []).map((line) => line.speaker)).size;
+  elements.courseAnalysisSummary.textContent = `${analysis.language === "en" ? "英语" : "法语"} · ${analysis.materialType}${analysis.isDialogue ? ` · 识别到 ${speakers} 位说话人` : ""} · ${(analysis.lexicalUnits || []).length} 个词句单元`;
+  elements.courseAnalysisReasons.replaceChildren();
+  const corrections = (analysis.corrections || []).filter((item) => item?.reason);
+  if (!corrections.length) elements.courseAnalysisReasons.append(el("p", "micro-copy", "未发现需要确认的基础格式问题。连接本机开源 AI 后还可检查语法、措辞和语境。"));
+  else corrections.forEach((correction) => {
+    const card = el("article", "course-analysis-reason");
+    card.append(el("strong", "", correction.reason));
+    const originalExcerpt = shortenAnalysisExcerpt(correction.original);
+    const replacementExcerpt = shortenAnalysisExcerpt(correction.replacement);
+    if (originalExcerpt && replacementExcerpt && originalExcerpt !== replacementExcerpt) {
+      card.append(el("span", "course-analysis-change", `原文：${originalExcerpt}`));
+      card.append(el("span", "course-analysis-change is-proposed", `建议：${replacementExcerpt}`));
+    }
+    elements.courseAnalysisReasons.append(card);
+  });
+  const current = String(elements.courseMaterialInput.value || "").trim();
+  elements.courseApplySentenceBreaksBtn.hidden = !analysis.sentenceText || analysis.sentenceText.trim() === current;
+  elements.courseApplySpeakersBtn.hidden = !analysis.isDialogue || !analysis.speakerText || analysis.speakerText.trim() === current;
+  elements.courseApplyCorrectionsBtn.hidden = !analysis.correctedText || analysis.correctedText.trim() === current;
+  elements.courseAnalysisStatus.textContent = analysis.source === "ollama" ? "本机 AI 分析完成；修改原文前需要你确认。" : "本地规则分析完成；可继续生成课程或尝试本机 AI。";
+}
+
+function shortenAnalysisExcerpt(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+}
+
+function applyDetectedSpeakers() {
+  if (!courseMaterialAnalysis?.speakerText) return;
+  const previous = courseMaterialAnalysis;
+  const speakerText = previous.speakerText;
+  elements.courseMaterialInput.value = speakerText;
+  courseDraft.text = speakerText;
+  const refreshed = analyzeMaterialLocally(speakerText);
+  courseMaterialAnalysis = {
+    ...refreshed,
+    source: previous.source,
+    correctedText: relabelDialogueText(previous.correctedText, previous.dialogueLines),
+    corrections: previous.corrections,
+    lexicalUnits: previous.lexicalUnits
+  };
+  setStatus("已应用 A/B/C 说话人标记");
+  renderCourseMaterialAnalysis();
+}
+
+function applyDetectedSentenceBreaks() {
+  if (!courseMaterialAnalysis?.sentenceText) return;
+  const sentenceText = courseMaterialAnalysis.sentenceText;
+  elements.courseMaterialInput.value = sentenceText;
+  courseDraft.text = sentenceText;
+  courseMaterialAnalysis = analyzeMaterialLocally(sentenceText);
+  applyDetectedMaterialMetadata(courseMaterialAnalysis);
+  setStatus("已按单句换行；你仍可以继续编辑");
+  renderCourseMaterialAnalysis();
+}
+
+function splitSentenceChunks(value) {
+  const source = String(value || "").replace(/\s+/g, " ").trim();
+  if (!source) return [];
+  const chunks = source.match(/[^.!?。！？]+(?:[.!?。！？]+[”’"'»)]*|$)/gu) || [source];
+  return chunks.map((chunk) => chunk.trim()).filter(Boolean);
+}
+
+function formatMaterialIntoSentenceLines(value, { isDialogue = detectDialogueStructure(value) } = {}) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .flatMap((rawLine) => {
+      const line = rawLine.trim();
+      if (!line) return [];
+      const dialogue = isDialogue ? line.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/u) : null;
+      if (!dialogue) return splitSentenceChunks(line);
+      const label = dialogue[1].trim();
+      return splitSentenceChunks(dialogue[2]).map((sentence) => `${label}: ${sentence}`);
+    })
+    .join("\n");
+}
+
+function relabelDialogueText(text, dialogueLines) {
+  let result = String(text || "");
+  const labels = new Map();
+  (dialogueLines || []).forEach((line) => {
+    if (line.sourceSpeaker && line.speaker) labels.set(line.sourceSpeaker, String(line.speaker).toUpperCase());
+  });
+  labels.forEach((label, sourceSpeaker) => {
+    const escaped = sourceSpeaker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    result = result.replace(new RegExp(`^${escaped}\\s*[:：]`, "gmu"), `${label}:`);
+  });
+  return result;
+}
+
+function applySuggestedCorrections() {
+  if (!courseMaterialAnalysis?.correctedText) return;
+  if (!window.confirm("确认用建议修正版替换当前原文？替换后仍可继续手工修改。")) return;
+  elements.courseMaterialInput.value = courseMaterialAnalysis.correctedText;
+  courseDraft.text = courseMaterialAnalysis.correctedText;
+  courseMaterialAnalysis = analyzeMaterialLocally(courseDraft.text);
+  setStatus("已替换为确认后的修正版");
+  renderCourseMaterialAnalysis();
+}
+
+function generateDemoCourse() {
+  const draft = courseDraft || createEmptyCourseDraft();
+  draft.title = elements.courseTitleInput.value.trim() || "我的学习素材";
+  draft.language = elements.courseLanguageSelect.value;
+  draft.explainLanguage = elements.courseExplainLanguageSelect.value;
+  draft.materialType = elements.courseMaterialTypeSelect.value;
+  draft.text = elements.courseMaterialInput.value.trim();
+  if (!draft.text) {
+    elements.courseMaterialInput.focus();
+    setStatus("请先输入一段素材");
+    return;
+  }
+
+  const isDialogue = draft.materialType === "情景对话" && Boolean(courseMaterialAnalysis?.isDialogue || detectDialogueStructure(draft.text));
+  const turns = splitCourseTurns(draft.text, { materialType: draft.materialType }).map((item, index) => ({
+    id: makeId("turn"),
+    text: item.text,
+    translation: draft.explainLanguage === "zh" ? "译文待补充" : "Translation pending",
+    speakerId: isDialogue ? (item.speakerId || (index % 2 === 0 ? "a" : "b")) : "narrator",
+    speakerLabel: isDialogue ? (item.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
+    recording: { status: "none", durationMs: 0, mediaKey: "" }
+  }));
+  const lesson = normalizeCourseLesson({
+    id: draft.editingId || makeId("lesson"),
+    title: draft.title,
+    language: draft.language,
+    explainLanguage: draft.explainLanguage,
+    materialType: draft.materialType,
+    description: `${turns.length} 句 · 演示课程`,
+    lexicalUnits: courseMaterialAnalysis?.lexicalUnits || draft.lexicalUnits || [],
+    turns,
+    practice: { completed: 0, correct: 0 }
+  });
+  const existingIndex = state.courseLessons.findIndex((item) => item.id === lesson.id);
+  if (existingIndex >= 0) state.courseLessons.splice(existingIndex, 1, lesson);
+  else state.courseLessons.unshift(lesson);
+  let linkedEntry = state.entries.find((entry) => entry.courseLessonId === lesson.id);
+  const linkedTape = linkedEntry ? getTape(linkedEntry.tapeId) : null;
+  let album = linkedTape ? getAlbum(linkedTape.albumId) : state.albums.find((item) => item.courseLessonId === lesson.id);
+  if (!album) {
+    album = getAlbum(state.ui.selectedAlbumId) || state.albums[0] || createAlbum("我的学习素材", "从课程页创建的素材", pickAlbumColor());
+  }
+  const materialTapeId = linkedEntry?.tapeId || ensureTapeForAlbum(album.id);
+  if (linkedEntry) {
+    linkedEntry.title = lesson.title;
+    linkedEntry.text = draft.text;
+    linkedEntry.language = lesson.language;
+    linkedEntry.materialType = lesson.materialType;
+    linkedEntry.updatedAt = nowIso();
+  } else {
+    linkedEntry = createEntry(materialTapeId, lesson.title, draft.text, "从课程页创建", { language: lesson.language, materialType: lesson.materialType, courseLessonId: lesson.id });
+  }
+  linkedEntry.courseLessonId = lesson.id;
+  state.ui.selectedAlbumId = album.id;
+  state.ui.selectedTapeId = materialTapeId;
+  libraryAlbumScope = album.id;
+  courseActiveLessonId = lesson.id;
+  state.activeCourseId = lesson.id;
+  persist();
+  courseDraft = null;
+  courseCurrentTurnIndex = 0;
+  setCourseStage("player");
+  setStatus("课程已生成，正在自动生成译文…");
+  void generateCourseTranslations(lesson);
+}
+
+async function generateCourseTranslations(lesson) {
+  let changed = false;
+  for (const turn of lesson.turns) {
+    const localTranslation = getLocalTranslation(turn.text, lesson.language, lesson.explainLanguage);
+    if (localTranslation) {
+      if (turn.translation !== localTranslation) {
+        turn.translation = localTranslation;
+        changed = true;
+        renderCoursePlayer();
+      }
+      continue;
+    }
+    if (turn.translation && !/待补充|待校对|pending/i.test(turn.translation) && !isSuspiciousTranslation(turn.text, turn.translation)) continue;
+    const translation = await translateText(turn.text, lesson.language, lesson.explainLanguage);
+    if (translation) {
+      turn.translation = translation;
+      changed = true;
+      renderCoursePlayer();
+    } else if (isSuspiciousTranslation(turn.text, turn.translation)) {
+      turn.translation = lesson.explainLanguage === "zh" ? "译文待校对" : "Translation needs review";
+      changed = true;
+      renderCoursePlayer();
+    }
+  }
+  if (changed) {
+    lesson.updatedAt = nowIso();
+    persist();
+    renderCoursePlayer();
+    setStatus("译文已生成");
+  } else {
+    setStatus("暂时没有拿到在线译文，课程仍可正常学习");
+  }
+}
+
+function splitCourseTurns(text, { materialType = "" } = {}) {
+  const lines = String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .flatMap((line) => line.trim() ? [line.trim()] : [])
+    .flatMap((line) => line.includes("\t") ? line.split("\t") : [line]);
+  const isDialogue = materialType === "情景对话" || (!materialType && detectDialogueStructure(text));
+  const source = lines.flatMap((line) => {
+    const match = isDialogue ? line.match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/) : null;
+    if (match) {
+      return splitSentenceChunks(match[2]).map((sentence) => ({
+        speakerLabel: match[1].trim(),
+        speakerId: normalizeCourseSpeakerId(match[1]),
+        text: sentence
+      }));
+    }
+    return splitSentenceChunks(line).map((sentence) => ({ text: sentence }));
+  });
+  return source.filter((item) => item.text);
+}
+
+function detectDialogueStructure(text) {
+  const labels = String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim().match(/^([^:：]{1,24})\s*[:：]\s*(.+)$/u))
+    .filter(Boolean)
+    .map((match) => normalizeWord(match[1]));
+  return labels.length >= 2 && new Set(labels.filter(Boolean)).size >= 2;
+}
+
+function inferStoredMaterialType(text) {
+  if (detectDialogueStructure(text)) return "情景对话";
+  const sentenceCount = String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .flatMap(splitSentenceChunks)
+    .length;
+  return String(text || "").length > 240 || sentenceCount >= 4 ? "文章" : "笔记";
+}
+
+function normalizeCourseSpeakerId(label) {
+  const normalized = normalizeWord(label);
+  if (/^[a-z]$/.test(normalized)) return normalized;
+  if (/^(b|alex|teacher|landlord|friend|assistant|对方|乙)$/.test(normalized)) return "b";
+  return "a";
+}
+
+function renderCourse() {
+  if (!elements.courseLessonCards) return;
+  if (!state.courseLessons?.length) state.courseLessons = [createDemoCourseLesson()];
+  renderCourseLibrary();
+  if (!courseActiveLessonId) courseActiveLessonId = state.activeCourseId || state.courseLessons[0]?.id || null;
+}
+
+function renderCourseLibrary() {
+  const lessons = state.courseLessons || [];
+  elements.courseLessonCards.replaceChildren();
+  lessons.forEach((lesson) => {
+    const card = el("article", "course-lesson-card");
+    const language = lesson.language === "en" ? "英语" : "法语";
+    const explain = lesson.explainLanguage === "en" ? "English explanation" : "中文解释";
+    const recordedCount = lesson.turns.filter((turn) => turn.recording.status === "recorded").length;
+    card.append(
+      el("div", "course-card-kicker", lesson.materialType),
+      el("h3", "", lesson.title),
+      el("p", "course-lesson-description", lesson.description || "自定义学习素材"),
+      el("div", "course-lesson-meta", `${language} · ${explain} · ${lesson.turns.length} 句 · ${recordedCount} 句已录音`)
+    );
+    const actions = el("div", "course-card-actions");
+    actions.append(
+      button("打开课程", "command-button primary", () => {
+        courseActiveLessonId = lesson.id;
+        state.activeCourseId = lesson.id;
+        courseCurrentTurnIndex = 0;
+        persist();
+        setCourseStage("player");
+      }, "play"),
+      button("复制素材", "command-button", () => {
+        courseDraft = draftFromCourseLesson(lesson);
+        syncCourseComposer();
+        setCourseStage("composer");
+      }, "edit")
+    );
+    card.append(actions);
+    elements.courseLessonCards.append(card);
+  });
+}
+
+function renderCoursePlayer() {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  if (applyKnownLocalTranslations(lesson)) persist();
+  elements.coursePlayerTitle.textContent = lesson.title;
+  elements.coursePlayerMeta.textContent = `${lesson.language === "en" ? "英语" : "法语"} · ${lesson.explainLanguage === "en" ? "English explanation" : "中文解释"} · ${lesson.turns.length} 句`;
+  if (elements.courseMicHint) elements.courseMicHint.textContent = "逐句录音使用本机麦克风，音频只保存在当前设备。";
+  elements.courseBottomTitle.textContent = lesson.title;
+  elements.courseBottomHint.textContent = courseMode === "loop"
+    ? `循环第 ${courseSegmentStart + 1}–${courseSegmentEnd + 1} 句`
+    : courseMode === "single"
+      ? `循环第 ${courseCurrentTurnIndex + 1} 句`
+      : courseMode === "speaker" ? "按说话人练习对话" : "时间轴按句定位";
+  const speakers = Array.from(new Map(lesson.turns.map((turn) => [turn.speakerId, turn.speakerLabel])).entries());
+  const selectedSpeaker = elements.courseSpeakerSelect.value;
+  elements.courseSpeakerSelect.replaceChildren(new Option("全部说话人", "all"));
+  speakers.forEach(([id, label]) => elements.courseSpeakerSelect.append(new Option(label, id)));
+  elements.courseSpeakerSelect.value = speakers.some(([id]) => id === selectedSpeaker) ? selectedSpeaker : "all";
+  courseSegmentStart = Math.min(courseSegmentStart, Math.max(0, lesson.turns.length - 1));
+  courseSegmentEnd = Math.min(Math.max(courseSegmentEnd, courseSegmentStart), Math.max(0, lesson.turns.length - 1));
+  elements.courseSegmentStart.replaceChildren(...lesson.turns.map((turn, index) => new Option(`第 ${index + 1} 句`, String(index))));
+  elements.courseSegmentEnd.replaceChildren(...lesson.turns.map((turn, index) => new Option(`第 ${index + 1} 句`, String(index))));
+  elements.courseSegmentStart.value = String(courseSegmentStart);
+  elements.courseSegmentEnd.value = String(courseSegmentEnd);
+  if (elements.courseSentenceLoop) elements.courseSentenceLoop.checked = courseSentenceLoop;
+  elements.courseBottomTranslationToggle.checked = elements.courseTranslationToggle.checked;
+  syncCourseVoiceSelect();
+  syncCourseCustomMenu();
+  renderCourseTranscript(lesson);
+  renderCourseWordList(lesson);
+  renderCourseProgress(lesson);
+}
+
+function getCourseVisibleTurns(lesson) {
+  if (courseMode === "single") return lesson.turns.slice(courseCurrentTurnIndex, courseCurrentTurnIndex + 1);
+  if (courseMode === "loop") return lesson.turns.slice(courseSegmentStart, courseSegmentEnd + 1);
+  if (courseMode === "speaker") {
+    const speaker = elements.courseSpeakerSelect.value;
+    return speaker === "all" ? lesson.turns : lesson.turns.filter((turn) => turn.speakerId === speaker);
+  }
+  return lesson.turns;
+}
+
+function renderCourseTranscript(lesson) {
+  const visibleTurns = getCourseVisibleTurns(lesson);
+  elements.courseTranscriptList.replaceChildren();
+  visibleTurns.forEach((turn) => {
+    const originalIndex = lesson.turns.findIndex((item) => item.id === turn.id);
+    const row = el("article", `course-turn-row${originalIndex === courseCurrentTurnIndex ? " is-current" : ""}`);
+    row.dataset.turnId = turn.id;
+    const top = el("div", "course-turn-top");
+    top.append(el("span", "course-turn-number", String(originalIndex + 1).padStart(2, "0")), el("span", "speaker-chip", turn.speakerLabel));
+    const text = el("p", "course-turn-text");
+    appendCourseWords(text, turn.text, lesson);
+    const translation = el("p", "course-turn-translation", turn.translation || (lesson.explainLanguage === "en" ? "Translation pending" : "译文待补充"));
+    translation.hidden = !elements.courseTranslationToggle.checked;
+    const actions = el("div", "course-turn-actions");
+    const playButton = button("", "mini-button sentence-play-button", () => playCourseTurn(lesson, originalIndex), "play");
+    playButton.dataset.courseTurnIndex = String(originalIndex);
+    playButton.title = `播放第 ${originalIndex + 1} 句`;
+    playButton.setAttribute("aria-label", playButton.title);
+    actions.append(playButton);
+    const phraseSaved = isCoursePhraseFavorited(turn, lesson);
+    const saveButton = button(phraseSaved ? "已收藏" : "收藏句子", `mini-button phrase-save-button${phraseSaved ? " is-saved" : ""}`, () => toggleCoursePhraseFavorite(turn, lesson), phraseSaved ? "check" : "heart");
+    saveButton.setAttribute("aria-pressed", String(phraseSaved));
+    actions.append(saveButton);
+    if (turn.recording.status === "recorded") {
+      actions.append(
+        button(`我的录音 · ${formatCourseDuration(turn.recording.durationMs)}`, "mini-button recording-ready", () => playCourseRecording(turn), "play"),
+        button("重录", "mini-button", () => startCourseRecording(lesson, turn.id), "refresh"),
+        button("删除", "mini-button danger-mini", () => deleteCourseRecording(lesson, turn.id), "trash")
+      );
+    } else if (turn.recording.status === "recording") {
+      actions.append(button("停止录音", "mini-button recording-active", () => stopCourseRecording(lesson, turn.id), "stop"));
+    } else {
+      actions.append(button("开始录音", "mini-button record-button", () => startCourseRecording(lesson, turn.id), "mic"));
+    }
+    row.append(top, text, translation, actions);
+    elements.courseTranscriptList.append(row);
+  });
+  renderCourseTurnPlayButtons();
+}
+
+function isCoursePhraseFavorited(turn, lesson) {
+  return Boolean(state.phraseItems.find((item) => item.sourceLessonId === lesson.id && item.text === turn.text));
+}
+
+function renderCourseTurnPlayButtons() {
+  elements.courseTranscriptList?.querySelectorAll(".sentence-play-button").forEach((button) => {
+    const index = Number(button.dataset.courseTurnIndex);
+    const key = `course:${getActiveCourseLesson()?.id}:turn:${index}`;
+    const lessonKey = `course:${getActiveCourseLesson()?.id}:`;
+    const active = (playback.key === key || playback.key.startsWith(lessonKey)) && playback.status === "playing" && index === courseCurrentTurnIndex;
+    const paused = (playback.key === key || playback.key.startsWith(lessonKey)) && playback.status === "paused" && index === courseCurrentTurnIndex;
+    setButtonContent(button, active ? "pause" : "play", active ? "暂停" : paused ? "继续" : "播放");
+    button.classList.toggle("is-active", active || paused);
+    button.title = `${active ? "暂停" : paused ? "继续" : "播放"}第 ${index + 1} 句`;
+    button.setAttribute("aria-label", button.title);
+  });
+}
+
+function appendCourseWords(container, sentence, lesson) {
+  const pattern = courseLexicalUnitPattern(lesson);
+  let lastIndex = 0;
+  let match = pattern.exec(sentence);
+  while (match) {
+    if (match.index > lastIndex) container.append(document.createTextNode(sentence.slice(lastIndex, match.index)));
+    const rawWord = match[0];
+    const word = el("button", "course-word-button", rawWord);
+    word.type = "button";
+    word.dataset.courseWord = rawWord;
+    word.addEventListener("click", () => showCourseWordInfo(rawWord, lesson, word));
+    container.append(word);
+    lastIndex = pattern.lastIndex;
+    match = pattern.exec(sentence);
+  }
+  if (lastIndex < sentence.length) container.append(document.createTextNode(sentence.slice(lastIndex)));
+}
+
+function renderCourseWordList(lesson) {
+  const words = Array.from(new Set(lesson.turns.flatMap((turn) => courseTokenize(turn.text)))).slice(0, 12);
+  elements.courseWordCount.textContent = `${words.length} 词`;
+  elements.courseWordList.replaceChildren();
+  words.forEach((word) => {
+    const info = getDemoWordInfo(word, lesson);
+    const item = el("button", "course-word-list-item");
+    item.type = "button";
+    item.append(el("strong", "", info.lemma), el("span", "", info.pos));
+    item.addEventListener("click", () => showCourseWordInfo(word, lesson, item));
+    elements.courseWordList.append(item);
+  });
+}
+
+function courseTokenize(text) {
+  return String(text || "").match(courseLexicalUnitPattern(getActiveCourseLesson())) || [];
+}
+
+function getDemoWordInfo(word, lesson) {
+  const unitKey = normalizeLexicalUnit(word);
+  const knownUnit = Object.entries(KNOWN_LEXICAL_UNITS).find(([key]) => normalizeLexicalUnit(key) === unitKey)?.[1];
+  if (knownUnit) return {
+    ...knownUnit,
+    forms: buildCourseWordForms(word, knownUnit.lemma, knownUnit.forms, lesson.language),
+    source: "OoFR 开放词库"
+  };
+
+  const lookupSurface = canonicalCourseLookupSurface(word, lesson.language);
+  const detectedUnit = (lesson.lexicalUnits || []).find((item) => [unitKey, normalizeLexicalUnit(lookupSurface)].includes(normalizeLexicalUnit(item.text)));
+  const resolved = resolveWordInfo(detectedUnit?.lemma || lookupSurface);
+  const localEntry = resolved.lexicon;
+  if (detectedUnit || localEntry) {
+    const lemma = detectedUnit?.lemma || localEntry?.word || resolved.lemma || word;
+    const override = COURSE_WORD_OVERRIDES[normalizeWord(lemma)];
+    const isInflected = normalizeLexicalUnit(lemma) !== unitKey;
+    return {
+      lemma: override?.lemma || lemma,
+      ipa: localEntry?.ipa || "音标待补充",
+      pos: detectedUnit?.type === "expression" ? "固定表达" : isInflected ? `词形 / 省音 · ${override?.pos || "词条"}` : override?.pos || "开放词典词条",
+      zh: override?.zh || localEntry?.zh || "本地词库暂无中文释义，可查询 Wiktionary",
+      en: override?.en || localEntry?.zh || "Open Wiktionary lookup available",
+      fr: override?.fr || localEntry?.zh || "Définition disponible dans le Wiktionnaire",
+      forms: buildCourseWordForms(word, override?.lemma || lemma, "", lesson.language),
+      source: "OoFR 开放词库"
+    };
+  }
+
+  const normalized = normalizeWord(lookupSurface);
+  const dictionary = lesson.language === "en" ? {
+    practice: { lemma: "practice", ipa: "/ˈpræk.tɪs/", pos: "verb / noun", zh: "练习；实践", en: "to do something repeatedly to improve", forms: "practise (BrE) · practised · practising" },
+    phrase: { lemma: "phrase", ipa: "/freɪz/", pos: "noun", zh: "短语；说法", en: "a group of words used together", forms: "phrases" },
+    repeat: { lemma: "repeat", ipa: "/rɪˈpiːt/", pos: "verb", zh: "重复", en: "to say or do something again", forms: "repeats · repeated · repeating" },
+    slowly: { lemma: "slowly", ipa: "/ˈsloʊ.li/", pos: "adverb", zh: "缓慢地", en: "at a low speed", forms: "slow · slower · slowest" }
+  } : {
+    bonjour: { lemma: "bonjour", ipa: "/bɔ̃.ʒuʁ/", pos: "interjection", zh: "你好；早安", en: "hello; good morning", forms: "常用问候表达" },
+    pratiquer: { lemma: "pratiquer", ipa: "/pʁa.ti.ke/", pos: "verb", zh: "练习；实践", en: "to practise; to do regularly", forms: "je pratique · nous pratiquons · ils pratiquent" },
+    répéter: { lemma: "répéter", ipa: "/ʁe.pe.te/", pos: "verb", zh: "重复；复述", en: "to repeat", forms: "je répète · nous répétons · ils répètent" },
+    phrase: { lemma: "phrase", ipa: "/fʁaz/", pos: "noun", zh: "句子；短语", en: "sentence; phrase", forms: "une phrase · des phrases" }
+  };
+  const demo = dictionary[normalized];
+  if (demo) return { ...demo, fr: demo.en, source: "OoFR 内置示例" };
+  return {
+    lemma: lookupSurface,
+    ipa: "音标待补充",
+    pos: "词条",
+    zh: "本地词库暂无释义，正在查询开放词典",
+    en: "Looking up this entry in open Wiktionary",
+    fr: "Recherche de cette entrée dans le Wiktionnaire",
+    forms: buildCourseWordForms(word, lookupSurface, "", lesson.language),
+    source: "Wiktionary"
+  };
+}
+
+function canonicalCourseLookupSurface(surface, language = "fr") {
+  const value = String(surface || "").trim().replace(/[’]/g, "'");
+  if (language !== "fr") return value;
+  const elision = value.match(/^([dl])'([\p{L}\p{M}][\p{L}\p{M}'-]*)$/iu);
+  return elision ? elision[2] : value;
+}
+
+function buildCourseWordForms(surface, lemma, existingForms = "", language = "fr") {
+  const parts = [];
+  const normalizedSurface = normalizeLexicalUnit(surface);
+  const normalizedLemma = normalizeLexicalUnit(lemma);
+  if (lemma) parts.push(`原型：${lemma}`);
+  if (surface && normalizedSurface !== normalizedLemma && !normalizedSurface.includes(" ")) {
+    const note = language === "fr" ? explainFrenchSurfaceForm(surface, lemma) : "当前词形是原型的变形";
+    parts.push(`原文形式：${surface}${note ? `（${note}）` : ""}`);
+  }
+  if (existingForms) {
+    const extras = existingForms.split(" · ").filter((item) => item && !/^原型[:：]|^原文形式[:：]/.test(item) && !parts.some((part) => normalizeLexicalUnit(part) === normalizeLexicalUnit(item)));
+    parts.push(...extras);
+  }
+  return Array.from(new Set(parts)).join(" · ");
+}
+
+function explainFrenchSurfaceForm(surface, lemma) {
+  const normalized = normalizeLexicalUnit(surface);
+  if (/^d['’]/.test(normalized)) return `d’ 是介词 de 在元音前的省音；${surface} = de + ${lemma}`;
+  if (/^l['’]/.test(normalized)) return `l’ 是定冠词 le 或 la 在元音前的省音；后接 ${lemma}`;
+  if (/^j['’]espere$/.test(normalized)) return `J’ 是 Je 在元音前的省音；espère 是 ${lemma} 的第一人称单数变位`;
+  if (/^j['’]apprends$/.test(normalized)) return `J’ 是 Je 在元音前的省音；apprends 是 ${lemma} 的第一人称单数变位`;
+  if (/^m['’]appelle$/.test(normalized)) return `m’ 是 me 在元音前的省音；appelle 来自代词式动词 ${lemma}`;
+  if (/^j['’]/.test(normalized)) return `J’ 是 Je 在元音或哑音 h 前的省音；当前词形是 ${lemma} 的变位`;
+  if (/^m['’]/.test(normalized)) return `m’ 是 me 在元音或哑音 h 前的省音；当前词形来自 ${lemma}`;
+  return normalized !== normalizeLexicalUnit(lemma) ? `这是 ${lemma} 的变位或词形变化` : "";
+}
+
+function normalizeLexicalUnit(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("fr-FR")
+    .replace(/[’]/g, "'")
+    .replace(/\s+/g, " ")
+    .replace(/^[^\p{L}\p{M}]+|[^\p{L}\p{M}]+$/gu, "");
+}
+
+function courseLexicalUnitPattern(lesson) {
+  const units = [
+    ...Object.keys(KNOWN_LEXICAL_UNITS),
+    ...((lesson?.lexicalUnits || []).map((item) => item.text))
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .map((item) => item.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/['’]/g, "['’]"));
+  const wordSource = `[\\p{L}\\p{M}]+(?:['’\\-][\\p{L}\\p{M}]+)*`;
+  return new RegExp(units.length ? `(?:${units.join("|")})|${wordSource}` : wordSource, "giu");
+}
+
+function wordMeaningForSystem(info) {
+  const language = systemExplainLanguage();
+  if (language === "fr") return info.fr || info.en || info.zh || "Définition en attente";
+  if (language === "en") return info.en || info.fr || info.zh || "Meaning pending";
+  return conciseChineseDictionaryMeaning(info.zh || info.en || info.fr || "释义待补充");
+}
+
+function showCourseWordInfo(word, lesson, anchor = null) {
+  const info = getDemoWordInfo(word, lesson);
+  selectedCourseWord = { word, lesson, anchor, info };
+  renderCourseWordPopover(info);
+  const meaning = wordMeaningForSystem(info);
+  if (elements.courseExplanationTitle) elements.courseExplanationTitle.textContent = `${info.lemma} · ${info.ipa}`;
+  if (elements.courseExplanationBody) elements.courseExplanationBody.innerHTML = `<strong>${escapeHtml(meaning)}</strong><br><span>${escapeHtml(info.pos)} · ${escapeHtml(info.forms)}</span>`;
+  elements.courseWordPopover.hidden = false;
+  positionCourseWordPopover();
+  playSelectedCourseWord();
+  void loadExternalWordInfo(word, lesson);
+}
+
+function renderCourseWordPopover(info) {
+  if (!selectedCourseWord) return;
+  const lesson = selectedCourseWord.lesson;
+  const favorite = Boolean(findVocabulary(selectedCourseWord.word));
+  elements.coursePopoverWord.textContent = info.lemma || selectedCourseWord.word;
+  elements.coursePopoverMeta.textContent = `${info.pos || "词条"} · ${lesson.language === "en" ? "English" : "Français"}`;
+  elements.coursePopoverPronunciation.textContent = info.ipa || "音标待补充";
+  elements.coursePopoverMeaning.textContent = wordMeaningForSystem(info);
+  elements.coursePopoverForms.textContent = [info.forms || "词形信息待补充", info.source ? `来源：${info.source}` : ""].filter(Boolean).join(" · ");
+  setButtonContent(elements.courseWordFavoriteBtn, favorite ? "check" : "heart", favorite ? "已收藏" : "收藏");
+  elements.courseWordFavoriteBtn.title = favorite ? "已收藏" : "收藏词语";
+  elements.courseWordFavoriteBtn.setAttribute("aria-label", favorite ? "已收藏" : "收藏词语");
+  elements.courseWordFavoriteBtn.classList.toggle("is-active", favorite);
+}
+
+function positionCourseWordPopover() {
+  if (!selectedCourseWord || elements.courseWordPopover.hidden) return;
+  const anchor = selectedCourseWord.anchor;
+  const panel = elements.courseWordPopover;
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const margin = 12;
+  let left = rect.left + rect.width / 2 - panelRect.width / 2;
+  let top = rect.bottom + 12;
+  if (top + panelRect.height > window.innerHeight - margin) top = rect.top - panelRect.height - 12;
+  panel.style.left = `${clamp(left, margin, Math.max(margin, window.innerWidth - panelRect.width - margin))}px`;
+  panel.style.top = `${clamp(top, margin, Math.max(margin, window.innerHeight - panelRect.height - margin))}px`;
+}
+
+function closeCourseWordPopover() {
+  selectedCourseWord = null;
+  elements.courseWordPopover.hidden = true;
+}
+
+function toggleCourseWordFavorite(event) {
+  event?.stopPropagation();
+  if (!selectedCourseWord) return;
+  const existing = findVocabulary(selectedCourseWord.word);
+  if (!existing) {
+    addWordToVocabulary(selectedCourseWord.word);
+    setStatus(`已收藏：${selectedCourseWord.word}`);
+  } else {
+    state.vocabulary = state.vocabulary.filter((word) => word.id !== existing.id);
+    setStatus(`已取消收藏：${existing.word}`);
+  }
+  persist();
+  renderWordbooks();
+  renderVocab();
+  renderCourseWordPopover(selectedCourseWord.info);
+}
+
+function toggleCoursePhraseFavorite(turn, lesson) {
+  const existing = state.phraseItems.find((item) => item.sourceLessonId === lesson.id && item.text === turn.text);
+  if (existing) {
+    state.phraseItems = state.phraseItems.filter((item) => item.id !== existing.id);
+    persist();
+    renderWordbooks();
+    renderVocab();
+    renderCourseTranscript(lesson);
+    elements.coursePlaybackStatus.textContent = "已取消收藏这句话";
+    return;
+  }
+  state.phraseItems.push(normalizePhraseItem({
+    id: makeId("phrase"),
+    type: "phrase",
+    text: turn.text,
+    translation: turn.translation,
+    sourceLessonId: lesson.id,
+    sourceTitle: lesson.title,
+    language: lesson.language,
+    status: "new",
+    wordbookIds: []
+  }));
+  persist();
+  renderWordbooks();
+  renderVocab();
+  renderCourseTranscript(lesson);
+  elements.coursePlaybackStatus.textContent = "句子已收藏到词句本";
+}
+
+function openCourseWordDetail() {
+  if (!selectedCourseWord || !elements.courseWordDetailDialog) return;
+  const runId = ++courseWordDetailRunId;
+  const selection = selectedCourseWord;
+  renderCourseWordDetail(selection.info, selection);
+  elements.courseWordDetailStatus.textContent = "正在读取开放词典并整理简中释义…";
+  if (!elements.courseWordDetailDialog.open) elements.courseWordDetailDialog.showModal();
+  void (async () => {
+    const external = await loadExternalWordInfo(selection.word, selection.lesson);
+    if (runId !== courseWordDetailRunId || !elements.courseWordDetailDialog.open) return;
+    const info = external || selection.info;
+    selection.info = info;
+    renderCourseWordDetail(info, selection);
+    elements.courseWordDetailStatus.textContent = "开放词典整理完成，正在尝试本机开源 AI 补充特殊用法…";
+    const aiDetail = await loadCourseWordDetailWithLocalAi(selection, info);
+    if (runId !== courseWordDetailRunId || !elements.courseWordDetailDialog.open) return;
+    if (aiDetail) {
+      renderCourseWordDetail(info, selection);
+      appendCourseWordDetailSection(elements.courseWordDetailBody, "AI 详解", [aiDetail.grammar, aiDetail.usage, aiDetail.context].filter(Boolean).join("\n\n"));
+      if (selectedCourseWord === selection) renderCourseWordPopover(info);
+      elements.courseWordDetailStatus.textContent = `由本机开源 AI（${state.settings.localAiModel}）补充；内容可结合原句核对。`;
+    } else {
+      elements.courseWordDetailStatus.textContent = "当前使用开放词典与本地规则；未连接本机开源 AI 时也可正常查看。";
+    }
+  })();
+}
+
+function closeCourseWordDetail() {
+  courseWordDetailRunId += 1;
+  if (elements.courseWordDetailDialog?.open) elements.courseWordDetailDialog.close();
+}
+
+function renderCourseWordDetail(info, selection = selectedCourseWord) {
+  if (!selection || !elements.courseWordDetailBody) return;
+  const meaning = conciseChineseDictionaryMeaning(info.zh || wordMeaningForSystem(info));
+  const sentence = selectedCourseWordSentence(selection);
+  elements.courseWordDetailTitle.textContent = info.lemma || selection.word;
+  elements.courseWordDetailMeta.textContent = `${info.pos || "词条"} · 原文形式：${selection.word}`;
+  elements.courseWordDetailBody.replaceChildren();
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "简中释义", meaning);
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "词形与省音", info.forms || buildCourseWordForms(selection.word, info.lemma, "", selection.lesson.language));
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "特殊用法与语法", courseWordGrammarExplanation(selection.word, info));
+  if (sentence) appendCourseWordDetailSection(elements.courseWordDetailBody, "当前句中的作用", sentence);
+  const dictionaryNotes = cleanDictionaryDetailNotes(info.dictionaryDetails);
+  if (dictionaryNotes && (systemExplainLanguage() !== "zh" || /[\u3400-\u9fff]/u.test(dictionaryNotes))) {
+    appendCourseWordDetailSection(elements.courseWordDetailBody, "开放词典补充", dictionaryNotes);
+  }
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "来源", info.source || "OoFR 开放词库");
+}
+
+function appendCourseWordDetailSection(container, title, content) {
+  if (!content) return;
+  const section = el("section", "course-word-detail-section");
+  section.append(el("h4", "", title), el("p", "", content));
+  container.append(section);
+}
+
+function selectedCourseWordSentence(selection) {
+  const turnId = selection.anchor?.closest?.(".course-turn-row")?.dataset?.turnId;
+  const turn = selection.lesson.turns.find((item) => item.id === turnId)
+    || selection.lesson.turns.find((item) => normalizeLexicalUnit(item.text).includes(normalizeLexicalUnit(selection.word)));
+  return turn ? `${turn.text}${turn.translation ? `\n${turn.translation}` : ""}` : "";
+}
+
+function courseWordGrammarExplanation(surface, info) {
+  const normalized = normalizeLexicalUnit(surface);
+  const lemma = String(info.lemma || surface);
+  if (/^d['’]/.test(normalized)) return `d’ 是介词 de 在元音前的省音。${surface} 可还原为 de + ${lemma}；这里的 ${lemma} 是动词原形。`;
+  if (/^l['’]/.test(normalized)) return `l’ 是定冠词 le 或 la 在元音前的省音，具体阴阳性要由名词 ${lemma} 判断。`;
+  if (/^j['’]/.test(normalized)) return `J’ 是主语代词 Je 在元音或哑音 h 前的省音；后面的词形是 ${lemma} 的变位。`;
+  if (/^m['’]/.test(normalized)) return `m’ 是代词 me 在元音或哑音 h 前的省音；当前表达来自 ${lemma}。`;
+  if (normalizeWord(lemma) === "organiser") return "organiser 是规则 -er 动词，常表示“组织、安排、筹办”。常见结构：organiser une visite（安排参观）、organiser une réunion（组织会议）；s’organiser 表示“安排好自己、做好规划”。";
+  if (normalizeWord(lemma) === "esperer") return "espérer 可接名词或动词不定式；espérer que 后通常接陈述式。词干在部分现在时变位中会出现 é → è 的变化，例如 j’espère。";
+  return info.pos === "固定表达" ? "这是一个需要整体理解和记忆的固定表达，不建议逐词直译。" : `当前词条以 ${lemma} 为原型；详细词形关系见上方说明。`;
+}
+
+function cleanDictionaryDetailNotes(value) {
+  return toSimplifiedDictionaryChinese(value)
+    .replace(/\/[^/\n]{1,100}\//g, " ")
+    .replace(/(?:国际音标|音标|发音|读音)(?:\([^)]*\))?\s*[:：]?\s*/gi, "")
+    .split(/\s*·\s*|\n+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !/同音词|近音词/.test(part))
+    .slice(0, 4)
+    .join(" · ");
+}
+
+async function loadCourseWordDetailWithLocalAi(selection, info) {
+  const endpoint = String(state.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
+  const model = String(state.settings.localAiModel || "gemma3:4b");
+  const sentence = selectedCourseWordSentence(selection);
+  const schema = {
+    type: "object",
+    properties: {
+      zhMeaning: { type: "string" },
+      grammar: { type: "string" },
+      usage: { type: "string" },
+      context: { type: "string" }
+    },
+    required: ["zhMeaning", "grammar", "usage", "context"]
+  };
+  const prompt = `Explain this ${selection.lesson.language === "en" ? "English" : "French"} word or expression for a Chinese learner. Use Simplified Chinese. The short meaning must be concise. Explain elision, contraction, conjugation, fixed usage, grammar and its role in the supplied sentence when relevant. Do not output IPA or repeat pronunciation because the UI displays it separately. Do not invent meanings. Return only JSON.\n\nSURFACE: ${selection.word}\nLEMMA: ${info.lemma}\nPART OF SPEECH: ${info.pos}\nKNOWN MEANING: ${conciseChineseDictionaryMeaning(info.zh)}\nSENTENCE: ${sentence}`;
+  try {
+    const response = await fetch(`${endpoint}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, stream: false, format: schema, messages: [{ role: "user", content: prompt }], options: { temperature: 0 } }),
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) throw new Error(`Ollama ${response.status}`);
+    const payload = await response.json();
+    const detail = JSON.parse(payload?.message?.content || "{}");
+    if (detail.zhMeaning) info.zh = conciseChineseDictionaryMeaning(detail.zhMeaning);
+    return detail;
+  } catch {
+    return null;
+  }
+}
+
+function playSelectedCourseWord() {
+  if (!selectedCourseWord) return;
+  const { word, lesson, info } = selectedCourseWord;
+  if (info.audio) {
+    const audio = new Audio(info.audio);
+    audio.play().catch(() => speakCourseWord(word, lesson));
+    return;
+  }
+  speakCourseWord(word, lesson);
+}
+
+function speakCourseWord(word, lesson) {
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = lesson.language === "en" ? "en-US" : "fr-FR";
+  utterance.rate = Number(elements.courseRateSelect.value || 0.9);
+  const voice = selectedVoiceForLanguage(utterance.lang);
+  if (voice) utterance.voice = voice;
+  window.speechSynthesis.speak(utterance);
+}
+
+async function loadExternalWordInfo(word, lesson) {
+  const key = `${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}`;
+  if (dictionaryCache.has(key)) {
+    const info = { ...getDemoWordInfo(word, lesson), ...dictionaryCache.get(key) };
+    if (selectedCourseWord?.word === word) {
+      selectedCourseWord.info = info;
+      renderCourseWordPopover(info);
+    }
+    return info;
+  }
+  try {
+    const base = getDemoWordInfo(word, lesson);
+    const title = base.lemma || word;
+    const preferredWiki = systemExplainLanguage();
+    const wikiOrder = Array.from(new Set([preferredWiki, lesson.language, "en", "fr"]));
+    let lookup = null;
+    for (const wikiLanguage of wikiOrder) {
+      lookup = await fetchWiktionaryExtract(title, wikiLanguage);
+      if (lookup?.extract) break;
+    }
+    if (!lookup?.extract) throw new Error("Wiktionary entry unavailable");
+    const info = { ...base, source: `${lookup.wikiName} · 开放词典` };
+    const formattedExtract = formatWiktionaryDefinition(lookup.extract, base);
+    info.dictionaryDetails = formattedExtract;
+    if (lookup.language === "zh") {
+      info.zh = mergeDictionaryDefinition(extractChineseDictionaryMeaning(formattedExtract), base.zh);
+    } else {
+      info[lookup.language] = formattedExtract;
+    }
+    dictionaryCache.set(key, info);
+    if (selectedCourseWord?.word === word) {
+      selectedCourseWord.info = info;
+      renderCourseWordPopover(selectedCourseWord.info);
+    }
+    return info;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchWiktionaryExtract(title, language) {
+  const wikiLanguage = ["zh", "en", "fr"].includes(language) ? language : "en";
+  const params = new URLSearchParams({
+    action: "query",
+    format: "json",
+    origin: "*",
+    redirects: "1",
+    prop: "extracts",
+    explaintext: "1",
+    exchars: "650",
+    titles: title
+  });
+  if (wikiLanguage === "zh") params.set("variant", "zh-cn");
+  const response = await fetch(`https://${wikiLanguage}.wiktionary.org/w/api.php?${params}`, { signal: AbortSignal.timeout(7000) });
+  if (!response.ok) throw new Error(`Wiktionary ${response.status}`);
+  const payload = await response.json();
+  const page = Object.values(payload?.query?.pages || {}).find((item) => !item.missing);
+  const extract = cleanWiktionaryExtract(page?.extract);
+  if (!extract) return null;
+  return { extract, language: wikiLanguage, wikiName: wikiLanguage === "fr" ? "Wiktionnaire" : wikiLanguage === "zh" ? "维基词典" : "Wiktionary" };
+}
+
+function cleanWiktionaryExtract(value) {
+  const lines = String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !/^=+.+?=+$/.test(line))
+    .filter((line) => !/^(étymologie|prononciation|traductions?|synonymes?|antonymes?|dérivés?|references?|références?)\s*:?$/i.test(line));
+  const concise = lines.slice(0, 4).join(" · ").replace(/\s+/g, " ").trim();
+  return concise.length > 320 ? `${concise.slice(0, 320).replace(/\s+\S*$/, "")}…` : concise;
+}
+
+function formatWiktionaryDefinition(value, info) {
+  const lemma = normalizeLexicalUnit(info?.lemma);
+  const ipa = String(info?.ipa || "").replace(/^\/|\/$/g, "");
+  const segments = toSimplifiedDictionaryChinese(value)
+    .split(/\s*·\s*|\n+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .filter((segment) => !/^(国际音标|发音|读音)(?:\([^)]*\))?\s*[:：]?/i.test(segment))
+    .filter((segment) => !ipa || !segment.includes(ipa))
+    .filter((segment) => normalizeLexicalUnit(segment) !== lemma);
+  return segments.join(" · ").replace(/\s+/g, " ").trim();
+}
+
+function extractChineseDictionaryMeaning(value) {
+  const segments = toSimplifiedDictionaryChinese(value)
+    .replace(/\/[^/\n]{1,100}\//g, " ")
+    .split(/\s*·\s*|\n+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .filter((segment) => !/源自|继承自|词源|国际音标|发音|读音|同音词|近音词|参考|参见/.test(segment))
+    .filter((segment) => /[\u3400-\u9fff]/u.test(segment));
+  return conciseChineseDictionaryMeaning(segments.slice(0, 2).join("；"));
+}
+
+function conciseChineseDictionaryMeaning(value) {
+  const simplified = toSimplifiedDictionaryChinese(value)
+    .replace(/\/[^/\n]{1,100}\//g, " ")
+    .replace(/(?:国际音标|音标|发音|读音)(?:\([^)]*\))?\s*[:：]?\s*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const useful = simplified
+    .split(/\s*·\s*|\n+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !/源自|继承自|词源|同音词|近音词/.test(part))
+    .join("；");
+  return useful.length > 110 ? `${useful.slice(0, 110).replace(/\s+\S*$/, "")}…` : useful || "释义待补充";
+}
+
+function mergeDictionaryDefinition(external, local) {
+  const cleanExternal = String(external || "").trim();
+  const cleanLocal = String(local || "").trim();
+  const localIsPlaceholder = !cleanLocal || /暂无|查询|待补充/.test(cleanLocal);
+  if (!cleanExternal) return conciseChineseDictionaryMeaning(cleanLocal);
+  if (localIsPlaceholder) return conciseChineseDictionaryMeaning(cleanExternal);
+  return conciseChineseDictionaryMeaning(cleanLocal);
+}
+
+function toSimplifiedDictionaryChinese(value) {
+  const phrases = [
+    ["源自古法語", "源自古法语"], ["繼承自拉丁語", "继承自拉丁语"],
+    ["國際音標", "国际音标"], ["不及物，及物", "不及物、及物"],
+    ["傳統拼寫", "传统拼写"], ["詞源", "词源"], ["動詞", "动词"],
+    ["名詞", "名词"], ["形容詞", "形容词"], ["副詞", "副词"]
+  ];
+  const characters = {
+    "語": "语", "繼": "继", "國": "国", "際": "际", "標": "标", "幫": "帮", "詞": "词", "義": "义",
+    "學": "学", "為": "为", "與": "与", "動": "动", "態": "态", "體": "体", "時": "时", "發": "发",
+    "後": "后", "這": "这", "個": "个", "們": "们", "會": "会", "來": "来", "說": "说", "寫": "写",
+    "讀": "读", "聲": "声", "簡": "简", "複": "复", "數": "数", "單": "单", "處": "处", "實": "实",
+    "應": "应", "見": "见", "稱": "称", "類": "类", "變": "变", "終": "终", "開": "开", "關": "关",
+    "連": "连", "線": "线", "釋": "释", "羅": "罗", "歐": "欧", "舊": "旧", "書": "书", "號": "号"
+  };
+  let result = String(value || "");
+  phrases.forEach(([traditional, simplified]) => { result = result.replaceAll(traditional, simplified); });
+  return Array.from(result, (character) => characters[character] || character).join("");
+}
+
+async function translateText(text, sourceLanguage, targetLanguage) {
+  if (!String(text || "").trim()) return "";
+  if (sourceLanguage === targetLanguage) return text;
+  const localTranslation = getLocalTranslation(text, sourceLanguage, targetLanguage);
+  if (localTranslation) return localTranslation;
+  const key = `${sourceLanguage}:${targetLanguage}:${text}`;
+  if (translationCache.has(key)) return translationCache.get(key);
+  try {
+    const source = sourceLanguage === "en" ? "en" : "fr";
+    const target = targetLanguage === "en" ? "en" : targetLanguage === "fr" ? "fr" : "zh-CN";
+    const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`);
+    if (!response.ok) throw new Error(`translation ${response.status}`);
+    const payload = await response.json();
+    const result = String(payload?.responseData?.translatedText || "").trim();
+    const matchingRecord = (payload?.matches || []).find((item) => String(item?.translation || "").trim() === result);
+    if (!result || Number(matchingRecord?.quality ?? 1) <= 0 || isSuspiciousTranslation(text, result)) throw new Error("low-confidence translation");
+    translationCache.set(key, result);
+    return result;
+  } catch {
+    return "";
+  }
+}
+
+function translationPhraseKey(text) {
+  return String(text || "")
+    .toLocaleLowerCase("fr-FR")
+    .replace(/[’]/g, "'")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.!?。！？]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getLocalTranslation(text, sourceLanguage, targetLanguage) {
+  const target = targetLanguage === "zh-CN" ? "zh" : targetLanguage;
+  return LOCAL_TRANSLATIONS[`${sourceLanguage}:${target}:${translationPhraseKey(text)}`] || "";
+}
+
+function applyKnownLocalTranslations(lesson) {
+  let changed = false;
+  lesson.turns.forEach((turn) => {
+    const translation = getLocalTranslation(turn.text, lesson.language, lesson.explainLanguage);
+    if (translation && turn.translation !== translation) {
+      turn.translation = translation;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+function isSuspiciousTranslation(source, translation) {
+  const original = String(source || "").trim();
+  const result = String(translation || "").trim();
+  if (!result) return true;
+  if (!/[()（）]/.test(original) && /^[（(].+[，,].+[）)]$/.test(result)) return true;
+  if (/[#]{1,}|老师不关心|李立思/.test(result)) return true;
+  return false;
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+}
+
+function renderCourseProgress(lesson) {
+  const total = lesson.turns.length || 1;
+  courseProgressRatio = clamp(courseProgressRatio || courseCurrentTurnIndex / total, 0, 1);
+  if (!playback.status || playback.status === "idle") courseProgressRatio = clamp(courseCurrentTurnIndex / total, 0, 1);
+  if (elements.courseProgressFill) elements.courseProgressFill.style.width = `${Math.round(courseProgressRatio * 100)}%`;
+  elements.coursePlaybackStatus.textContent = `第 ${courseCurrentTurnIndex + 1} / ${lesson.turns.length} 句 · ${lesson.turns.filter((turn) => turn.recording.status === "recorded").length} 句已录音`;
+  elements.courseTimeline.max = "1000";
+  elements.courseTimeline.value = String(Math.round(courseProgressRatio * 1000));
+  const estimatedTotalSeconds = estimateCourseDurationSeconds(lesson.turns);
+  elements.courseElapsed.textContent = formatSeconds(courseProgressRatio * estimatedTotalSeconds);
+  elements.courseDuration.textContent = formatSeconds(estimatedTotalSeconds);
+  renderCoursePlaybackButtons(lesson);
+  const availableRates = Array.from(elements.courseRateSelect.options).map((option) => option.value);
+  const preferredRate = String(state.settings.rate || "0.9");
+  elements.courseRateSelect.value = availableRates.includes(preferredRate) ? preferredRate : "0.9";
+}
+
+function renderCoursePlaybackButtons(lesson = getActiveCourseLesson()) {
+  if (!lesson) return;
+  const isPlaying = playback.status === "playing";
+  const isPaused = playback.status === "paused";
+  setButtonContent(elements.courseBottomPlayBtn, isPlaying ? "pause" : "play", isPlaying ? "暂停" : isPaused ? "继续" : "播放");
+  elements.courseBottomPlayBtn.title = isPlaying ? "暂停" : isPaused ? "继续" : "播放";
+  elements.courseBottomPlayBtn.setAttribute("aria-label", elements.courseBottomPlayBtn.title);
+  syncCourseCustomMenu();
+  renderCourseTurnPlayButtons();
+}
+
+function formatCourseTimeline(index, total) {
+  const seconds = Math.max(0, Math.round(Number(index || 0) * 8));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function formatSeconds(seconds) {
+  const rounded = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${String(Math.floor(rounded / 60)).padStart(2, "0")}:${String(rounded % 60).padStart(2, "0")}`;
+}
+
+function estimateCourseTurnDurationMs(text, rate = Number(state?.settings?.rate || 0.9)) {
+  return Math.max(2400, (String(text || "").length * 95) / Math.max(0.5, rate) + 1600);
+}
+
+function estimateCourseDurationSeconds(turns) {
+  return turns.reduce((sum, turn) => sum + estimateCourseTurnDurationMs(turn.text) / 1000, 0);
+}
+
+function updateCourseProgressRatio(ratio, lesson) {
+  courseProgressRatio = clamp(ratio, 0, 1);
+  if (!lesson) return;
+  const estimatedTotalSeconds = estimateCourseDurationSeconds(lesson.turns);
+  elements.courseTimeline.value = String(Math.round(courseProgressRatio * 1000));
+  elements.courseElapsed.textContent = formatSeconds(courseProgressRatio * estimatedTotalSeconds);
+  if (elements.courseProgressFill) elements.courseProgressFill.style.width = `${Math.round(courseProgressRatio * 100)}%`;
+}
+
+function startCourseProgressTicker(turnIndex, text, lesson, initialElapsedMs = 0) {
+  stopCourseProgressTicker();
+  if (!lesson?.turns?.length) return;
+  const itemDuration = estimateCourseTurnDurationMs(text);
+  courseProgressTickerState = {
+    turnIndex,
+    text,
+    lessonId: lesson.id,
+    itemDuration,
+    elapsedMs: Math.max(0, initialElapsedMs),
+    startedAt: Date.now()
+  };
+  courseProgressTimer = window.setInterval(() => {
+    if (!courseProgressTickerState) return;
+    const elapsed = courseProgressTickerState.elapsedMs + Date.now() - courseProgressTickerState.startedAt;
+    const withinTurn = clamp(elapsed / itemDuration, 0, 0.99);
+    updateCourseProgressRatio((turnIndex + withinTurn) / lesson.turns.length, lesson);
+  }, 80);
+}
+
+function stopCourseProgressTicker() {
+  if (courseProgressTimer) window.clearInterval(courseProgressTimer);
+  courseProgressTimer = 0;
+  courseProgressTickerState = null;
+}
+
+function pauseCourseProgressTicker() {
+  if (!courseProgressTickerState) return;
+  courseProgressTickerState.elapsedMs += Date.now() - courseProgressTickerState.startedAt;
+  if (courseProgressTimer) window.clearInterval(courseProgressTimer);
+  courseProgressTimer = 0;
+}
+
+function resumeCourseProgressTicker() {
+  const stateSnapshot = courseProgressTickerState;
+  const lesson = getActiveCourseLesson();
+  if (!stateSnapshot || !lesson) return;
+  startCourseProgressTicker(stateSnapshot.turnIndex, stateSnapshot.text, lesson, stateSnapshot.elapsedMs);
+}
+
+function moveCourseTurn(delta) {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  courseCurrentTurnIndex = Math.min(Math.max(0, courseCurrentTurnIndex + delta), lesson.turns.length - 1);
+  courseProgressRatio = courseCurrentTurnIndex / Math.max(1, lesson.turns.length);
+  renderCoursePlayer();
+  document.querySelector(`[data-turn-id="${lesson.turns[courseCurrentTurnIndex]?.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function seekCourseBy(delta) {
+  const wasPlaying = playback.status === "playing";
+  const wasPaused = playback.status === "paused";
+  stopSpeech();
+  moveCourseTurn(delta);
+  const lesson = getActiveCourseLesson();
+  if (wasPlaying && lesson) {
+    courseProgressRatio = courseCurrentTurnIndex / Math.max(1, lesson.turns.length);
+    playCourseSelection({ startFromCurrent: true });
+  } else if (wasPaused && lesson) {
+    renderCoursePlayer();
+  }
+}
+
+function playCourseSelection(options = {}) {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  const turns = getCourseVisibleTurns(lesson);
+  const rows = Array.from(elements.courseTranscriptList.querySelectorAll(".course-turn-row"));
+  let items = turns.map((turn, index) => ({ text: turn.text, element: rows[index], label: `第 ${lesson.turns.indexOf(turn) + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: lesson.turns.indexOf(turn) }));
+  if (options.startFromCurrent) {
+    const startIndex = items.findIndex((item) => item.turnIndex >= courseCurrentTurnIndex);
+    if (startIndex >= 0) items = items.slice(startIndex);
+  }
+  if (!items.length) return;
+  elements.coursePlaybackStatus.textContent = `正在播放${courseModeLabel(courseMode)}…`;
+  togglePlayback(items, {
+    key: `course:${lesson.id}:${courseMode}:${elements.courseSpeakerSelect.value}:${courseSegmentStart}-${courseSegmentEnd}`,
+    label: lesson.title,
+    loop: courseMode === "single" || courseMode === "loop"
+  });
+}
+
+function playFullCourse() {
+  courseMode = "all";
+  syncCourseCustomMenu();
+  renderCoursePlayer();
+  playCourseSelection();
+}
+
+function playCourseTurn(lesson, index) {
+  courseCurrentTurnIndex = index;
+  courseProgressRatio = index / Math.max(1, lesson.turns.length);
+  renderCoursePlayer();
+  const row = elements.courseTranscriptList.querySelector(`[data-turn-id="${lesson.turns[index].id}"]`);
+  elements.coursePlaybackStatus.textContent = `正在播放第 ${index + 1} 句…`;
+  togglePlayback([{ text: lesson.turns[index].text, element: row, label: `第 ${index + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: index }], { key: `course:${lesson.id}:turn:${index}`, label: `第 ${index + 1} 句` });
+}
+
+function playCourseRecording(turn) {
+  if (!turn.recording?.mediaKey) {
+    setStatus("这句只有演示状态，还没有真实音频文件");
+    return;
+  }
+  void readRecordingBlob(turn.recording.mediaKey).then((blob) => {
+    if (!blob) {
+      setStatus("找不到本地录音文件，可能是清理浏览器数据后丢失");
+      return;
+    }
+    if (courseRecordingAudio) courseRecordingAudio.pause();
+    const url = URL.createObjectURL(blob);
+    courseRecordingUrls.set(turn.recording.mediaKey, url);
+    courseRecordingAudio = new Audio(url);
+    courseRecordingAudio.onended = () => {
+      elements.coursePlaybackStatus.textContent = `我的录音播放完成 · ${formatCourseDuration(turn.recording.durationMs)}`;
+    };
+    elements.coursePlaybackStatus.textContent = `正在播放我的录音：${turn.speakerLabel}`;
+    courseRecordingAudio.play().catch(() => setStatus("浏览器阻止了音频自动播放，请再次点击播放"));
+  });
+}
+
+async function startCourseRecording(lesson, turnId) {
+  const turn = lesson.turns.find((item) => item.id === turnId);
+  if (!turn) return;
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    setStatus("当前浏览器不支持录音，请使用新版 Chrome、Edge 或 Safari");
+    return;
+  }
+  if (courseRecordingSession) {
+    setStatus("请先停止当前录音");
+    return;
+  }
+  try {
+    elements.coursePlaybackStatus.textContent = "正在请求麦克风权限…";
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    const options = pickRecorderOptions();
+    const recorder = new MediaRecorder(stream, options);
+    const chunks = [];
+    const startedAt = Date.now();
+    courseRecordingSession = { lesson, turn, turnId, stream, recorder, chunks, startedAt };
+    turn.recording.status = "recording";
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    });
+    recorder.addEventListener("stop", async () => {
+      const session = courseRecordingSession;
+      courseRecordingSession = null;
+      session.stream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(session.chunks, { type: recorder.mimeType || "audio/webm" });
+      const mediaKey = `recording:${lesson.id}:${turnId}:${Date.now()}`;
+      await saveRecordingBlob(mediaKey, blob);
+      session.turn.recording = {
+        status: "recorded",
+        durationMs: Math.max(100, Date.now() - session.startedAt),
+        mediaKey,
+        mimeType: blob.type,
+        size: blob.size
+      };
+      persist();
+      elements.coursePlaybackStatus.textContent = `已保存第 ${lesson.turns.indexOf(session.turn) + 1} 句真实录音`;
+      renderCoursePlayer();
+    });
+    recorder.start(250);
+    elements.coursePlaybackStatus.textContent = `本机麦克风录音中：${turn.speakerLabel} · 点击停止完成`;
+    renderCourseTranscript(lesson);
+  } catch (error) {
+    courseRecordingSession = null;
+    setStatus(error?.name === "NotAllowedError" ? "麦克风权限被拒绝，录音功能未启动" : "无法启动麦克风录音");
+    renderCoursePlayer();
+  }
+}
+
+function stopCourseRecording(lesson, turnId) {
+  if (!courseRecordingSession || courseRecordingSession.turnId !== turnId) return;
+  if (courseRecordingSession.recorder.state !== "inactive") {
+    courseRecordingSession.recorder.stop();
+  }
+  elements.coursePlaybackStatus.textContent = "正在保存录音…";
+}
+
+async function deleteCourseRecording(lesson, turnId) {
+  const turn = lesson.turns.find((item) => item.id === turnId);
+  if (!turn) return;
+  if (courseRecordingSession?.turnId === turnId) stopCourseRecording(lesson, turnId);
+  if (turn.recording.mediaKey) await deleteRecordingBlob(turn.recording.mediaKey);
+  turn.recording = { status: "none", durationMs: 0, mediaKey: "", mimeType: "", size: 0 };
+  persist();
+  elements.coursePlaybackStatus.textContent = "已删除这句录音，播放时会回退到 TTS";
+  renderCoursePlayer();
+}
+
+function pickRecorderOptions() {
+  const candidates = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"];
+  const mimeType = candidates.find((candidate) => MediaRecorder.isTypeSupported?.(candidate));
+  return mimeType ? { mimeType } : {};
+}
+
+function openAudioDb() {
+  if (audioDbPromise) return audioDbPromise;
+  if (!window.indexedDB) return Promise.reject(new Error("IndexedDB unavailable"));
+  audioDbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open("oofr-audio", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("recordings");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  return audioDbPromise;
+}
+
+async function saveRecordingBlob(key, blob) {
+  const db = await openAudioDb();
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction("recordings", "readwrite");
+    transaction.objectStore("recordings").put(blob, key);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+async function readRecordingBlob(key) {
+  try {
+    const db = await openAudioDb();
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction("recordings", "readonly").objectStore("recordings").get(key);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function deleteRecordingBlob(key) {
+  if (!key) return;
+  try {
+    const db = await openAudioDb();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction("recordings", "readwrite");
+      transaction.objectStore("recordings").delete(key);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch {}
+}
+
+async function exportCourseRecordings() {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  const recordedTurns = [];
+  for (const turn of lesson.turns) {
+    if (turn.recording?.status !== "recorded" || !turn.recording.mediaKey) continue;
+    const blob = await readRecordingBlob(turn.recording.mediaKey);
+    if (blob) recordedTurns.push({ turn, blob });
+  }
+  if (!recordedTurns.length) {
+    setStatus("还没有真实录音可以导出");
+    return;
+  }
+  try {
+    setStatus("正在合并我的逐句录音…");
+    const wav = await mergeRecordingBlobs(recordedTurns.map((item) => item.blob));
+    const filename = `oofr-${slugifyFilePart(lesson.title)}-我的录音.wav`;
+    await shareOrDownloadAudio(wav, filename);
+    setStatus("完整录音已准备好");
+  } catch {
+    setStatus("浏览器无法合并这些录音，可逐句播放或分别导出");
+  }
+}
+
+async function mergeRecordingBlobs(blobs) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) throw new Error("AudioContext unavailable");
+  const context = new AudioContextClass();
+  const buffers = [];
+  try {
+    for (const blob of blobs) {
+      buffers.push(await context.decodeAudioData(await blob.arrayBuffer()));
+    }
+  } finally {
+    await context.close().catch(() => {});
+  }
+  const sampleRate = buffers[0].sampleRate;
+  const channels = Math.max(...buffers.map((buffer) => buffer.numberOfChannels));
+  const gapFrames = Math.round(sampleRate * 0.32);
+  const totalFrames = buffers.reduce((sum, buffer) => sum + buffer.length, 0) + gapFrames * Math.max(0, buffers.length - 1);
+  const offline = new OfflineAudioContext(channels, totalFrames, sampleRate);
+  let offset = 0;
+  buffers.forEach((buffer, index) => {
+    const source = offline.createBufferSource();
+    source.buffer = buffer;
+    source.connect(offline.destination);
+    source.start(offset / sampleRate);
+    offset += buffer.length + (index < buffers.length - 1 ? gapFrames : 0);
+  });
+  const rendered = await offline.startRendering();
+  return audioBufferToWav(rendered);
+}
+
+function audioBufferToWav(buffer) {
+  const channels = buffer.numberOfChannels;
+  const frameCount = buffer.length;
+  const bytesPerSample = 2;
+  const dataSize = frameCount * channels * bytesPerSample;
+  const output = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(output);
+  writeAscii(view, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(view, 8, "WAVE");
+  writeAscii(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * channels * bytesPerSample, true);
+  view.setUint16(32, channels * bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, "data");
+  view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const sourceChannel = Math.min(channel, buffer.numberOfChannels - 1);
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(sourceChannel)[frame]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+  return new Blob([output], { type: "audio/wav" });
+}
+
+function writeAscii(view, offset, text) {
+  Array.from(text).forEach((char, index) => view.setUint8(offset + index, char.charCodeAt(0)));
+}
+
+async function shareOrDownloadAudio(blob, filename) {
+  const file = new File([blob], filename, { type: blob.type });
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ title: "OoFR 我的录音", files: [file] });
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatCourseDuration(milliseconds) {
+  return `${(Number(milliseconds || 0) / 1000).toFixed(1)}s`;
+}
+
+function openCoursePractice() {
+  coursePracticeIndex = 0;
+  coursePracticeRevealed = false;
+  setCourseStage("practice");
+}
+
+function renderCoursePractice() {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  const words = Array.from(new Set(lesson.turns.flatMap((turn) => courseTokenize(turn.text))));
+  const word = words[coursePracticeIndex % Math.max(1, words.length)] || "bonjour";
+  const info = getDemoWordInfo(word, lesson);
+  elements.coursePracticeMeta.textContent = `${coursePracticeIndex + 1} / ${Math.max(1, words.length)} · 已完成 ${lesson.practice.completed} 次`;
+  elements.coursePracticePrompt.textContent = word;
+  elements.coursePracticeAnswer.textContent = lesson.explainLanguage === "en" ? `${info.en} · ${info.ipa}` : `${info.zh} · ${info.ipa}`;
+  elements.coursePracticeAnswer.hidden = !coursePracticeRevealed;
+  elements.courseRevealBtn.hidden = coursePracticeRevealed;
+  elements.courseAgainBtn.hidden = !coursePracticeRevealed;
+  elements.courseKnownBtn.hidden = !coursePracticeRevealed;
+}
+
+function revealCoursePracticeAnswer() {
+  coursePracticeRevealed = true;
+  renderCoursePractice();
+}
+
+function advanceCoursePractice(correct) {
+  const lesson = getActiveCourseLesson();
+  if (!lesson) return;
+  lesson.practice.completed += 1;
+  if (correct) lesson.practice.correct += 1;
+  coursePracticeIndex += 1;
+  coursePracticeRevealed = false;
+  persist();
+  renderCoursePractice();
+}
+
 function renderAll() {
   ensureSelections();
   renderView();
+  renderCourse();
+  setCourseStage("player");
   syncInput();
   renderActiveEntryLine();
   updateLabels();
@@ -427,8 +2778,95 @@ function renderView() {
 
 function renderMy() {
   if (!elements.myStats) return;
-  elements.myStats.textContent = `${state.albums.length} 专辑 · ${state.tapes.length} 磁带 · ${state.entries.length} 段落 · ${state.vocabulary.length} 词`;
+  elements.myStats.textContent = `${state.albums.length} 磁带 · ${state.entries.length} 素材 · ${state.vocabulary.length + (state.phraseItems || []).length} 词句`;
   renderWordbookExportScopeOptions();
+  renderStudySummary();
+  renderCloudSync();
+}
+
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function previousDateKey(dateKey) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  date.setDate(date.getDate() - 1);
+  return localDateKey(date);
+}
+
+function touchStudyDay() {
+  const study = state.study;
+  const today = localDateKey();
+  if (study.lastStudyDate === today) return false;
+  study.streak = study.lastStudyDate === previousDateKey(today) ? study.streak + 1 : 1;
+  study.lastStudyDate = today;
+  study.checkins += 1;
+  return true;
+}
+
+function recordStudyEvent({ cards = 0, known = false } = {}) {
+  const study = state.study;
+  touchStudyDay();
+  study.cardsReviewed += Math.max(0, Number(cards || 0));
+  if (known) study.cardsKnown += 1;
+  if (study.cardsReviewed >= study.dailyGoal && !study.achievements.includes("first-goal")) study.achievements.push("first-goal");
+  if (study.streak >= 3 && !study.achievements.includes("three-day-streak")) study.achievements.push("three-day-streak");
+  persist();
+  renderMy();
+}
+
+function renderStudySummary() {
+  if (!elements.studyStatsCards || !state.study) return;
+  const study = state.study;
+  elements.studyStatsCards.replaceChildren(
+    studyStatCard("连续学习", `${study.streak} 天`),
+    studyStatCard("复习词句", `${study.cardsReviewed} 条`),
+    studyStatCard("记住了", `${study.cardsKnown} 条`),
+    studyStatCard("今日目标", `${study.lastStudyDate === localDateKey() ? "已完成" : `完成 ${study.dailyGoal} 条`}`)
+  );
+  elements.studyAchievements.replaceChildren();
+  const achievements = [
+    ["first-goal", "完成第一次每日目标"],
+    ["three-day-streak", "连续学习 3 天"]
+  ];
+  achievements.forEach(([id, label]) => elements.studyAchievements.append(el("span", `achievement-chip${study.achievements.includes(id) ? " is-earned" : ""}`, `${study.achievements.includes(id) ? "✓" : "○"} ${label}`)));
+  elements.studySummaryHint.textContent = study.lastStudyDate === localDateKey() ? "今天已经留下学习记录，继续保持即可。" : "完成一轮词句卡，或点击今日打卡，就会记录今天的学习。";
+  elements.studyCheckinBtn.textContent = study.lastStudyDate === localDateKey() ? "今日已打卡" : "今日打卡";
+  elements.studyCheckinBtn.disabled = study.lastStudyDate === localDateKey();
+}
+
+function studyStatCard(label, value) {
+  const card = el("div", "study-stat-card");
+  card.append(el("strong", "", value), el("span", "", label));
+  return card;
+}
+
+function markTodayCheckin() {
+  if (!touchStudyDay()) {
+    setStatus("今天已经打卡过了");
+    return;
+  }
+  persist();
+  renderMy();
+  setStatus("今日打卡完成");
+}
+
+async function shareStudyAchievement() {
+  const study = state.study;
+  const text = `OoFR 学习记录：连续 ${study.streak} 天，已复习 ${study.cardsReviewed} 条词句，掌握 ${study.cardsKnown} 条。`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "OoFR 学习记录", text });
+      return;
+    } catch {
+      // 用户取消分享时保持页面不变。
+    }
+  }
+  await navigator.clipboard?.writeText(text);
+  setStatus("学习成就已复制，可粘贴分享");
 }
 
 function renderWordbookExportScopeOptions() {
@@ -445,14 +2883,14 @@ function renderWordbookExportScopeOptions() {
 
 function wordbookExportScopeOptions() {
   return [
-    { value: ALL_WORDBOOK_ID, label: "全部单词本" },
-    { value: "current", label: "当前选中单词本" },
+    { value: ALL_WORDBOOK_ID, label: "全部词句本" },
+    { value: "current", label: "当前选中词句本" },
     { value: NEW_WORDBOOK_ID, label: "仅 new" },
     { value: GOT_WORDBOOK_ID, label: "仅 got" },
     { value: DIY_WORDBOOK_ID, label: "仅 DIY" },
     ...state.wordbooks.map((wordbook) => ({
       value: wordbookScopeValue(wordbook.id),
-      label: `单词本：${wordbook.title}`
+      label: `词句本：${wordbook.title}`
     }))
   ];
 }
@@ -670,63 +3108,64 @@ function closeWordPanelOnOutsideClick(event) {
 
 function renderLibrary() {
   ensureSelections();
+  if (!libraryAlbumScope) libraryAlbumScope = state.ui.selectedAlbumId || "all";
+  if (libraryAlbumScope !== "all" && !getAlbum(libraryAlbumScope)) {
+    libraryAlbumScope = state.ui.selectedAlbumId || "all";
+  }
   elements.albumShelf.replaceChildren();
 
-  if (state.albums.length === 0) {
-    elements.albumShelf.append(emptyState("还没有专辑"));
-  } else {
-    state.albums.forEach((album) => {
-      elements.albumShelf.append(createAlbumCard(album));
-    });
-  }
+  elements.albumShelf.append(createAllMaterialsCategoryCard());
+  state.albums.forEach((album) => elements.albumShelf.append(createAlbumCard(album)));
 
   renderLibraryDetail();
 }
 
-function createAlbumCard(album) {
-  const card = el("article", "album-card");
-  card.style.background = `linear-gradient(135deg, ${album.coverColor}, rgba(18, 21, 20, 0.86))`;
-  card.classList.toggle("is-selected", state.ui.selectedAlbumId === album.id);
-  card.tabIndex = 0;
-  card.setAttribute("role", "button");
-  card.setAttribute("aria-label", `选择专辑 ${album.title}`);
-  card.addEventListener("click", (event) => {
-    if (event.target.closest(".row-actions")) return;
-    selectAlbum(album.id);
-  });
-  card.addEventListener("keydown", (event) => {
-    if (event.target.closest(".row-actions")) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      selectAlbum(album.id);
-    }
-  });
-
-  const button = el("button", "album-button");
-  button.type = "button";
-  button.addEventListener("click", () => {
-    selectAlbum(album.id);
-  });
-
-  const title = el("h3", "", album.title);
-  const description = el("p", "", album.description || " ");
-  button.append(title, description);
-
-  const meta = el("div", "album-meta");
-  meta.append(el("span", "", `${getTapes(album.id).length} 磁带`));
-  meta.append(el("span", "", `${getEntriesByAlbum(album.id).length} 段落`));
-
-  const actions = el("div", "row-actions");
-  actions.append(
-    miniButton("编辑", () => openAlbumDialog(album.id)),
-    miniButton("删除", () => deleteAlbum(album.id))
+function createAllMaterialsCategoryCard() {
+  const card = el("article", "material-category-item");
+  card.classList.toggle("is-selected", libraryAlbumScope === "all");
+  const selectButton = el("button", "material-category-select");
+  selectButton.type = "button";
+  selectButton.setAttribute("aria-pressed", String(libraryAlbumScope === "all"));
+  selectButton.append(
+    el("span", "material-category-mark", "∞"),
+    el("span", "material-category-name", "全部素材"),
+    el("span", "material-category-count", String(state.entries.length))
   );
+  selectButton.addEventListener("click", () => {
+    libraryAlbumScope = "all";
+    renderLibrary();
+  });
+  card.append(selectButton);
+  return card;
+}
 
-  card.append(button, meta, actions);
+function createAlbumCard(album) {
+  const selected = libraryAlbumScope === album.id;
+  const card = el("article", "material-category-item");
+  card.classList.toggle("is-selected", selected);
+  card.style.setProperty("--category-color", album.coverColor);
+  const selectButton = el("button", "material-category-select");
+  selectButton.type = "button";
+  selectButton.setAttribute("aria-label", `查看磁带 ${album.title}`);
+  selectButton.setAttribute("aria-pressed", String(selected));
+  selectButton.append(
+    el("span", "material-category-dot"),
+    el("span", "material-category-name", album.title),
+    el("span", "material-category-count", String(getEntriesByAlbum(album.id).length))
+  );
+  selectButton.addEventListener("click", () => selectAlbum(album.id));
+  const actions = el("div", "material-category-actions");
+  const editButton = button("编辑", "material-category-action", () => openAlbumDialog(album.id), "edit");
+  editButton.setAttribute("aria-label", `编辑磁带 ${album.title}`);
+  const deleteButton = button("删除", "material-category-action danger", () => deleteAlbum(album.id), "trash");
+  deleteButton.setAttribute("aria-label", `删除磁带 ${album.title}`);
+  actions.append(editButton, deleteButton);
+  card.append(selectButton, actions);
   return card;
 }
 
 function selectAlbum(albumId) {
+  libraryAlbumScope = albumId;
   state.ui.selectedAlbumId = albumId;
   const firstTape = getTapes(albumId)[0];
   state.ui.selectedTapeId = firstTape?.id || null;
@@ -734,35 +3173,293 @@ function selectAlbum(albumId) {
   renderLibrary();
 }
 
-function renderLibraryDetail() {
-  elements.libraryDetail.replaceChildren();
-  const album = getAlbum(state.ui.selectedAlbumId);
-
-  if (!album) {
-    elements.libraryDetail.append(emptyState("选择或新建一个专辑"));
+function openCourseFromAlbum(album) {
+  const lesson = state.courseLessons?.find((item) => item.id === album.courseLessonId);
+  if (!lesson) {
+    setStatus("这个磁带还没有课程");
     return;
   }
+  state.ui.selectedAlbumId = album.id;
+  state.activeCourseId = lesson.id;
+  courseActiveLessonId = lesson.id;
+  courseCurrentTurnIndex = 0;
+  state.ui.activeView = "course";
+  persist();
+  renderView();
+  setCourseStage("player");
+  if (lesson.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
+    void generateCourseTranslations(lesson);
+  }
+}
 
+function renderLibraryDetail() {
+  elements.libraryDetail.replaceChildren();
+  elements.materialFilterButtons.forEach((filterButton) => {
+    const selected = filterButton.dataset.materialFilter === libraryMaterialFilter;
+    filterButton.classList.toggle("is-selected", selected);
+    filterButton.setAttribute("aria-pressed", String(selected));
+  });
+
+  const album = libraryAlbumScope === "all" ? null : getAlbum(libraryAlbumScope);
+  const sourceEntries = album ? getEntriesByAlbum(album.id) : [...state.entries];
+  const query = libraryMaterialSearch.toLocaleLowerCase("zh-CN");
+  const entries = sourceEntries
+    .filter((entry) => materialMatchesFilter(entry, libraryMaterialFilter))
+    .filter((entry) => !query || `${entry.title} ${entry.text} ${entry.notes}`.toLocaleLowerCase("zh-CN").includes(query))
+    .sort((a, b) => String(b.lastPracticedAt || b.updatedAt || "").localeCompare(String(a.lastPracticedAt || a.updatedAt || "")));
+
+  const resultsHeading = el("div", "material-results-heading");
+  const headingCopy = el("div");
+  headingCopy.append(
+    el("p", "eyebrow", album ? "Selected tape" : "All materials"),
+    el("h3", "", album?.title || "全部素材"),
+    el("p", "micro-copy", album?.description?.replaceAll("专辑", "磁带") || `${sourceEntries.length} 条素材，可按状态或标题筛选。`)
+  );
+  const resultCount = el("span", "stat-pill", `${entries.length} 条素材`);
+  resultsHeading.append(headingCopy, resultCount);
+
+  const grid = el("div", "material-card-grid");
+  if (!entries.length) {
+    grid.append(emptyState(query || libraryMaterialFilter !== "all" ? "没有符合当前筛选的素材" : "还没有素材，先新建一条学习内容"));
+  } else {
+    entries.forEach((entry) => grid.append(createMaterialCard(entry)));
+  }
+  elements.libraryDetail.append(resultsHeading, grid);
+}
+
+function materialMatchesFilter(entry, filter) {
+  const status = materialStudyStatus(entry).key;
+  if (filter === "recent") return Boolean(entry.lastPracticedAt);
+  if (filter === "pending") return status === "pending";
+  if (filter === "learning") return status === "learning";
+  if (filter === "completed") return status === "completed";
+  return true;
+}
+
+function materialStudyStatus(entry) {
+  const count = Math.max(0, Number(entry.practiceCount || 0));
+  if (count >= 3) return { key: "completed", label: "已完成" };
+  if (count > 0) return { key: "learning", label: "学习中" };
+  return { key: "pending", label: "待整理" };
+}
+
+function createMaterialCard(entry) {
+  const tape = getTape(entry.tapeId);
+  const album = getAlbum(tape?.albumId);
+  const status = materialStudyStatus(entry);
+  const card = el("article", "material-card");
+  card.style.setProperty("--material-color", album?.coverColor || "#0a5f59");
+
+  const top = el("div", "material-card-top");
+  top.append(
+    el("h3", "", entry.title),
+    el("span", `material-language-badge ${entry.language === "en" ? "is-english" : ""}`, entry.language === "en" ? "英语" : "法语")
+  );
+
+  const artwork = el("div", "material-card-artwork");
+  const cassette = el("div", "material-card-cassette");
+  cassette.append(el("span", "material-card-reel"), el("span", "material-card-window"), el("span", "material-card-reel"));
+  artwork.append(cassette);
+
+  const preview = el("p", "material-card-preview", entry.text);
+  const meta = el("div", "material-card-meta");
+  const sentenceCount = splitCourseTurns(entry.text, { materialType: entry.materialType }).length;
+  meta.append(
+    el("span", `material-status is-${status.key}`, status.label),
+    el("span", "", `${sentenceCount} 句`),
+    el("span", "", materialLastStudyLabel(entry))
+  );
+
+  const actions = el("div", "material-card-actions");
+  const enterButton = button("进入课程", "command-button primary material-enter-course", () => openCourseFromEntry(entry), "play");
+  const editButton = button("编辑", "material-card-icon-button", () => openEntryDialog(entry.id), "edit");
+  editButton.setAttribute("aria-label", `编辑素材 ${entry.title}`);
+  const deleteButton = button("删除", "material-card-icon-button danger", () => deleteEntry(entry.id), "trash");
+  deleteButton.setAttribute("aria-label", `删除素材 ${entry.title}`);
+  actions.append(enterButton, editButton, deleteButton);
+  card.append(top, artwork, preview, meta, actions);
+  return card;
+}
+
+function materialLastStudyLabel(entry) {
+  if (!entry.lastPracticedAt) return "尚未学习";
+  const date = new Date(entry.lastPracticedAt);
+  if (Number.isNaN(date.getTime())) return "学过";
+  const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000));
+  if (days === 0) return "今天学习";
+  if (days === 1) return "昨天学习";
+  return `${days} 天前`;
+}
+
+function openNewMaterialFromLibrary() {
+  const albumId = libraryAlbumScope !== "all" ? libraryAlbumScope : state.ui.selectedAlbumId || state.albums[0]?.id;
+  if (!albumId) {
+    setStatus("请先新建一盘磁带，再添加素材");
+    openAlbumDialog();
+    return;
+  }
+  state.ui.selectedAlbumId = albumId;
+  openEntryDialog(null, ensureTapeForAlbum(albumId));
+}
+
+function openCourseFromEntry(entry) {
+  const lesson = syncCourseFromEntry(entry);
+  if (!lesson) {
+    setStatus("这条素材还没有可学习的句子");
+    return;
+  }
+  const tape = getTape(entry.tapeId);
+  state.ui.selectedTapeId = entry.tapeId;
+  state.ui.selectedAlbumId = tape?.albumId || state.ui.selectedAlbumId;
+  entry.practiceCount = Math.max(0, Number(entry.practiceCount || 0)) + 1;
+  entry.lastPracticedAt = nowIso();
+  entry.updatedAt = nowIso();
+  state.activeEntryId = entry.id;
+  state.activeCourseId = lesson.id;
+  courseActiveLessonId = lesson.id;
+  courseCurrentTurnIndex = 0;
+  state.ui.activeView = "course";
+  persist();
+  renderView();
+  setCourseStage("player");
+  setStatus(`已打开课程：${entry.title}`);
+  if (lesson.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
+    void generateCourseTranslations(lesson);
+  }
+}
+
+function syncCourseFromEntry(entry) {
+  const materialType = entry.materialType || inferStoredMaterialType(entry.text);
+  const isDialogue = materialType === "情景对话";
+  const parts = splitCourseTurns(entry.text, { materialType });
+  if (!parts.length) return null;
+  const lessonId = entry.courseLessonId || `course_entry_${entry.id}`;
+  const existing = state.courseLessons.find((lesson) => lesson.id === lessonId);
+  const oldTurns = new Map((existing?.turns || []).map((turn) => [turn.text, turn]));
+  const turns = parts.map((part, index) => {
+    const old = oldTurns.get(part.text);
+    return {
+      id: old?.id || `${entry.id}_turn_${index + 1}`,
+      text: part.text,
+      translation: old?.translation || "",
+      speakerId: isDialogue ? (part.speakerId || old?.speakerId || (index % 2 === 0 ? "a" : "b")) : "narrator",
+      speakerLabel: isDialogue ? (part.speakerLabel || old?.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
+      recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
+    };
+  });
+  const lesson = normalizeCourseLesson({
+    id: lessonId,
+    title: entry.title,
+    language: entry.language || "fr",
+    explainLanguage: "zh",
+    materialType,
+    description: `${turns.length} 句 · 来自自建素材`,
+    createdAt: existing?.createdAt || entry.createdAt,
+    updatedAt: nowIso(),
+    turns,
+    practice: existing?.practice || { completed: 0, correct: 0 }
+  });
+  if (existing) state.courseLessons.splice(state.courseLessons.indexOf(existing), 1, lesson);
+  else state.courseLessons.unshift(lesson);
+  entry.courseLessonId = lesson.id;
+  return lesson;
+}
+
+function renderCourseAlbumDetail(album, course) {
+  const wrap = el("section", "course-album-detail");
   const header = el("div", "detail-header");
   const titleBox = el("div");
-  titleBox.append(el("p", "eyebrow", "Album"), el("h2", "", album.title), el("p", "micro-copy", album.description || " "));
-  const headerActions = el("div", "row-actions");
-  headerActions.append(
-    button("磁带", "command-button primary", () => openTapeDialog(null, album.id), "plus"),
-    button("编辑", "command-button", () => openAlbumDialog(album.id), "edit")
+  titleBox.append(
+    el("p", "eyebrow", "Tape course"),
+    el("h2", "", album.title),
+    el("p", "micro-copy", `${course.language === "en" ? "英语" : "法语"} · ${course.turns.length} 句 · ${course.description || "自定义课程"}`)
   );
-  header.append(titleBox, headerActions);
-
-  const tapes = getTapes(album.id);
-  const tapeSection = el("section", "cassette-list");
-  if (tapes.length === 0) {
-    tapeSection.append(emptyState("还没有磁带"));
-  } else {
-    tapes.forEach((tape) => tapeSection.append(createTapeCard(tape)));
+  const actions = el("div", "row-actions");
+  actions.append(
+    button("打开课程", "command-button primary", () => openCourseFromAlbum(album), "play"),
+    button("编辑磁带", "command-button", () => openAlbumDialog(album.id), "edit")
+  );
+  header.append(titleBox, actions);
+  const preview = el("div", "course-album-preview");
+  preview.append(el("p", "eyebrow", "Course preview"));
+  course.turns.slice(0, 3).forEach((turn, index) => {
+    const row = el("div", "course-album-preview-row");
+    row.append(el("span", "course-turn-number", String(index + 1).padStart(2, "0")), el("span", "", turn.text), el("span", "speaker-chip", turn.speakerLabel));
+    preview.append(row);
+  });
+  const courseSection = el("section", "album-content-section");
+  courseSection.append(el("p", "eyebrow", "课程"), preview);
+  wrap.append(header, courseSection, renderAlbumMaterialSection(album));
+  elements.libraryDetail.append(wrap);
+  if (course.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
+    void generateCourseTranslations(course);
   }
+}
 
-  const entrySection = createEntrySection();
-  elements.libraryDetail.append(header, tapeSection, entrySection);
+function syncCourseFromAlbumEntries(album) {
+  const entries = getEntriesByAlbum(album.id).sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+  if (!entries.length) return;
+  const existing = state.courseLessons?.find((lesson) => lesson.id === album.courseLessonId);
+  if (existing && !String(existing.id).startsWith("course_")) return;
+  const oldTurns = new Map((existing?.turns || []).map((turn) => [turn.text, turn]));
+  const turns = entries.flatMap((entry) => splitCourseTurns(entry.text).map((part, index) => {
+    const old = oldTurns.get(part.text);
+    return {
+      id: `${entry.id}_turn_${index + 1}`,
+      text: part.text,
+      translation: old?.translation || "",
+      speakerId: part.speakerId || old?.speakerId || "a",
+      speakerLabel: part.speakerLabel || old?.speakerLabel || "默认说话人",
+      recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
+    };
+  }));
+  if (!turns.length) return;
+  const sameTurns = existing?.turns?.length === turns.length && existing.turns.every((turn, index) => turn.id === turns[index].id && turn.text === turns[index].text);
+  if (existing && sameTurns) return;
+  const lesson = existing || normalizeCourseLesson({
+    id: `course_${album.id}`,
+    title: album.title,
+    language: "fr",
+    explainLanguage: "zh",
+    materialType: "磁带素材",
+    description: `从「${album.title}」的自建段落转换而来`,
+    turns,
+    practice: { completed: 0, correct: 0 }
+  });
+  lesson.title = album.title;
+  lesson.turns = turns;
+  lesson.updatedAt = nowIso();
+  if (!existing) state.courseLessons.push(lesson);
+  album.courseLessonId = lesson.id;
+  persist();
+}
+
+function renderAlbumMaterialSection(album) {
+  const section = el("section", "album-content-section album-material-section");
+  const heading = el("div", "album-material-heading");
+  heading.append(el("p", "eyebrow", "素材"), el("h3", "", "磁带里的学习素材"));
+  const entries = getEntriesByAlbum(album.id);
+  const list = el("div", "album-singles-list");
+  if (!entries.length) {
+    list.append(emptyState("还没有素材，先新建一段学习内容"));
+  } else {
+    entries.forEach((entry) => {
+      const item = el("article", "album-single-row");
+      item.append(el("span", "course-turn-number", "♪"));
+      const body = el("div", "album-single-body");
+      body.append(el("strong", "", entry.title), el("p", "entry-preview", entry.text));
+      const actions = el("div", "row-actions");
+      actions.append(
+        miniButton("进入课程", () => openCourseFromAlbum(album)),
+        miniButton("编辑", () => openEntryDialog(entry.id)),
+        miniButton("删除", () => deleteEntry(entry.id))
+      );
+      item.append(body, actions);
+      list.append(item);
+    });
+  }
+  section.append(heading, list);
+  return section;
 }
 
 function createTapeCard(tape) {
@@ -842,18 +3539,19 @@ function renderWordbooks() {
   });
 
   const selected = getWordbook(state.ui.selectedWordbookId);
+  const selectedCount = vocabularyForWordbook(state.ui.selectedWordbookId).length + phraseItemsForWordbook(state.ui.selectedWordbookId).length;
   elements.selectedWordbookLine.textContent = selected
-    ? `${selected.title} · ${vocabularyForWordbook(selected.id).length} 词`
-    : `all · ${state.vocabulary.length} 词`;
+    ? `${selected.title} · ${selectedCount} 词句`
+    : `all · ${state.vocabulary.length + state.phraseItems.length} 词句`;
 }
 
 function createWordbookCard(book) {
-  const count = vocabularyForWordbook(book.id).length;
+  const count = vocabularyForWordbook(book.id).length + phraseItemsForWordbook(book.id).length;
   const card = el("article", `wordbook-card${isSystemWordbook(book.id) ? " is-system" : ""}`);
   card.classList.toggle("is-selected", state.ui.selectedWordbookId === book.id);
   card.tabIndex = 0;
   card.setAttribute("role", "button");
-  card.setAttribute("aria-label", `选择单词本 ${book.title}`);
+  card.setAttribute("aria-label", `选择词句本 ${book.title}`);
 
   const select = () => {
     state.ui.selectedWordbookId = book.id;
@@ -875,7 +3573,7 @@ function createWordbookCard(book) {
 
   const title = el("h3", "", book.title);
   const description = el("p", "", book.description || " ");
-  const meta = el("span", "badge", `${count} 词`);
+  const meta = el("span", "badge", `${count} 词句`);
   card.append(title, description, meta);
 
   if (!isSystemWordbook(book.id)) {
@@ -891,56 +3589,276 @@ function createWordbookCard(book) {
 }
 
 function renderVocab() {
-  const query = normalizeWord(elements.vocabSearch.value || "");
-  const items = state.vocabulary
-    .filter((item) => vocabularyMatchesWordbook(item, state.ui.selectedWordbookId))
-    .filter((item) => {
-      if (!query) return true;
-      return normalizeWord(`${item.word} ${item.lemma || ""} ${item.ipa} ${item.zh} ${seenFormsText(item)} ${wordbookNamesText(item)}`).includes(query);
-    })
-    .sort((a, b) => a.word.localeCompare(b.word, "fr"));
+  renderPhraseSourceOptions();
+  const query = String(elements.vocabSearch.value || "").trim().toLocaleLowerCase();
+  const source = elements.phraseSourceFilter.value || "all";
+  const date = elements.phraseDateFilter.value || "all";
+  const status = elements.phraseStatusFilter.value || "all";
+  const items = phrasebookItemsForSelected()
+    .filter((item) => phraseItemMatchesFilters(item, { query, source, date, status }))
+    .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
 
-  const selected = getWordbook(state.ui.selectedWordbookId);
-  const gotCount = state.vocabulary.filter((item) => item.status === "got").length;
-  elements.vocabStats.textContent = `${items.length} / ${state.vocabulary.length} 词 · ${gotCount} got`;
+  const total = phrasebookItemsForSelected().length;
+  const gotCount = items.filter((item) => item.status === "got").length;
+  elements.vocabStats.textContent = `${items.length} / ${total} 词句 · ${gotCount} 已掌握`;
   elements.vocabList.replaceChildren();
 
   if (items.length === 0) {
-    elements.vocabList.append(emptyState(selected ? `${selected.title} 里还没有单词` : "还没有单词"));
+    elements.vocabList.append(emptyState("当前筛选条件下还没有词句"));
     return;
   }
 
   items.forEach((item) => {
-    const card = el("article", `vocab-item status-${item.status}`);
-    const body = el("div");
-    const word = el("div", "vocab-word");
-    const ipaText = item.ipa || (isLexiconLoading() ? "词库加载中" : "音标待补充");
-    const zhText = item.zh || (isLexiconLoading() ? "释义稍后补全" : "释义待补充");
-    word.append(el("strong", "", item.word), el("span", "", ipaText), el("span", "badge", item.status));
-    const forms = seenFormsText(item);
-    const books = wordbookNamesText(item);
-    body.append(word, el("p", "", zhText));
-    if (forms) {
-      body.append(el("p", "", `见过：${forms}`));
-    }
-    if (books) {
-      body.append(el("p", "", `词本：${books}`));
-    }
-
-    const actions = el("div", "row-actions");
-    actions.append(
-      miniButton("播放", () => togglePlayback(
-        [{ text: item.word, element: card, label: item.word, forceFrench: true }],
-        { key: `word:${item.normalized}`, label: item.word }
-      )),
-      miniButton(item.status === "got" ? "new" : "got", () => toggleVocabularyStatus(item.id)),
-      miniButton("编辑", () => openVocabDialog(item.id)),
-      miniButton("删除", () => deleteVocabulary(item.id))
-    );
-
-    card.append(body, actions);
-    elements.vocabList.append(card);
+    elements.vocabList.append(createPhrasebookRow(item));
   });
+}
+
+function phraseItemsForWordbook(wordbookId) {
+  return (state.phraseItems || []).filter((item) => phraseItemMatchesWordbook(item, wordbookId));
+}
+
+function phraseItemMatchesWordbook(item, wordbookId) {
+  if (!wordbookId || wordbookId === ALL_WORDBOOK_ID) return true;
+  if (wordbookId === NEW_WORDBOOK_ID) return item.status === "new";
+  if (wordbookId === GOT_WORDBOOK_ID) return item.status === "got";
+  if (wordbookId === DIY_WORDBOOK_ID) return !item.translation;
+  return Array.isArray(item.wordbookIds) && item.wordbookIds.includes(wordbookId);
+}
+
+function phrasebookItemsForSelected() {
+  const words = state.vocabulary
+    .filter((item) => vocabularyMatchesWordbook(item, state.ui.selectedWordbookId))
+    .map((item) => ({
+      kind: "word",
+      id: item.id,
+      text: item.word,
+      translation: item.zh || "释义待补充",
+      sourceTitle: "词汇库",
+      language: "fr",
+      status: item.status === "got" ? "got" : "new",
+      updatedAt: item.updatedAt,
+      sourceKey: "词汇库",
+      raw: item
+    }));
+  const phrases = phraseItemsForWordbook(state.ui.selectedWordbookId).map((item) => ({
+    kind: item.type,
+    id: item.id,
+    text: item.text,
+    translation: item.translation || "翻译待补充",
+    sourceTitle: item.sourceTitle,
+    language: item.language,
+    status: item.status,
+    updatedAt: item.updatedAt,
+    createdAt: item.createdAt,
+    sourceKey: item.sourceTitle,
+    raw: item
+  }));
+  return [...words, ...phrases];
+}
+
+function renderPhraseSourceOptions() {
+  const current = elements.phraseSourceFilter.value || "all";
+  const sources = Array.from(new Set(phrasebookItemsForSelected().map((item) => item.sourceTitle).filter(Boolean)));
+  elements.phraseSourceFilter.replaceChildren(new Option("所有来源", "all"), ...sources.map((source) => new Option(source, source)));
+  elements.phraseSourceFilter.value = sources.includes(current) ? current : "all";
+}
+
+function phraseItemMatchesFilters(item, filters) {
+  const normalizedQuery = filters.query;
+  if (normalizedQuery && !`${item.text} ${item.translation} ${item.sourceTitle}`.toLocaleLowerCase().includes(normalizedQuery)) return false;
+  if (filters.source !== "all" && item.sourceTitle !== filters.source) return false;
+  if (filters.status !== "all" && item.status !== filters.status) return false;
+  if (filters.date !== "all") {
+    const created = new Date(item.createdAt || item.updatedAt || 0).getTime();
+    const now = Date.now();
+    const range = filters.date === "today" ? 86400000 : 7 * 86400000;
+    if (!created || now - created > range) return false;
+  }
+  return true;
+}
+
+function createPhrasebookRow(item) {
+  const row = el("article", `phrasebook-row status-${item.status}`);
+  const check = document.createElement("input");
+  check.type = "checkbox";
+  check.className = "phrasebook-check";
+  check.setAttribute("aria-label", `选择${item.kind === "word" ? "单词" : "句子"} ${item.text}`);
+  const play = button("", "phrasebook-play", () => playPhrasebookItem(item, play), "play");
+  play.dataset.playbackKey = `phrasebook:${item.kind}:${item.id}`;
+  play.title = "自动发音";
+  const phrase = el("div", "phrasebook-text");
+  phrase.append(el("strong", "", item.text), el("span", "phrasebook-kind", item.kind === "word" ? "单词" : "句子"));
+  const translation = el("div", "phrasebook-translation", item.translation);
+  const source = el("div", "phrasebook-source", item.sourceTitle || "自定义素材");
+  const actions = el("div", "phrasebook-row-actions");
+  actions.append(
+    el("span", `phrase-status status-${item.status}`, item.status === "got" ? "已掌握" : item.status === "learning" ? "学习中" : "待学习"),
+    miniButton(item.status === "got" ? "待复习" : "掌握", () => togglePhrasebookItemStatus(item)),
+    miniButton("删除", () => deletePhrasebookItem(item))
+  );
+  row.append(check, play, phrase, translation, source, actions);
+  return row;
+}
+
+function playPhrasebookItem(item, playButton = null) {
+  const lang = item.language === "en" ? "en-US" : "fr-FR";
+  togglePlayback([{ text: item.text, element: null, label: item.text, lang, forceFrench: item.language !== "en" }], { key: `phrasebook:${item.kind}:${item.id}`, label: item.text });
+  if (playButton) renderPhrasebookPlayButtons();
+}
+
+function togglePhrasebookItemStatus(item) {
+  if (item.kind === "word") {
+    toggleVocabularyStatus(item.id);
+    return;
+  }
+  const phrase = state.phraseItems.find((entry) => entry.id === item.id);
+  if (!phrase) return;
+  phrase.status = phrase.status === "got" ? "learning" : "got";
+  phrase.updatedAt = nowIso();
+  persist();
+  renderWordbooks();
+  renderVocab();
+}
+
+function deletePhrasebookItem(item) {
+  if (item.kind === "word") {
+    deleteVocabulary(item.id);
+    return;
+  }
+  state.phraseItems = state.phraseItems.filter((entry) => entry.id !== item.id);
+  persist();
+  renderWordbooks();
+  renderVocab();
+}
+
+function openPhrasePractice() {
+  phrasePracticeItems = phrasebookItemsForSelected().filter((item) => phraseItemMatchesFilters(item, {
+    query: String(elements.vocabSearch.value || "").trim().toLocaleLowerCase(),
+    source: elements.phraseSourceFilter.value || "all",
+    date: elements.phraseDateFilter.value || "all",
+    status: elements.phraseStatusFilter.value || "all"
+  }));
+  if (!phrasePracticeItems.length) {
+    setStatus("当前筛选条件下没有可练习的词句");
+    return;
+  }
+  phrasePracticeIndex = 0;
+  phrasePracticeRevealed = false;
+  phrasePracticeLastSpokenKey = "";
+  phrasePracticeFinished = false;
+  phrasePracticePromptLanguage = phrasePracticeDisplayMode === "random"
+    ? (Math.random() > 0.5 ? "translation" : "original")
+    : phrasePracticeDisplayMode;
+  elements.vocabList.hidden = true;
+  elements.wordbookShelf.hidden = true;
+  elements.phrasePracticePanel.hidden = false;
+  renderPhrasePractice();
+}
+
+function closePhrasePractice() {
+  phrasePracticeItems = [];
+  elements.vocabList.hidden = false;
+  elements.wordbookShelf.hidden = false;
+  elements.phrasePracticePanel.hidden = true;
+}
+
+function currentPhrasePracticeItem() {
+  return phrasePracticeItems[phrasePracticeIndex % phrasePracticeItems.length] || null;
+}
+
+function renderPhrasePractice() {
+  if (phrasePracticeFinished) {
+    elements.phrasePracticeMeta.textContent = `${phrasePracticeItems.length} 张卡片 · 本轮已完成`;
+    elements.phrasePracticeSource.textContent = "完成";
+    elements.phrasePracticeProgress.textContent = `${phrasePracticeItems.length} / ${phrasePracticeItems.length}`;
+    elements.phrasePracticePrompt.textContent = "这一轮完成了";
+    elements.phrasePracticeAnswer.textContent = "学习记录已保存，可以返回词句本选择新的状态或日期继续练习。";
+    elements.phrasePracticeAnswer.hidden = false;
+    elements.phrasePracticeSpeakBtn.hidden = true;
+    elements.phrasePracticeRevealBtn.hidden = true;
+    elements.phrasePracticeAgainBtn.hidden = true;
+    elements.phrasePracticeKnownBtn.hidden = true;
+    return;
+  }
+  const item = currentPhrasePracticeItem();
+  if (!item) return;
+  elements.phrasePracticeSpeakBtn.hidden = false;
+  elements.phrasePracticeMeta.textContent = `${phrasePracticeItems.length} 张卡片 · 来自当前筛选条件`;
+  elements.phrasePracticeSource.textContent = item.sourceTitle || "自定义素材";
+  elements.phrasePracticeProgress.textContent = `${phrasePracticeIndex + 1} / ${phrasePracticeItems.length}`;
+  if (elements.phrasePracticeDisplayMode.value !== phrasePracticeDisplayMode) elements.phrasePracticeDisplayMode.value = phrasePracticeDisplayMode;
+  const promptIsTranslation = phrasePracticePromptLanguage === "translation";
+  elements.phrasePracticePrompt.textContent = promptIsTranslation ? item.translation : item.text;
+  elements.phrasePracticeAnswer.textContent = promptIsTranslation ? item.text : item.translation;
+  elements.phrasePracticeVoiceHint.textContent = `课程音色：${voiceShortName(selectedVoice())}`;
+  elements.phrasePracticeAnswer.hidden = !phrasePracticeRevealed;
+  elements.phrasePracticeRevealBtn.hidden = phrasePracticeRevealed;
+  elements.phrasePracticeAgainBtn.hidden = !phrasePracticeRevealed;
+  elements.phrasePracticeKnownBtn.hidden = !phrasePracticeRevealed;
+  speakCurrentPhraseCard(false);
+}
+
+function speakCurrentPhraseCard(force = false) {
+  const item = currentPhrasePracticeItem();
+  if (phrasePracticeSpeaking) {
+    window.speechSynthesis.cancel();
+    phrasePracticeSpeaking = false;
+    renderPhrasePracticeSpeakButton();
+    return;
+  }
+  if (!item || (!force && phrasePracticeLastSpokenKey === `${item.id}:${phrasePracticeIndex}`)) return;
+  phrasePracticeLastSpokenKey = `${item.id}:${phrasePracticeIndex}`;
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(item.text);
+  utterance.lang = item.language === "en" ? "en-US" : "fr-FR";
+  utterance.rate = Number(state.settings.rate || 0.9);
+  const voice = selectedVoiceForLanguage(utterance.lang);
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || utterance.lang;
+  }
+  phrasePracticeSpeaking = true;
+  renderPhrasePracticeSpeakButton();
+  const finish = () => {
+    phrasePracticeSpeaking = false;
+    renderPhrasePracticeSpeakButton();
+  };
+  utterance.onend = finish;
+  utterance.onerror = finish;
+  window.speechSynthesis.speak(utterance);
+}
+
+function renderPhrasePracticeSpeakButton() {
+  setButtonContent(elements.phrasePracticeSpeakBtn, phrasePracticeSpeaking ? "pause" : "speaker", phrasePracticeSpeaking ? "暂停" : "播放");
+}
+
+function revealPhrasePracticeAnswer() {
+  phrasePracticeRevealed = true;
+  renderPhrasePractice();
+}
+
+function advancePhrasePractice(correct) {
+  const item = currentPhrasePracticeItem();
+  if (item?.raw) {
+    item.raw.practiceCount = Number(item.raw.practiceCount || 0) + 1;
+    item.raw.lastPracticedAt = nowIso();
+    item.raw.status = correct ? "got" : "learning";
+    item.raw.updatedAt = nowIso();
+  }
+  recordStudyEvent({ cards: 1, known: correct });
+  phrasePracticeIndex += 1;
+  phrasePracticeRevealed = false;
+  phrasePracticeLastSpokenKey = "";
+  phrasePracticePromptLanguage = phrasePracticeDisplayMode === "random"
+    ? (Math.random() > 0.5 ? "translation" : "original")
+    : phrasePracticeDisplayMode;
+  persist();
+  if (phrasePracticeIndex >= phrasePracticeItems.length) {
+    phrasePracticeFinished = true;
+    window.speechSynthesis.cancel();
+  }
+  renderPhrasePractice();
 }
 
 function toggleAllSentences() {
@@ -958,11 +3876,12 @@ function toggleAllSentences() {
 
 function togglePlayback(items, options = {}) {
   const key = options.key || playbackKeyForItems(items);
-  if (playback.key === key && playback.status === "playing") {
+  const sameCoursePlayback = key.startsWith("course:") && playback.key.startsWith("course:");
+  if ((playback.key === key || sameCoursePlayback) && playback.status === "playing") {
     pauseSpeech();
     return;
   }
-  if (playback.key === key && playback.status === "paused") {
+  if ((playback.key === key || sameCoursePlayback) && playback.status === "paused") {
     resumeSpeech();
     return;
   }
@@ -988,22 +3907,38 @@ async function playItems(items, options = {}) {
   renderPlaybackControls();
 
   try {
-    for (const item of playableItems) {
-      if (token !== runToken) break;
-      markActive(item.element);
-      playback.label = item.label || label;
-      renderPlaybackControls();
-      setStatus(`正在播放：${item.label}`);
-
-      const repeat = getRepeat();
-      for (let index = 0; index < repeat; index += 1) {
+    do {
+      for (const item of playableItems) {
         if (token !== runToken) break;
-        await speakOnce(item.text, token, item);
-        if (token !== runToken || index >= repeat - 1) break;
-        await pause(getPauseMs(), token);
+        const turnIndex = Number(item.turnIndex);
+        if (Number.isInteger(turnIndex)) {
+          courseCurrentTurnIndex = turnIndex;
+          courseProgressRatio = turnIndex / Math.max(1, getActiveCourseLesson()?.turns.length || 1);
+          renderCourseProgress(getActiveCourseLesson() || { turns: [] });
+        }
+        markActive(item.element);
+        if (Number.isInteger(turnIndex)) markCourseTurnActive(turnIndex, item.element);
+        playback.label = item.label || label;
+        renderPlaybackControls();
+        setStatus(`正在播放：${item.label}`);
+
+        const repeat = getRepeat();
+        const courseLesson = Number.isInteger(turnIndex) ? getActiveCourseLesson() : null;
+        if (courseLesson) startCourseProgressTicker(turnIndex, item.text, courseLesson);
+        for (let index = 0; index < repeat; index += 1) {
+          if (token !== runToken) break;
+          await speakOnce(item.text, token, item);
+          if (token !== runToken || index >= repeat - 1) break;
+          await pause(getPauseMs(), token);
+        }
+        if (courseLesson) {
+          stopCourseProgressTicker();
+          updateCourseProgressRatio((turnIndex + 1) / courseLesson.turns.length, courseLesson);
+        }
       }
-    }
+    } while (options.loop && token === runToken);
   } finally {
+    stopCourseProgressTicker();
     if (token === runToken) {
       clearActive();
       setBusy(false);
@@ -1030,7 +3965,7 @@ function speakOnce(text, token, options = {}) {
     utterance.rate = Number(state.settings.rate);
     utterance.pitch = 1;
 
-    const voice = options.forceFrench ? selectedFrenchVoice() : selectedVoice();
+    const voice = options.forceFrench ? selectedFrenchVoice() : selectedVoiceForLanguage(utterance.lang);
     if (voice) {
       utterance.voice = voice;
       utterance.lang = voice.lang || utterance.lang;
@@ -1075,6 +4010,7 @@ function speakOnce(text, token, options = {}) {
 function pauseSpeech() {
   if (!canSpeak() || playback.status !== "playing") return;
   window.speechSynthesis.pause();
+  pauseCourseProgressTicker();
   playback.status = "paused";
   renderPlaybackControls();
   setStatus(`已暂停：${playback.label}`);
@@ -1084,6 +4020,7 @@ function resumeSpeech() {
   if (!canSpeak() || playback.status !== "paused") return;
   playback.status = "playing";
   window.speechSynthesis.resume();
+  resumeCourseProgressTicker();
   renderPlaybackControls();
   setStatus(`继续播放：${playback.label}`);
 }
@@ -1142,10 +4079,21 @@ function markActive(element) {
   row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
+function markCourseTurnActive(turnIndex, element) {
+  elements.courseTranscriptList?.querySelectorAll(".course-turn-row").forEach((row) => {
+    row.classList.remove("is-playing");
+    row.classList.toggle("is-current", Number(row.querySelector(".course-turn-number")?.textContent || 0) === turnIndex + 1);
+  });
+  const row = element?.closest?.(".course-turn-row") || elements.courseTranscriptList?.querySelector(`[data-turn-id="${getActiveCourseLesson()?.turns[turnIndex]?.id}"]`);
+  row?.classList.add("is-playing");
+  row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
 function clearActive() {
   if (!activeElement) return;
   activeElement.classList.remove("is-active");
   activeElement.closest?.(".sentence-row")?.classList.remove("is-active");
+  activeElement.closest?.(".course-turn-row")?.classList.remove("is-playing");
   activeElement = null;
 }
 
@@ -1186,7 +4134,7 @@ function openSaveCurrentDialog() {
 function openAlbumDialog(albumId) {
   const album = getAlbum(albumId);
   openDialog({
-    title: album ? "编辑专辑" : "新建专辑",
+    title: album ? "编辑磁带" : "新建磁带",
     submitText: album ? "更新" : "创建",
     fields: [
       { name: "title", label: "标题", type: "text", value: album?.title || "", required: true },
@@ -1202,7 +4150,8 @@ function openAlbumDialog(albumId) {
       } else {
         const created = createAlbum(values.title, values.description, values.coverColor);
         state.ui.selectedAlbumId = created.id;
-        const tape = createTape(created.id, "第一盘磁带", "");
+        libraryAlbumScope = created.id;
+        const tape = createTape(created.id, "素材", "磁带里的学习素材");
         state.ui.selectedTapeId = tape.id;
       }
       persist();
@@ -1218,7 +4167,7 @@ function openTapeDialog(tapeId, albumId = state.ui.selectedAlbumId) {
     title: tape ? "编辑磁带" : "新建磁带",
     submitText: tape ? "更新" : "创建",
     fields: [
-      { name: "albumId", label: "专辑", type: "select", value: tape?.albumId || albumId, options: albumOptions, required: true },
+      { name: "albumId", label: "所属磁带", type: "select", value: tape?.albumId || albumId, options: albumOptions, required: true },
       { name: "title", label: "标题", type: "text", value: tape?.title || "", required: true },
       { name: "description", label: "描述", type: "textarea", value: tape?.description || "" }
     ],
@@ -1244,7 +4193,7 @@ function openTapeDialog(tapeId, albumId = state.ui.selectedAlbumId) {
 function openWordbookDialog(wordbookId) {
   const wordbook = state.wordbooks.find((item) => item.id === wordbookId);
   openDialog({
-    title: wordbook ? "编辑单词本" : "新建单词本",
+    title: wordbook ? "编辑词句本" : "新建词句本",
     submitText: wordbook ? "更新" : "创建",
     fields: [
       { name: "title", label: "名称", type: "text", value: wordbook?.title || "", required: true },
@@ -1268,7 +4217,7 @@ function openWordbookDialog(wordbookId) {
 
 function deleteWordbook(wordbookId) {
   const wordbook = state.wordbooks.find((item) => item.id === wordbookId);
-  if (!wordbook || !window.confirm(`删除单词本「${wordbook.title}」？`)) return;
+  if (!wordbook || !window.confirm(`删除词句本「${wordbook.title}」？`)) return;
   state.wordbooks = state.wordbooks.filter((item) => item.id !== wordbookId);
   state.vocabulary.forEach((item) => {
     item.wordbookIds = (item.wordbookIds || []).filter((id) => id !== wordbookId);
@@ -1283,26 +4232,40 @@ function deleteWordbook(wordbookId) {
 
 function openEntryDialog(entryId, tapeId = state.ui.selectedTapeId) {
   const entry = getEntry(entryId);
+  const currentTape = getTape(entry?.tapeId || tapeId);
+  const currentAlbumId = currentTape?.albumId || state.ui.selectedAlbumId || state.albums[0]?.id || "";
+  const albumOptions = state.albums.map((album) => ({ value: album.id, label: album.title }));
   openDialog({
-    title: entry ? "编辑段落" : "新建段落",
+    title: entry ? "编辑素材" : "新建素材",
     submitText: entry ? "更新" : "创建",
     fields: [
+      { name: "albumId", label: "所属磁带", type: "select", value: currentAlbumId, options: albumOptions, required: true },
       { name: "title", label: "标题", type: "text", value: entry?.title || "", required: true },
-      { name: "text", label: "法语文字", type: "textarea", value: entry?.text || "", required: true },
+      { name: "language", label: "学习语言", type: "select", value: entry?.language || "fr", options: [{ value: "fr", label: "法语" }, { value: "en", label: "英语" }], required: true },
+      { name: "materialType", label: "素材类型", type: "select", value: entry?.materialType || "文章", options: [{ value: "文章", label: "文章" }, { value: "情景对话", label: "情景对话" }, { value: "笔记", label: "笔记" }, { value: "歌词", label: "歌词" }, { value: "自定义文本", label: "自定义文本" }], required: true },
+      { name: "text", label: "学习文本", type: "textarea", value: entry?.text || "", required: true },
       { name: "notes", label: "备注", type: "textarea", value: entry?.notes || "" }
     ],
     onSubmit(values) {
+      const targetTapeId = ensureTapeForAlbum(values.albumId);
       if (entry) {
+        entry.tapeId = targetTapeId;
         entry.title = values.title.trim();
+        entry.language = values.language === "en" ? "en" : "fr";
+        entry.materialType = values.materialType;
         entry.text = values.text.trim();
         entry.notes = values.notes.trim();
         entry.updatedAt = nowIso();
+        if (entry.courseLessonId) syncCourseFromEntry(entry);
         if (state.activeEntryId === entry.id) {
           setCurrentText(entry.text, entry.id, { skipPersist: true });
         }
       } else {
-        createEntry(tapeId, values.title, values.text, values.notes);
+        createEntry(targetTapeId, values.title, values.text, values.notes, { language: values.language, materialType: values.materialType });
       }
+      state.ui.selectedAlbumId = values.albumId;
+      state.ui.selectedTapeId = targetTapeId;
+      libraryAlbumScope = values.albumId;
       persist();
       renderAll();
     }
@@ -1475,7 +4438,7 @@ function loadEntry(entryId) {
   const tape = getTape(entry.tapeId);
   state.ui.selectedTapeId = entry.tapeId;
   state.ui.selectedAlbumId = tape?.albumId || state.ui.selectedAlbumId;
-  state.ui.activeView = "reader";
+  state.ui.activeView = "library";
   setCurrentText(entry.text, entry.id, { skipPersist: true });
   persist();
   renderAll();
@@ -1522,7 +4485,7 @@ function createTape(albumId, title, description = "") {
   return tape;
 }
 
-function createEntry(tapeId, title, text, notes = "") {
+function createEntry(tapeId, title, text, notes = "", options = {}) {
   const timestamp = nowIso();
   const entry = {
     id: makeId("entry"),
@@ -1530,12 +4493,18 @@ function createEntry(tapeId, title, text, notes = "") {
     title: title.trim(),
     text: text.trim(),
     notes: notes.trim(),
+    language: options.language === "en" ? "en" : "fr",
+    materialType: ["情景对话", "文章", "歌词", "笔记", "自定义文本"].includes(options.materialType) ? options.materialType : inferStoredMaterialType(text),
+    courseLessonId: options.courseLessonId ? String(options.courseLessonId) : "",
     practiceCount: 0,
     lastPracticedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp
   };
   state.entries.push(entry);
+  const tape = getTape(tapeId);
+  const album = tape ? getAlbum(tape.albumId) : null;
+  if (album && !album.courseLessonId) migrateLegacyAlbumsToCourses(state);
   return entry;
 }
 
@@ -1554,15 +4523,20 @@ function createWordbook(title, description = "") {
 
 function deleteAlbum(albumId) {
   const album = getAlbum(albumId);
-  if (!album || !window.confirm(`删除专辑「${album.title}」？`)) return;
+  const albumEntries = getEntriesByAlbum(albumId);
+  if (!album || !window.confirm(`删除磁带「${album.title}」及其中 ${albumEntries.length} 条素材？`)) return;
   const tapeIds = getTapes(albumId).map((tape) => tape.id);
+  const lessonIds = new Set(albumEntries.map((entry) => entry.courseLessonId).filter(Boolean));
   state.albums = state.albums.filter((item) => item.id !== albumId);
   state.tapes = state.tapes.filter((item) => item.albumId !== albumId);
   state.entries = state.entries.filter((item) => !tapeIds.includes(item.tapeId));
+  state.courseLessons = state.courseLessons.filter((lesson) => !lessonIds.has(lesson.id));
+  state.phraseItems = state.phraseItems.filter((item) => !lessonIds.has(item.sourceLessonId));
   if (state.ui.selectedAlbumId === albumId) {
     state.ui.selectedAlbumId = state.albums[0]?.id || null;
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
   }
+  if (libraryAlbumScope === albumId) libraryAlbumScope = state.ui.selectedAlbumId || "all";
   if (state.activeEntryId && !getEntry(state.activeEntryId)) {
     state.activeEntryId = null;
   }
@@ -1573,8 +4547,12 @@ function deleteAlbum(albumId) {
 function deleteTape(tapeId) {
   const tape = getTape(tapeId);
   if (!tape || !window.confirm(`删除磁带「${tape.title}」？`)) return;
+  const tapeEntries = getEntries(tapeId);
+  const lessonIds = new Set(tapeEntries.map((entry) => entry.courseLessonId).filter(Boolean));
   state.tapes = state.tapes.filter((item) => item.id !== tapeId);
   state.entries = state.entries.filter((item) => item.tapeId !== tapeId);
+  state.courseLessons = state.courseLessons.filter((lesson) => !lessonIds.has(lesson.id));
+  state.phraseItems = state.phraseItems.filter((item) => !lessonIds.has(item.sourceLessonId));
   if (state.ui.selectedTapeId === tapeId) {
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
   }
@@ -1587,8 +4565,12 @@ function deleteTape(tapeId) {
 
 function deleteEntry(entryId) {
   const entry = getEntry(entryId);
-  if (!entry || !window.confirm(`删除段落「${entry.title}」？`)) return;
+  if (!entry || !window.confirm(`删除素材「${entry.title}」？`)) return;
   state.entries = state.entries.filter((item) => item.id !== entryId);
+  if (entry.courseLessonId) {
+    state.courseLessons = state.courseLessons.filter((lesson) => lesson.id !== entry.courseLessonId);
+    state.phraseItems = state.phraseItems.filter((item) => item.sourceLessonId !== entry.courseLessonId);
+  }
   if (state.activeEntryId === entryId) {
     state.activeEntryId = null;
   }
@@ -1737,7 +4719,7 @@ function wordbookScopeLabel(scopeValue, sourceWordbooks = state.wordbooks, curre
     const selected = getWordbook(currentWordbookId);
     return `当前：${selected?.title || "all"}`;
   }
-  if (wordbookId === ALL_WORDBOOK_ID) return "全部单词本";
+  if (wordbookId === ALL_WORDBOOK_ID) return "全部词句本";
   if (wordbookId === NEW_WORDBOOK_ID) return "new";
   if (wordbookId === GOT_WORDBOOK_ID) return "got";
   if (wordbookId === DIY_WORDBOOK_ID) return "DIY";
@@ -1935,7 +4917,7 @@ function ensureSelections() {
 
 function ensureLibraryForSave() {
   if (state.albums.length === 0) {
-    const album = createAlbum("练习专辑", "临时保存的法语段落", "#0a5f59");
+    const album = createAlbum("练习磁带", "临时保存的法语段落", "#0a5f59");
     const tape = createTape(album.id, "第一盘磁带", "");
     state.ui.selectedAlbumId = album.id;
     state.ui.selectedTapeId = tape.id;
@@ -1972,9 +4954,21 @@ function getEntriesByAlbum(albumId) {
   return state.entries.filter((entry) => tapeIds.includes(entry.tapeId));
 }
 
+function ensureTapeForAlbum(albumId) {
+  const existing = getTapes(albumId)[0];
+  if (existing) return existing.id;
+  const created = createTape(albumId, "素材", "磁带里的学习素材");
+  persist();
+  return created.id;
+}
+
 function syncSettingsControls() {
   elements.rateControl.value = state.settings.rate;
   elements.pauseControl.value = state.settings.pause;
+  if (elements.systemLanguageSelect) elements.systemLanguageSelect.value = state.settings.systemLanguage || "zh";
+  if (elements.localAiEndpointInput) elements.localAiEndpointInput.value = state.settings.localAiEndpoint || "http://127.0.0.1:11434";
+  if (elements.localAiModelInput) elements.localAiModelInput.value = state.settings.localAiModel || "gemma3:4b";
+  document.documentElement.lang = state.settings.systemLanguage === "fr" ? "fr" : state.settings.systemLanguage === "en" ? "en" : "zh-CN";
   setRepeat(state.settings.repeat);
 }
 
@@ -2001,6 +4995,7 @@ function getPauseMs() {
 function loadVoices() {
   if (!canSpeak()) {
     elements.voiceSelect.replaceChildren(new Option("不可用", ""));
+    elements.courseVoiceSelect.replaceChildren(new Option("不可用", ""));
     return;
   }
 
@@ -2008,25 +5003,127 @@ function loadVoices() {
   frenchVoices = allVoices.filter((voice) => /^fr([-_]|$)/i.test(voice.lang));
 
   const currentValue = state.settings.voice || "";
-  elements.voiceSelect.replaceChildren(new Option("系统默认（fr-FR）", ""));
+  populateVoiceSelect(elements.voiceSelect, frenchVoices, currentValue);
 
-  frenchVoices.forEach((voice) => {
-    elements.voiceSelect.append(new Option(`${voice.name} · ${voice.lang}`, voice.name));
-  });
-
-  if (state.settings.voiceLocked && frenchVoices.some((voice) => voice.name === currentValue)) {
+  if (state.settings.voiceLocked && frenchVoices.some((voice) => voiceOptionValue(voice) === currentValue || voice.name === currentValue)) {
     elements.voiceSelect.value = currentValue;
   } else {
     const preferred = preferredDefaultVoice();
-    elements.voiceSelect.value = preferred?.name || "";
+    elements.voiceSelect.value = preferred ? voiceOptionValue(preferred) : "";
     state.settings.voice = elements.voiceSelect.value;
     state.settings.voiceLocked = false;
     persist();
   }
 
+  syncCourseVoiceSelect();
+
   if (frenchVoices.length === 0) {
     setStatus("未找到法语声音，使用系统默认");
   }
+}
+
+function populateVoiceSelect(select, voices, selectedValue = "") {
+  if (!select) return;
+  select.replaceChildren(new Option("系统默认（fr-FR）", ""));
+  if (!voices.length) {
+    select.append(new Option("等待系统音色…", "", false, false));
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  voices.forEach((voice) => {
+    select.append(new Option(`${voice.name} · ${voice.lang}`, voiceOptionValue(voice)));
+  });
+  if (voices.some((voice) => voiceOptionValue(voice) === selectedValue)) {
+    select.value = selectedValue;
+  }
+}
+
+function voiceOptionValue(voice) {
+  return voice.voiceURI || `${voice.name}|${voice.lang}`;
+}
+
+function syncCourseVoiceSelect() {
+  if (!elements.courseVoiceSelect) return;
+  populateVoiceSelect(elements.courseVoiceSelect, frenchVoices, state?.settings?.voice || "");
+  elements.courseVoiceSelect.value = state?.settings?.voice || "";
+  renderCompactVoiceMenu();
+}
+
+function voiceShortName(voice) {
+  if (!voice) return "系统默认";
+  return String(voice.name || "系统音色").split(/[([]/)[0].trim() || "系统音色";
+}
+
+function renderCompactVoiceMenu() {
+  if (!elements.courseVoiceButton || !elements.courseVoiceOptions) return;
+  const selected = selectedVoice();
+  elements.courseVoiceButton.textContent = voiceShortName(selected);
+  elements.courseVoiceButton.title = selected ? `${selected.name} · ${selected.lang}` : "使用系统默认音色";
+  elements.courseVoiceOptions.replaceChildren();
+  const options = [{ value: "", label: "系统默认", voice: null }, ...frenchVoices.map((voice) => ({ value: voiceOptionValue(voice), label: voiceShortName(voice), voice }))];
+  options.forEach((option) => {
+    const item = button(option.label, `course-voice-option${(state.settings.voice || "") === option.value ? " is-selected" : ""}`, () => {
+      state.settings.voice = option.value;
+      state.settings.voiceLocked = Boolean(option.value);
+      if (elements.courseVoiceSelect) elements.courseVoiceSelect.value = option.value;
+      if (elements.voiceSelect) elements.voiceSelect.value = option.value;
+      persist();
+      renderCompactVoiceMenu();
+      closeCompactVoiceMenu();
+      setStatus(`音色已切换为：${option.label}`);
+    });
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String((state.settings.voice || "") === option.value));
+    elements.courseVoiceOptions.append(item);
+  });
+}
+
+function toggleCompactVoiceMenu() {
+  const hidden = elements.courseVoiceOptions.hidden;
+  elements.courseVoiceOptions.hidden = !hidden;
+  elements.courseVoiceButton.setAttribute("aria-expanded", String(hidden));
+}
+
+function closeCompactVoiceMenu() {
+  elements.courseVoiceOptions.hidden = true;
+  elements.courseVoiceButton.setAttribute("aria-expanded", "false");
+}
+
+function closeCompactVoiceMenuOnOutsideClick(event) {
+  if (event.target.closest?.(".course-voice-menu")) return;
+  closeCompactVoiceMenu();
+}
+
+function toggleCourseCustomMenu() {
+  const opening = elements.courseCustomOptions.hidden;
+  elements.courseCustomOptions.hidden = !opening;
+  elements.courseCustomButton.setAttribute("aria-expanded", String(opening));
+}
+
+function closeCourseCustomMenu() {
+  elements.courseCustomOptions.hidden = true;
+  elements.courseCustomButton.setAttribute("aria-expanded", "false");
+}
+
+function closeCourseCustomMenuOnOutsideClick(event) {
+  if (event.target.closest?.(".course-custom-menu")) return;
+  closeCourseCustomMenu();
+}
+
+function courseModeLabel(mode) {
+  return ({ all: "全文播放", single: "单句循环", loop: "选段循环", speaker: "对话练习" })[mode] || "自定义";
+}
+
+function syncCourseCustomMenu() {
+  if (!elements.courseCustomButton || !elements.courseCustomOptions) return;
+  elements.courseCustomButton.textContent = courseModeLabel(courseMode);
+  elements.courseCustomButton.title = `当前模式：${courseModeLabel(courseMode)}`;
+  elements.courseCustomOptions.querySelectorAll("[data-course-mode]").forEach((option) => {
+    const selected = option.dataset.courseMode === courseMode;
+    option.classList.toggle("is-selected", selected);
+    option.setAttribute("aria-checked", String(selected));
+  });
 }
 
 function preferredDefaultVoice() {
@@ -2053,7 +5150,16 @@ function isEdgeBrowser() {
 
 function selectedVoice() {
   const name = state.settings.voice;
-  return frenchVoices.find((voice) => voice.name === name) || null;
+  return frenchVoices.find((voice) => voiceOptionValue(voice) === name || voice.name === name) || null;
+}
+
+function selectedVoiceForLanguage(language) {
+  if (/^fr([-_]|$)/i.test(language)) return selectedFrenchVoice();
+  const normalizedLanguage = String(language || "").toLowerCase().replace("_", "-");
+  const exact = allVoices.find((voice) => voice.lang?.toLowerCase() === normalizedLanguage);
+  if (exact) return exact;
+  const family = normalizedLanguage.split("-")[0];
+  return allVoices.find((voice) => voice.lang?.toLowerCase().startsWith(`${family}-`)) || null;
 }
 
 function selectedFrenchVoice() {
@@ -2072,6 +5178,9 @@ function renderPlaybackControls() {
   renderReaderPlayButton();
   renderSentencePlayButtons();
   renderWordPlayButton();
+  renderCoursePlaybackButtons();
+  renderCourseTurnPlayButtons();
+  renderPhrasebookPlayButtons();
 }
 
 function renderReaderPlayButton() {
@@ -2106,11 +5215,20 @@ function renderSentencePlayButtons() {
       button.innerHTML = icons.play;
       button.title = `继续第 ${index} 句`;
       button.setAttribute("aria-label", `继续第 ${index} 句`);
-    } else {
-      button.innerHTML = icons.speaker;
+  } else {
+      button.innerHTML = icons.play;
       button.title = `播放第 ${index} 句`;
       button.setAttribute("aria-label", `播放第 ${index} 句`);
     }
+  });
+}
+
+function renderPhrasebookPlayButtons() {
+  elements.vocabList?.querySelectorAll(".phrasebook-play").forEach((button) => {
+    const key = button.dataset.playbackKey;
+    const active = playback.key === key && playback.status === "playing";
+    const paused = playback.key === key && playback.status === "paused";
+    setButtonContent(button, active ? "pause" : "play", active ? "暂停" : paused ? "继续" : "播放");
   });
 }
 
@@ -2303,7 +5421,7 @@ function wordbookImportScopeOptions(bundle) {
   const customOptions = bundle.incomingWordbooks.map((wordbook) => {
     const scopeValue = wordbookScopeValue(wordbook.id);
     const count = vocabularyForScope(scopeValue, bundle.incomingVocabulary).length;
-    return { value: scopeValue, label: `单词本：${wordbook.title}（${count} 词）` };
+    return { value: scopeValue, label: `词句本：${wordbook.title}（${count} 词）` };
   });
   return [...systemOptions, ...customOptions];
 }
@@ -2446,7 +5564,7 @@ function ensureStateShape(raw) {
     currentText: String(stateLike.currentText || fallback.currentText),
     activeEntryId: stateLike.activeEntryId || null,
     ui: {
-      activeView: ["reader", "library", "vocab", "my"].includes(stateLike.ui?.activeView) ? stateLike.ui.activeView : "reader",
+      activeView: "course",
       selectedAlbumId: stateLike.ui?.selectedAlbumId || null,
       selectedTapeId: stateLike.ui?.selectedTapeId || null,
       selectedWordbookId: stateLike.ui?.selectedWordbookId || ALL_WORDBOOK_ID
@@ -2459,8 +5577,22 @@ function ensureStateShape(raw) {
     tapes: Array.isArray(stateLike.tapes) ? stateLike.tapes.map(normalizeTape).filter(Boolean) : [],
     entries: Array.isArray(stateLike.entries) ? stateLike.entries.map(normalizeEntry).filter(Boolean) : [],
     wordbooks: Array.isArray(stateLike.wordbooks) ? normalizeWordbookList(stateLike.wordbooks) : [],
-    vocabulary: Array.isArray(stateLike.vocabulary) ? normalizeVocabularyList(stateLike.vocabulary) : []
+    vocabulary: Array.isArray(stateLike.vocabulary) ? normalizeVocabularyList(stateLike.vocabulary) : [],
+    activeCourseId: stateLike.activeCourseId || fallback.activeCourseId,
+    courseLessons: Array.isArray(stateLike.courseLessons)
+      ? stateLike.courseLessons.map(normalizeCourseLesson).filter(Boolean)
+      : fallback.courseLessons,
+    phraseItems: Array.isArray(stateLike.phraseItems)
+      ? stateLike.phraseItems.map(normalizePhraseItem).filter(Boolean)
+      : fallback.phraseItems,
+    study: normalizeStudyState(stateLike.study || fallback.study)
   };
+
+  next.settings.systemLanguage = ["zh", "en", "fr"].includes(next.settings.systemLanguage) ? next.settings.systemLanguage : "zh";
+  next.settings.localAiEndpoint = String(next.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
+  next.settings.localAiModel = String(next.settings.localAiModel || "gemma3:4b").trim();
+
+  next.phraseItems = next.phraseItems.filter((item) => item.id !== "demo_phrase_3" && item.text !== "I would like to practise for ten minutes.");
 
   if (next.albums.length === 0) {
     return fallback;
@@ -2471,7 +5603,40 @@ function ensureStateShape(raw) {
   next.vocabulary.forEach((item) => {
     item.wordbookIds = validWordbookIds(item.wordbookIds, next.wordbooks);
   });
+  migrateLegacyAlbumsToCourses(next);
   return next;
+}
+
+function migrateLegacyAlbumsToCourses(next) {
+  next.albums.forEach((album) => {
+    if (album.courseLessonId) return;
+    const albumTapeIds = next.tapes.filter((tape) => tape.albumId === album.id).map((tape) => tape.id);
+    const entries = next.entries
+      .filter((entry) => albumTapeIds.includes(entry.tapeId))
+      .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    if (!entries.length) return;
+    const turns = entries.flatMap((entry) => splitCourseTurns(entry.text).map((part, index) => ({
+      id: `${entry.id}_turn_${index + 1}`,
+      text: part.text,
+      translation: "",
+      speakerId: part.speakerId || "a",
+      speakerLabel: part.speakerLabel || "默认说话人",
+      recording: { status: "none", durationMs: 0, mediaKey: "" }
+    })));
+    if (!turns.length) return;
+    const lesson = normalizeCourseLesson({
+      id: `course_${album.id}`,
+      title: album.title,
+      language: "fr",
+      explainLanguage: "zh",
+      materialType: "磁带素材",
+      description: `从「${album.title}」的 ${entries.length} 个自建段落转换而来`,
+      turns,
+      practice: { completed: 0, correct: 0 }
+    });
+    next.courseLessons.push(lesson);
+    album.courseLessonId = lesson.id;
+  });
 }
 
 function createStarterState(legacy) {
@@ -2485,7 +5650,10 @@ function createStarterState(legacy) {
     pause: legacy?.pause || "0.4",
     repeat: legacy?.repeat || "1",
     voice: legacy?.voice || "",
-    voiceLocked: Boolean(legacy?.voice)
+    voiceLocked: Boolean(legacy?.voice),
+    systemLanguage: "zh",
+    localAiEndpoint: "http://127.0.0.1:11434",
+    localAiModel: "gemma3:4b"
   };
 
   return {
@@ -2493,7 +5661,7 @@ function createStarterState(legacy) {
     currentText: legacyText,
     activeEntryId: null,
     ui: {
-      activeView: "reader",
+      activeView: "course",
       selectedAlbumId: albumId,
       selectedTapeId: tapeId,
       selectedWordbookId: ALL_WORDBOOK_ID
@@ -2503,8 +5671,9 @@ function createStarterState(legacy) {
       {
         id: albumId,
         title: "入门练习",
-        description: "从 v0.0 延续来的第一张专辑",
+        description: "从 v0.0 延续来的第一盘磁带",
         coverColor: "#0a5f59",
+        courseLessonId: "demo_lesson",
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -2533,7 +5702,24 @@ function createStarterState(legacy) {
       }
     ],
     wordbooks: [],
-    vocabulary: []
+    vocabulary: [],
+    activeCourseId: "demo_lesson",
+    courseLessons: [createDemoCourseLesson()],
+    phraseItems: createDemoPhraseItems(),
+    study: normalizeStudyState({})
+  };
+}
+
+function normalizeStudyState(study) {
+  const source = study && typeof study === "object" ? study : {};
+  return {
+    cardsReviewed: Math.max(0, Number(source.cardsReviewed || 0)),
+    cardsKnown: Math.max(0, Number(source.cardsKnown || 0)),
+    checkins: Math.max(0, Number(source.checkins || 0)),
+    streak: Math.max(0, Number(source.streak || 0)),
+    lastStudyDate: source.lastStudyDate || null,
+    dailyGoal: Math.max(1, Number(source.dailyGoal || 3)),
+    achievements: Array.isArray(source.achievements) ? [...new Set(source.achievements.map(String))] : []
   };
 }
 
@@ -2544,6 +5730,7 @@ function normalizeAlbum(album) {
     title: String(album.title),
     description: String(album.description || ""),
     coverColor: album.coverColor || pickAlbumColor(),
+    courseLessonId: album.courseLessonId ? String(album.courseLessonId) : "",
     createdAt: album.createdAt || nowIso(),
     updatedAt: album.updatedAt || nowIso()
   };
@@ -2569,6 +5756,9 @@ function normalizeEntry(entry) {
     title: String(entry.title),
     text: String(entry.text),
     notes: String(entry.notes || ""),
+    language: entry.language === "en" ? "en" : "fr",
+    materialType: ["情景对话", "文章", "歌词", "笔记", "自定义文本"].includes(entry.materialType) ? entry.materialType : inferStoredMaterialType(entry.text),
+    courseLessonId: entry.courseLessonId ? String(entry.courseLessonId) : "",
     practiceCount: Number(entry.practiceCount || 0),
     lastPracticedAt: entry.lastPracticedAt || null,
     createdAt: entry.createdAt || nowIso(),
@@ -2696,12 +5886,17 @@ async function readJson(key) {
   }
 }
 
-function persist() {
+function persist({ skipCloud = false } = {}) {
+  if (!state) return;
   renderMy();
   storageDriver.setLocal(APP_STORAGE_KEY, state).catch(() => {
     setStatus("保存失败");
   });
   queueSyncedSettings();
+  if (!skipCloud) {
+    writeCloudLocalMeta({ lastLocalChangeAt: new Date().toISOString() });
+    queueCloudSync();
+  }
 }
 
 function queueSyncedSettings() {
@@ -2713,7 +5908,10 @@ function queueSyncedSettings() {
       pause: state.settings.pause,
       repeat: state.settings.repeat,
       voice: state.settings.voice,
-      voiceLocked: state.settings.voiceLocked
+      voiceLocked: state.settings.voiceLocked,
+      systemLanguage: state.settings.systemLanguage,
+      localAiEndpoint: state.settings.localAiEndpoint,
+      localAiModel: state.settings.localAiModel
     };
     storageDriver.setSync(SYNC_STORAGE_KEY, {
       settings: syncedSettings,
