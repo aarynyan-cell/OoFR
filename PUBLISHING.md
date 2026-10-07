@@ -5,7 +5,7 @@
 - 公开仓库会公开源代码、图标、词库和静态资源；不要提交个人导出的学习数据、私钥、证书或未授权素材。
 - 当前项目没有后端密钥，也没有账号系统；个人学习数据只在用户自己的浏览器或插件本地保存。
 - 网页/PWA 发布到 GitHub Pages；在线版不提供生成式 AI，只读取本地数据和导入的 AI 缓存。
-- macOS 测试版为未签名安装包，发布 Apple Silicon 与 Intel 两个架构。
+- macOS 测试版使用 ad-hoc 签名，发布 Apple Silicon 与 Intel 两个架构；它没有 Apple Developer 身份签名或公证。
 - 如果要上架浏览器插件商店，需要生成插件 zip 包并提交审核。
 
 ## 源码可见性
@@ -62,7 +62,7 @@ OoFR-1.0.0-macOS-arm64.dmg
 OoFR-1.0.0-macOS-x64.dmg
 ```
 
-安装包目前没有 Apple Developer 签名或公证，必须标记为“macOS 测试版”；首次打开可能需要用户在 Finder 中右键选择“打开”。应用不绕过 Gatekeeper。首次 AI 安装会先显示许可与磁盘空间检查，再从 Ollama 官方发布地址下载运行时，并拉取 `gemma3:4b`。
+安装包使用 Tauri 官方建议的 ad-hoc 签名，避免浏览器下载后被误报为“应用已损坏”；但目前没有 Apple Developer 身份签名或公证，必须标记为“macOS 测试版”，首次打开仍可能需要用户在 Finder 中右键选择“打开”。应用不绕过 Gatekeeper。首次 AI 安装会先显示许可与磁盘空间检查，再从 Ollama 官方发布地址下载运行时，并拉取 `gemma3:4b`。
 
 ## 上架材料
 

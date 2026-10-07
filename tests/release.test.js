@@ -19,6 +19,7 @@ test("keeps every public release surface on version 1.0.0", () => {
   assert.equal(extensionManifest.version, version);
   assert.equal(desktopPackage.version, version);
   assert.equal(tauriConfig.version, version);
+  assert.equal(tauriConfig.bundle.macOS.signingIdentity, "-");
   assert.match(index, /OoFR · v1\.0\.0/);
   assert.doesNotMatch(index, /v=0\.25\.4|v0\.25\.4/);
   assert.match(serviceWorker, /version\.js\?v=1\.0\.0/);

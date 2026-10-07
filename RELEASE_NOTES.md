@@ -15,8 +15,12 @@ OoFR 的首次公开发行版，面向自选法语/英语素材学习。
 
 - 电脑与手机账号同步暂未开放；请使用学习包或完整备份迁移。
 - GitHub Pages 在线版不提供生成式 AI；可导入桌面端生成的 AI 缓存。
-- macOS 安装包尚未签名或公证，首次打开可能需要在 Finder 中右键选择“打开”。
+- macOS 安装包使用 ad-hoc 签名，但尚未经过 Apple Developer 身份签名或公证，首次打开可能需要在 Finder 中右键选择“打开”。
 - 学习包不包含录音；录音需单独导出。
+
+## macOS 安装包修复
+
+- 2026-10-08 重新生成两个 macOS 安装包，并为完整 `.app` 应用包添加 ad-hoc 签名，修复下载后被误报为“应用已损坏”的问题。
 
 ## 隐私
 
@@ -24,6 +28,6 @@ OoFR 的首次公开发行版，面向自选法语/英语素材学习。
 
 ## 安装包 SHA-256
 
-- `OoFR-1.0.0-macOS-arm64.dmg`：`a6b2466e9134d4ce9f3eefab222c793eacdb1a94b62cbf96ae0a290542ad6d94`
-- `OoFR-1.0.0-macOS-x64.dmg`：`d3201bf9119527a8376929c08aa0cf4cac17e40b3167453f0b3e7570f554c088`
+- `OoFR-1.0.0-macOS-arm64.dmg`：`2f5bc6949e126e706ccf794ca8fee390e94e54d24e115f89d39f7da468e4b848`
+- `OoFR-1.0.0-macOS-x64.dmg`：`b84bac1904a6a0e4dacdbea2cc242f9c53e265f6097d25628e741860a8d83f95`
 - `oofr-french-tape-extension-v1.0.0.zip`：`be30d6e911103917000f163a389773dba01c6293bdf7b9b668547b38a1ee9dc8`

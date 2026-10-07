@@ -131,7 +131,7 @@ ollama pull gemma3:4b
 ollama serve
 ```
 
-macOS 测试版会在首次启动时检测系统、处理器、磁盘空间、Ollama 和模型。它会优先复用用户已有的 Ollama 与 `gemma3:4b`；缺失时仅在用户确认许可后下载到 `~/Library/Application Support/OoFR/`，并且只监听 `127.0.0.1`。未签名测试版首次打开可能需要在 Finder 中右键选择“打开”。
+macOS 测试版会在首次启动时检测系统、处理器、磁盘空间、Ollama 和模型。它会优先复用用户已有的 Ollama 与 `gemma3:4b`；缺失时仅在用户确认许可后下载到 `~/Library/Application Support/OoFR/`，并且只监听 `127.0.0.1`。测试版使用 ad-hoc 签名，但尚未经过 Apple Developer 身份签名或公证，首次打开仍可能需要在 Finder 中右键选择“打开”。
 
 浏览器本地版打开后会自动检测本机 AI；也可以在“我的 → 语言与智能工具”保留地址 `http://127.0.0.1:11434`，手动点击“检测本地 AI”。模型设为 `auto` 时，OoFR 会优先选用已安装模型中体积较小的一个；明确指定模型时不会擅自替换，只有指定模型已不存在才会回退到可用模型。之后可以：
 
