@@ -1,6 +1,7 @@
-// Fill these two public browser values after creating the Supabase project.
-// Keep service_role keys out of this file and out of GitHub.
+// Cloud sync is intentionally unavailable in OoFR 1.0.0.
+// Keep this checked-in file empty. A future release may load deployment values
+// from a private environment, but service_role keys must never be used here.
 window.OOFR_SUPABASE_CONFIG = {
-  url: "https://dmvjbouwyvjiyyayvuji.supabase.co",
-  anonKey: "sb_publishable_7LY_7bby-fq98loC9v3ZBA_d3ZK6vC1"
+  url: "",
+  anonKey: ""
 };

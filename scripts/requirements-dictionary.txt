@@ -1,0 +1,2 @@
+# Build-time only. Generated dictionary files do not require Python packages.
+opencc-python-reimplemented==0.1.7

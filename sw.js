@@ -1,12 +1,18 @@
-const CACHE_NAME = "oofr-v0.19.3";
+importScripts("./version.js?v=1.0.0");
+
+const CACHE_NAME = `oofr-v${self.OOFR_VERSION || "1.0.0"}`;
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./reset.html",
-  "./styles.css?v=0.19.3",
-  "./supabase-config.js?v=0.19.3",
-  "./cloud-sync.js?v=0.19.3",
-  "./app.js?v=0.19.3",
+  "./version.js?v=1.0.0",
+  "./learning-package.js?v=1.0.0",
+  "./styles.css?v=1.0.0",
+  "./desktop-ai.js?v=1.0.0",
+  "./ollama-client.js?v=1.0.0",
+  "./dictionary.js?v=1.0.0",
+  "./dictionary/manifest.json",
+  "./app.js?v=1.0.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
@@ -41,7 +47,7 @@ self.addEventListener("fetch", (event) => {
   const acceptsHtml = event.request.headers.get("accept")?.includes("text/html");
   if (event.request.mode === "navigate" || acceptsHtml) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "no-cache" })
         .then((response) => {
           cacheOkResponse(event.request, response);
           return response;
@@ -52,7 +58,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: "no-cache" })
       .then((response) => {
         cacheOkResponse(event.request, response);
         return response;

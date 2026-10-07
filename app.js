@@ -6,7 +6,14 @@ const APP_STORAGE_KEY = "oofr.app.v1";
 const SYNC_STORAGE_KEY = "oofr.sync.v1";
 const CLOUD_LOCAL_META_KEY = "oofr.cloud.local-meta.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
-const ASSET_VERSION = "0.19.3";
+const APP_VERSION = globalThis.OOFR_VERSION || "1.0.0";
+const ASSET_VERSION = APP_VERSION;
+const CLOUD_SYNC_ENABLED = false;
+const LEARNING_PACKAGE_TYPE = "oofr.learning-package";
+const LEARNING_PACKAGE_SCHEMA_VERSION = 1;
+const DESKTOP_AI_MODEL = "gemma3:4b";
+const DICTIONARY_ENRICHMENT_VERSION = "3";
+const AI_CONTENT_VERSION = "2";
 const LEXICON_SCRIPT_SRC = `./lexicon.js?v=${ASSET_VERSION}`;
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
 const CHROME_DEFAULT_VOICE = "Google français";
@@ -16,11 +23,13 @@ const KNOWN_LEXICAL_UNITS = {
   "les liaisons": { lemma: "liaison", ipa: "/ljɛ.zɔ̃/", pos: "locution nominale", zh: "法语中的连音现象", en: "liaison between adjacent words", fr: "enchaînement phonétique entre deux mots", forms: "原型：une liaison · 复数：les liaisons" },
   "s'appeler": { lemma: "s’appeler", ipa: "/sa.ple/", pos: "verbe pronominal", zh: "名叫；称为", en: "to be called", fr: "porter un nom", forms: "je m’appelle · tu t’appelles · il/elle s’appelle" },
   "m'appelle": { lemma: "s’appeler", ipa: "/ma.pɛl/", pos: "verbe pronominal · 1re personne", zh: "我叫……；原型为 s’appeler", en: "I am called; infinitive: s’appeler", fr: "forme de s’appeler à la première personne", forms: "原型：s’appeler · je m’appelle" },
-  "j'apprends": { lemma: "apprendre", ipa: "/ʒa.pʁɑ̃/", pos: "verbe · 1re personne", zh: "我学习；原型为 apprendre", en: "I learn; infinitive: apprendre", fr: "forme d’apprendre à la première personne", forms: "原型：apprendre · j’apprends · nous apprenons" }
+  "j'apprends": { lemma: "apprendre", ipa: "/ʒa.pʁɑ̃/", pos: "verbe · 1re personne", zh: "我学习；原型为 apprendre", en: "I learn; infinitive: apprendre", fr: "forme d’apprendre à la première personne", forms: "原型：apprendre · j’apprends · nous apprenons" },
+  "un peu": { lemma: "un peu", ipa: "/œ̃ pø/", pos: "locution adverbiale", zh: "一点；有点；稍微", en: "a little; a bit; slightly", fr: "en petite quantité ou légèrement", forms: "固定表达：un peu（整体理解，不拆分）" }
 };
 const COURSE_WORD_OVERRIDES = {
+  bonjour: { lemma: "bonjour", pos: "感叹词", zh: "你好；您好；早上好（白天见面时的问候）", en: "hello; good morning; good day", fr: "salutation employée dans la journée" },
   organiser: { lemma: "organiser", pos: "动词", zh: "组织；安排；筹办", en: "to organise; to arrange", fr: "préparer et coordonner une activité" },
-  esperer: { lemma: "espérer", pos: "动词", zh: "希望；期望", en: "to hope", fr: "souhaiter qu’une chose se réalise" },
+  "espérer": { lemma: "espérer", pos: "动词", zh: "希望；期望", en: "to hope", fr: "souhaiter qu’une chose se réalise" },
   individuel: { lemma: "individuel", pos: "形容词", zh: "个人的；单独的；个体的", en: "individual; personal", fr: "qui concerne une seule personne" }
 };
 const LOCAL_TRANSLATIONS = {
@@ -157,6 +166,13 @@ const elements = {
   exportBtn: document.querySelector("#exportBtn"),
   importBtn: document.querySelector("#importBtn"),
   importFile: document.querySelector("#importFile"),
+  learningPackageDialog: document.querySelector("#learningPackageDialog"),
+  learningPackageTitle: document.querySelector("#learningPackageTitle"),
+  learningPackagePreview: document.querySelector("#learningPackagePreview"),
+  learningPackageCloseBtn: document.querySelector("#learningPackageCloseBtn"),
+  learningPackageCancelBtn: document.querySelector("#learningPackageCancelBtn"),
+  learningPackageCopyBtn: document.querySelector("#learningPackageCopyBtn"),
+  learningPackageUpdateBtn: document.querySelector("#learningPackageUpdateBtn"),
   wordbookExportScope: document.querySelector("#wordbookExportScope"),
   wordbookExportBtn: document.querySelector("#wordbookExportBtn"),
   wordbookImportBtn: document.querySelector("#wordbookImportBtn"),
@@ -180,8 +196,18 @@ const elements = {
   systemLanguageSelect: document.querySelector("#systemLanguageSelect"),
   localAiEndpointInput: document.querySelector("#localAiEndpointInput"),
   localAiModelInput: document.querySelector("#localAiModelInput"),
+  localAiModelOptions: document.querySelector("#localAiModelOptions"),
   localAiTestBtn: document.querySelector("#localAiTestBtn"),
   localAiStatus: document.querySelector("#localAiStatus"),
+  desktopAiSetupDialog: document.querySelector("#desktopAiSetupDialog"),
+  desktopAiSetupCloseBtn: document.querySelector("#desktopAiSetupCloseBtn"),
+  desktopAiSetupStatus: document.querySelector("#desktopAiSetupStatus"),
+  desktopAiSetupDetail: document.querySelector("#desktopAiSetupDetail"),
+  desktopAiSetupProgress: document.querySelector("#desktopAiSetupProgress"),
+  desktopAiProgressTrack: document.querySelector(".desktop-ai-progress-track"),
+  desktopAiTermsCheck: document.querySelector("#desktopAiTermsCheck"),
+  desktopAiInstallBtn: document.querySelector("#desktopAiInstallBtn"),
+  desktopAiCancelBtn: document.querySelector("#desktopAiCancelBtn"),
   dialog: document.querySelector("#appDialog"),
   dialogForm: document.querySelector("#dialogForm"),
   dialogTitle: document.querySelector("#dialogTitle"),
@@ -217,6 +243,9 @@ const elements = {
   courseMicHint: document.querySelector("#courseMicHint"),
   courseEditBtn: document.querySelector("#courseEditBtn"),
   coursePracticeBtn: document.querySelector("#coursePracticeBtn"),
+  courseExportLearningPackageBtn: document.querySelector("#courseExportLearningPackageBtn"),
+  courseImportLearningPackageBtn: document.querySelector("#courseImportLearningPackageBtn"),
+  courseLearningPackageFile: document.querySelector("#courseLearningPackageFile"),
   courseExportRecordingsBtn: document.querySelector("#courseExportRecordingsBtn"),
   courseSpeakerSelect: document.querySelector("#courseSpeakerSelect"),
   courseSegmentStart: document.querySelector("#courseSegmentStart"),
@@ -258,6 +287,7 @@ const elements = {
   coursePopoverPronunciation: document.querySelector("#coursePopoverPronunciation"),
   coursePopoverMeaning: document.querySelector("#coursePopoverMeaning"),
   coursePopoverForms: document.querySelector("#coursePopoverForms"),
+  coursePopoverSource: document.querySelector("#coursePopoverSource"),
   coursePopoverLookupBtn: document.querySelector("#coursePopoverLookupBtn"),
   courseWordDetailDialog: document.querySelector("#courseWordDetailDialog"),
   courseWordDetailTitle: document.querySelector("#courseWordDetailTitle"),
@@ -265,6 +295,12 @@ const elements = {
   courseWordDetailBody: document.querySelector("#courseWordDetailBody"),
   courseWordDetailStatus: document.querySelector("#courseWordDetailStatus"),
   courseWordDetailCloseBtn: document.querySelector("#courseWordDetailCloseBtn"),
+  courseSentenceDetailDialog: document.querySelector("#courseSentenceDetailDialog"),
+  courseSentenceDetailTitle: document.querySelector("#courseSentenceDetailTitle"),
+  courseSentenceDetailMeta: document.querySelector("#courseSentenceDetailMeta"),
+  courseSentenceDetailBody: document.querySelector("#courseSentenceDetailBody"),
+  courseSentenceDetailStatus: document.querySelector("#courseSentenceDetailStatus"),
+  courseSentenceDetailCloseBtn: document.querySelector("#courseSentenceDetailCloseBtn"),
   courseBackToPlayerBtn: document.querySelector("#courseBackToPlayerBtn"),
   coursePracticeMeta: document.querySelector("#coursePracticeMeta"),
   coursePracticePrompt: document.querySelector("#coursePracticePrompt"),
@@ -312,8 +348,18 @@ let phrasePracticePromptLanguage = "original";
 let phrasePracticeSpeaking = false;
 let selectedCourseWord = null;
 let dictionaryCache = new Map();
+let dictionaryEnrichmentRuns = new Map();
+let dictionaryEnrichmentQueue = Promise.resolve();
 let courseWordDetailRunId = 0;
+let courseSentenceDetailRunId = 0;
 let translationCache = new Map();
+let courseTranslationPendingIds = new Set();
+let courseTranslationErrorIds = new Set();
+let courseTranslationRuns = new Map();
+let courseEnrichmentRuns = new Map();
+let courseEnrichmentQueue = Promise.resolve();
+let localAiClient = null;
+let localAiClientKey = "";
 let coursePracticeIndex = 0;
 let coursePracticeRevealed = false;
 let phrasePracticeItems = [];
@@ -325,8 +371,10 @@ let libraryAlbumScope = "";
 let libraryMaterialFilter = "all";
 let libraryMaterialSearch = "";
 let courseMaterialAnalysis = null;
+let pendingLearningPackage = null;
 let courseAnalysisTimer = 0;
 let courseAnalysisRunId = 0;
+let lastLocalAiError = null;
 
 initApp();
 
@@ -336,7 +384,7 @@ async function initApp() {
   state = await loadAppState();
   updateStartupProgress("settings", "恢复播放和显示设置", 38);
   await applySyncedSettings();
-  await initCloudSync();
+  renderCloudSync();
   updateStartupProgress("settings", "准备课程操作", 52);
   bindEvents();
   ensureSelections();
@@ -344,10 +392,14 @@ async function initApp() {
   loadVoices();
   updateStartupProgress("screen", "绘制课程、磁带和词句本", 72);
   renderAll();
+  const activeLesson = getActiveCourseLesson();
+  if (activeLesson && activeLesson.id !== "demo_lesson") scheduleCourseBackgroundEnrichment(activeLesson);
   updateStartupProgress("ready", "基础界面已就绪", 100);
   hideStartupLoader();
   registerServiceWorker();
   loadLexiconInBackground();
+  void hydrateVocabularyFromStructuredDictionary();
+  void initializeRuntimeAi();
 
   if (canSpeak()) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -357,6 +409,10 @@ async function initApp() {
 }
 
 async function initCloudSync() {
+  if (!CLOUD_SYNC_ENABLED) {
+    renderCloudSync();
+    return;
+  }
   cloudSyncState.configured = Boolean(globalThis.OoFRCloud?.isConfigured?.());
   const localMeta = readCloudLocalMeta();
   cloudSyncState.lastSyncAt = localMeta.lastSyncAt || null;
@@ -396,6 +452,19 @@ function writeCloudLocalMeta(next) {
 
 function renderCloudSync() {
   if (!elements.cloudSyncStatus) return;
+  if (!CLOUD_SYNC_ENABLED) {
+    cloudSyncState.configured = false;
+    cloudSyncState.session = null;
+    elements.cloudSyncBadge.textContent = "该功能暂未开放";
+    elements.cloudSyncBadge.classList.add("is-unavailable");
+    elements.cloudSyncStatus.textContent = "1.0.0 暂不提供账号登录或自动同步，学习数据只保存在当前设备。";
+    elements.cloudSyncLoggedOut.hidden = false;
+    elements.cloudSyncLoggedIn.hidden = true;
+    elements.cloudSyncEmail.disabled = true;
+    elements.cloudSyncLoginBtn.disabled = true;
+    elements.cloudSyncLoginHint.textContent = "可先在课程页导出学习包，再在手机导入离线复习。";
+    return;
+  }
   const configured = cloudSyncState.configured;
   const session = cloudSyncState.session;
   elements.cloudSyncLoggedOut.hidden = Boolean(session);
@@ -502,6 +571,7 @@ async function syncCloudNow({ prefer = "local", silent = false } = {}) {
 }
 
 function queueCloudSync() {
+  if (!CLOUD_SYNC_ENABLED) return;
   if (!cloudSyncState.session || cloudHydrating) return;
   window.clearTimeout(cloudSyncTimer);
   cloudSyncTimer = window.setTimeout(() => {
@@ -617,6 +687,50 @@ function hydrateVocabularyFromLexicon() {
   renderMy();
 }
 
+async function hydrateVocabularyFromStructuredDictionary() {
+  if (!state || !window.OOFR_DICTIONARY?.lookup || !state.vocabulary.length) return;
+  try {
+    await window.OOFR_DICTIONARY.ready();
+    const updates = await Promise.all(state.vocabulary.map(async (item) => {
+      const surface = preferredVocabularySurface(item);
+      const language = item.language === "en" ? "en" : "fr";
+      const local = await window.OOFR_DICTIONARY.lookup(surface, language);
+      return { item, surface, language, local };
+    }));
+    let changed = false;
+    updates.forEach(({ item, surface, language, local }) => {
+      if (!local) return;
+      const presentation = vocabularyPresentation(surface, { lemma: local.lemma, pos: local.pos }, language);
+      const next = {
+        word: presentation.displayWord,
+        surface: presentation.surface,
+        lemma: presentation.lemma,
+        normalized: presentation.identity,
+        partOfSpeech: local.pos || item.partOfSpeech || "",
+        ipa: isVerbPartOfSpeech(local.pos) ? (local.ipa || item.ipa) : (local.formIpa || local.ipa || item.ipa),
+        zh: local.zh || item.zh,
+        en: local.en || item.en || "",
+        language
+      };
+      Object.entries(next).forEach(([key, value]) => {
+        if (value && item[key] !== value) {
+          item[key] = value;
+          changed = true;
+        }
+      });
+    });
+    if (!changed) return;
+    state.vocabulary = normalizeVocabularyList(state.vocabulary);
+    persist();
+    renderWordbooks();
+    renderVocab();
+    renderSentences();
+    renderWordPanel();
+  } catch {
+    // The compact embedded lexicon remains available when dictionary files cannot be fetched.
+  }
+}
+
 function hydrateIcons() {
   document.querySelectorAll("[data-icon]").forEach((node) => {
     const name = node.dataset.icon;
@@ -638,9 +752,11 @@ function bindEvents() {
 
   elements.studyCheckinBtn.addEventListener("click", markTodayCheckin);
   elements.studyShareBtn.addEventListener("click", shareStudyAchievement);
-  elements.cloudSyncLoginBtn?.addEventListener("click", requestCloudLogin);
-  elements.cloudSyncNowBtn?.addEventListener("click", () => syncCloudNow({ prefer: "local" }));
-  elements.cloudSyncSignOutBtn?.addEventListener("click", signOutCloud);
+  if (CLOUD_SYNC_ENABLED) {
+    elements.cloudSyncLoginBtn?.addEventListener("click", requestCloudLogin);
+    elements.cloudSyncNowBtn?.addEventListener("click", () => syncCloudNow({ prefer: "local" }));
+    elements.cloudSyncSignOutBtn?.addEventListener("click", signOutCloud);
+  }
   elements.systemLanguageSelect.addEventListener("change", () => {
     state.settings.systemLanguage = elements.systemLanguageSelect.value;
     document.documentElement.lang = state.settings.systemLanguage === "fr" ? "fr" : state.settings.systemLanguage === "en" ? "en" : "zh-CN";
@@ -653,6 +769,12 @@ function bindEvents() {
   elements.localAiEndpointInput.addEventListener("change", saveLocalAiSettings);
   elements.localAiModelInput.addEventListener("change", saveLocalAiSettings);
   elements.localAiTestBtn.addEventListener("click", testLocalAiConnection);
+  elements.desktopAiTermsCheck?.addEventListener("change", () => {
+    elements.desktopAiInstallBtn.disabled = !elements.desktopAiTermsCheck.checked;
+  });
+  elements.desktopAiInstallBtn?.addEventListener("click", installDesktopAi);
+  elements.desktopAiCancelBtn?.addEventListener("click", cancelDesktopAiSetup);
+  elements.desktopAiSetupCloseBtn?.addEventListener("click", () => elements.desktopAiSetupDialog?.close());
 
   bindCourseEvents();
 
@@ -719,6 +841,10 @@ function bindEvents() {
   elements.exportBtn.addEventListener("click", exportData);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", importData);
+  elements.learningPackageCloseBtn?.addEventListener("click", closeLearningPackagePreview);
+  elements.learningPackageCancelBtn?.addEventListener("click", closeLearningPackagePreview);
+  elements.learningPackageUpdateBtn?.addEventListener("click", () => importPendingLearningPackage("update"));
+  elements.learningPackageCopyBtn?.addEventListener("click", () => importPendingLearningPackage("copy"));
   elements.wordbookExportBtn.addEventListener("click", exportWordbooks);
   elements.wordbookImportBtn.addEventListener("click", () => elements.wordbookImportFile.click());
   elements.wordbookImportFile.addEventListener("change", importWordbooks);
@@ -901,6 +1027,9 @@ function bindCourseEvents() {
     setStatus(`已定位到第 ${courseCurrentTurnIndex + 1} 句`);
   });
   elements.courseVoiceButton.addEventListener("click", toggleCompactVoiceMenu);
+  elements.courseExportLearningPackageBtn?.addEventListener("click", exportActiveLearningPackage);
+  elements.courseImportLearningPackageBtn?.addEventListener("click", () => elements.courseLearningPackageFile?.click());
+  elements.courseLearningPackageFile?.addEventListener("change", previewLearningPackageFile);
   elements.courseExportRecordingsBtn.addEventListener("click", exportCourseRecordings);
   elements.courseWordPopoverCloseBtn.addEventListener("click", closeCourseWordPopover);
   elements.courseWordFavoriteBtn.addEventListener("click", toggleCourseWordFavorite);
@@ -911,6 +1040,11 @@ function bindCourseEvents() {
     if (event.target === elements.courseWordDetailDialog) closeCourseWordDetail();
   });
   elements.courseWordDetailDialog?.addEventListener("close", () => { courseWordDetailRunId += 1; });
+  elements.courseSentenceDetailCloseBtn?.addEventListener("click", closeCourseSentenceDetail);
+  elements.courseSentenceDetailDialog?.addEventListener("click", (event) => {
+    if (event.target === elements.courseSentenceDetailDialog) closeCourseSentenceDetail();
+  });
+  elements.courseSentenceDetailDialog?.addEventListener("close", () => { courseSentenceDetailRunId += 1; });
   if (elements.courseWordHelpBtn) elements.courseWordHelpBtn.addEventListener("click", () => setStatus("快捷键：←/→ 切换句子，空格播放/暂停，S 收藏当前词句"));
   elements.courseRevealBtn.addEventListener("click", revealCoursePracticeAnswer);
   elements.courseAgainBtn.addEventListener("click", () => advanceCoursePractice(false));
@@ -1032,6 +1166,19 @@ function normalizeCourseLesson(lesson) {
       translation: String(turn.translation || "").trim(),
       speakerId: forceNarration ? "narrator" : String(turn.speakerId || (index % 2 === 0 ? "a" : "b")),
       speakerLabel: forceNarration ? "旁白" : String(turn.speakerLabel || (index % 2 === 0 ? "A" : "B")),
+      aiExplanation: turn.aiExplanation && typeof turn.aiExplanation === "object" ? {
+        summary: String(turn.aiExplanation.summary || ""),
+        structure: String(turn.aiExplanation.structure || ""),
+        grammarPoints: Array.isArray(turn.aiExplanation.grammarPoints) ? turn.aiExplanation.grammarPoints.map(String) : [],
+        morphology: String(turn.aiExplanation.morphology || ""),
+        pitfalls: Array.isArray(turn.aiExplanation.pitfalls) ? turn.aiExplanation.pitfalls.map(String) : [],
+        examples: Array.isArray(turn.aiExplanation.examples) ? turn.aiExplanation.examples.map(String) : [],
+        model: String(turn.aiExplanation.model || ""),
+        language: String(turn.aiExplanation.language || ""),
+        version: String(turn.aiExplanation.version || ""),
+        cacheSource: String(turn.aiExplanation.cacheSource || ""),
+        generatedAt: turn.aiExplanation.generatedAt || null
+      } : null,
       recording: normalizeCourseRecording(turn.recording)
     };
   }).filter((turn) => turn.text) : [];
@@ -1044,11 +1191,14 @@ function normalizeCourseLesson(lesson) {
     description: String(lesson.description || ""),
     createdAt: lesson.createdAt || nowIso(),
     updatedAt: lesson.updatedAt || nowIso(),
+    aiPreparedAt: lesson.aiPreparedAt || null,
+    aiPreparedSignature: String(lesson.aiPreparedSignature || ""),
     turns,
     lexicalUnits: Array.isArray(lesson.lexicalUnits) ? lesson.lexicalUnits.map((item) => ({
       text: String(item.text || "").trim(),
       lemma: String(item.lemma || item.text || "").trim(),
-      type: String(item.type || "expression").trim()
+      type: String(item.type || "expression").trim(),
+      verified: item.verified === "dictionary" ? "dictionary" : ""
     })).filter((item) => item.text) : [],
     practice: {
       completed: Math.max(0, Number(lesson.practice?.completed || 0)),
@@ -1128,27 +1278,195 @@ function systemExplainLanguage() {
   return ["zh", "en", "fr"].includes(language) ? language : "zh";
 }
 
+function isDesktopRuntime() {
+  return Boolean(globalThis.OoFRDesktopAi?.isDesktop?.());
+}
+
+function isHostedOnlineRuntime() {
+  if (isDesktopRuntime()) return false;
+  return /^https?:$/.test(window.location.protocol)
+    && !["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
+}
+
+function localAiRuntimeEnabled() {
+  return isDesktopRuntime() || !isHostedOnlineRuntime();
+}
+
+async function initializeRuntimeAi() {
+  if (isDesktopRuntime()) {
+    await initializeDesktopAi();
+    return;
+  }
+  if (isHostedOnlineRuntime()) {
+    elements.localAiEndpointInput.disabled = true;
+    elements.localAiModelInput.disabled = true;
+    elements.localAiTestBtn.disabled = true;
+    elements.localAiStatus.textContent = "在线 AI 暂未开放；可在 macOS 版生成后导入学习包";
+    return;
+  }
+  void testLocalAiConnection({ probe: false });
+}
+
+let desktopAiLastStatus = null;
+let desktopAiProgressUnlisten = null;
+
+async function initializeDesktopAi() {
+  elements.localAiEndpointInput.disabled = true;
+  elements.localAiStatus.textContent = "正在启动本地 AI…";
+  if (!desktopAiProgressUnlisten) {
+    desktopAiProgressUnlisten = await globalThis.OoFRDesktopAi.listenProgress(updateDesktopAiProgress);
+  }
+  try {
+    desktopAiLastStatus = await globalThis.OoFRDesktopAi.status();
+    if (desktopAiLastStatus.runtimeInstalled && !desktopAiLastStatus.serverRunning) {
+      await globalThis.OoFRDesktopAi.start();
+      desktopAiLastStatus = await globalThis.OoFRDesktopAi.status();
+    }
+    const modelReady = (desktopAiLastStatus.models || []).some((item) => (item.name || item.model) === DESKTOP_AI_MODEL);
+    if (!desktopAiLastStatus.runtimeInstalled || !modelReady) {
+      showDesktopAiSetup(desktopAiLastStatus);
+      return;
+    }
+    if (!desktopAiLastStatus.serverRunning) await globalThis.OoFRDesktopAi.start();
+    state.settings.localAiModel = DESKTOP_AI_MODEL;
+    elements.localAiModelInput.value = DESKTOP_AI_MODEL;
+    persist();
+    await testLocalAiConnection({ probe: true });
+  } catch (error) {
+    elements.localAiStatus.textContent = error?.message || "本地 AI 启动失败";
+    showDesktopAiSetup(desktopAiLastStatus, error?.message);
+  }
+}
+
+function showDesktopAiSetup(status = {}, errorMessage = "") {
+  if (!elements.desktopAiSetupDialog) return;
+  const freeGb = status.availableBytes ? (status.availableBytes / 1073741824).toFixed(1) : "未知";
+  elements.desktopAiSetupStatus.textContent = errorMessage || (status.runtimeInstalled ? "需要下载 gemma3:4b" : "需要安装 Ollama 运行时和 gemma3:4b");
+  elements.desktopAiSetupDetail.textContent = `可用空间：${freeGb} GB。首次安装约需下载 3.5GB，完成后可以一键启动。`;
+  elements.desktopAiInstallBtn.disabled = !elements.desktopAiTermsCheck.checked;
+  if (!elements.desktopAiSetupDialog.open) elements.desktopAiSetupDialog.showModal();
+}
+
+function updateDesktopAiProgress(progress = {}) {
+  const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
+  elements.desktopAiSetupProgress.style.width = `${percent}%`;
+  elements.desktopAiProgressTrack?.setAttribute("aria-valuenow", String(Math.round(percent)));
+  elements.desktopAiSetupStatus.textContent = progress.message || progress.stage || "正在准备本地 AI…";
+  if (progress.total) {
+    const completedGb = (Number(progress.completed || 0) / 1073741824).toFixed(2);
+    const totalGb = (Number(progress.total) / 1073741824).toFixed(2);
+    elements.desktopAiSetupDetail.textContent = `${completedGb} / ${totalGb} GB`;
+  }
+}
+
+async function installDesktopAi() {
+  if (!elements.desktopAiTermsCheck.checked) return;
+  elements.desktopAiInstallBtn.disabled = true;
+  elements.desktopAiCancelBtn.disabled = false;
+  try {
+    let status = await globalThis.OoFRDesktopAi.status();
+    if (Number(status.availableBytes || 0) < 6 * 1073741824) throw new Error("至少需要 6GB 可用空间才能安装本地 AI");
+    if (!status.runtimeInstalled) await globalThis.OoFRDesktopAi.installRuntime();
+    await globalThis.OoFRDesktopAi.start();
+    status = await globalThis.OoFRDesktopAi.status();
+    if (!(status.models || []).some((item) => (item.name || item.model) === DESKTOP_AI_MODEL)) {
+      await globalThis.OoFRDesktopAi.pullModel(DESKTOP_AI_MODEL);
+    }
+    state.settings.localAiModel = DESKTOP_AI_MODEL;
+    elements.localAiModelInput.value = DESKTOP_AI_MODEL;
+    persist();
+    updateDesktopAiProgress({ percent: 100, message: "本地 AI 已准备好" });
+    await testLocalAiConnection({ probe: true });
+    window.setTimeout(() => elements.desktopAiSetupDialog?.close(), 500);
+  } catch (error) {
+    elements.desktopAiSetupStatus.textContent = error?.message || "本地 AI 安装失败，请重试";
+    elements.desktopAiInstallBtn.disabled = false;
+  }
+}
+
+async function cancelDesktopAiSetup() {
+  try { await globalThis.OoFRDesktopAi?.cancelSetup?.(); } catch { /* The setup may already have ended. */ }
+  elements.desktopAiSetupStatus.textContent = "已取消；可以稍后重新安装";
+  elements.desktopAiInstallBtn.disabled = !elements.desktopAiTermsCheck.checked;
+}
+
 function saveLocalAiSettings() {
-  state.settings.localAiEndpoint = String(elements.localAiEndpointInput.value || "http://127.0.0.1:11434").trim().replace(/\/$/, "");
-  state.settings.localAiModel = String(elements.localAiModelInput.value || "gemma3:4b").trim();
+  const previousKey = `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`;
+  if (!isDesktopRuntime()) {
+    state.settings.localAiEndpoint = String(elements.localAiEndpointInput.value || "http://127.0.0.1:11434").trim().replace(/\/$/, "");
+  }
+  state.settings.localAiModel = String(elements.localAiModelInput.value || "auto").trim() || "auto";
+  if (previousKey !== `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`) {
+    localAiClient = null;
+    localAiClientKey = "";
+  }
   persist();
   elements.localAiStatus.textContent = "设置已保存，尚未检测";
 }
 
-async function testLocalAiConnection() {
+function createLocalAiClient(timeoutMs = 30000) {
+  if (!localAiRuntimeEnabled()) throw new Error("在线 AI 暂未开放；请在 macOS 版生成后导入学习包");
+  if (!globalThis.OoFROllama?.Client) throw new Error("Ollama client unavailable");
+  const key = `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`;
+  if (!localAiClient || localAiClientKey !== key) {
+    localAiClient = new globalThis.OoFROllama.Client({
+      endpoint: state.settings.localAiEndpoint,
+      model: state.settings.localAiModel,
+      timeoutMs,
+      keepAlive: "30m"
+    });
+    localAiClientKey = key;
+  }
+  localAiClient.timeoutMs = timeoutMs;
+  return localAiClient;
+}
+
+function describeLocalAiError(error) {
+  return globalThis.OoFROllama?.describeError?.(error) || "无法连接本机 Ollama";
+}
+
+async function testLocalAiConnection(options = {}) {
+  if (!localAiRuntimeEnabled()) {
+    elements.localAiStatus.textContent = "在线 AI 暂未开放；可在 macOS 版生成后导入学习包";
+    return;
+  }
+  const shouldProbe = options?.probe !== false;
   saveLocalAiSettings();
   elements.localAiStatus.textContent = "正在检测…";
   try {
-    const response = await fetch(`${state.settings.localAiEndpoint}/api/tags`, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    const models = (payload.models || []).map((item) => item.name);
+    const client = createLocalAiClient(6000);
+    const models = await client.listModels();
+    const sortedModels = [...models].sort((left, right) => (left.size || Number.MAX_SAFE_INTEGER) - (right.size || Number.MAX_SAFE_INTEGER));
+    if (elements.localAiModelOptions) {
+      elements.localAiModelOptions.replaceChildren(
+        new Option("自动选择体积较小的模型（推荐）", "auto"),
+        ...sortedModels.map((item) => new Option(item.name, item.name))
+      );
+    }
+    if (!models.length) throw new globalThis.OoFROllama.OllamaError("no-models", "Ollama 已连接，但还没有安装模型");
     const wanted = state.settings.localAiModel;
-    elements.localAiStatus.textContent = models.some((name) => name === wanted || name.startsWith(`${wanted}:`))
-      ? `已连接 · ${wanted}`
-      : `已连接，但尚未安装 ${wanted}`;
-  } catch {
-    elements.localAiStatus.textContent = "未连接；仍可使用本地规则和开放词典";
+    const installed = models.find((item) => item.name === wanted || item.name.startsWith(`${wanted}:`));
+    const automatic = !wanted || wanted === "auto";
+    if (!automatic && !installed) throw new globalThis.OoFROllama.OllamaError("model-not-found", `尚未安装模型 ${wanted}`, { models });
+    const selected = automatic ? sortedModels[0].name : installed.name;
+    elements.localAiModelInput.value = automatic ? "auto" : selected;
+    if (shouldProbe) {
+      const probe = await client.chatJson({
+        model: selected,
+        prompt: "Return a JSON object with ok=true and no other fields.",
+        schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
+        timeoutMs: 30000,
+        options: { num_predict: 24 }
+      });
+      if (probe.data?.ok !== true) throw new Error("模型未通过结构化输出测试");
+    }
+    lastLocalAiError = null;
+    elements.localAiStatus.textContent = automatic
+      ? `${shouldProbe ? "已连接并完成推理" : "已连接"} · 自动使用 ${selected}`
+      : `${shouldProbe ? "已连接并完成推理" : "已连接"} · ${selected}`;
+  } catch (error) {
+    lastLocalAiError = error;
+    elements.localAiStatus.textContent = describeLocalAiError(error);
   }
 }
 
@@ -1171,12 +1489,16 @@ async function analyzeCourseMaterial({ deep = false } = {}) {
   applyDetectedMaterialMetadata(local);
   renderCourseMaterialAnalysis();
   if (!deep) return;
+  if (!localAiRuntimeEnabled()) {
+    elements.courseAnalysisStatus.textContent = "已使用本地规则；在线 AI 暂未开放，可在 macOS 版继续深度分析。";
+    return;
+  }
 
   elements.courseAnalysisStatus.textContent = "本地规则已完成，正在尝试本机开源 AI…";
   const aiResult = await analyzeMaterialWithLocalAi(text, local);
   if (runId !== courseAnalysisRunId) return;
   if (!aiResult) {
-    elements.courseAnalysisStatus.textContent = "已使用本地规则；未连接本机 AI，不影响继续生成课程。";
+    elements.courseAnalysisStatus.textContent = `已使用本地规则；${describeLocalAiError(lastLocalAiError)}。`;
     return;
   }
   courseMaterialAnalysis = mergeMaterialAnalysis(local, aiResult);
@@ -1230,8 +1552,6 @@ function analyzeMaterialLocally(text) {
 }
 
 async function analyzeMaterialWithLocalAi(text, fallback) {
-  const endpoint = String(state.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
-  const model = String(state.settings.localAiModel || "gemma3:4b");
   const schema = {
     type: "object",
     properties: {
@@ -1249,18 +1569,14 @@ async function analyzeMaterialWithLocalAi(text, fallback) {
   };
   const prompt = `Analyze this language-learning material. Detect French or English and classify it. Set isDialogue=true only when the text genuinely contains two or more people taking turns speaking; an article, narration, list, heading, colon, quotation, or reported speech is not automatically a dialogue. Only for genuine dialogue, identify speakers and rename them A/B/C in order. Find fixed expressions and inflected verbs with their lemmas. Return sentenceText with every sentence on its own line; preserve A/B/C labels only for genuine dialogue and never add speaker labels to an article or narration. Review spelling, grammar, word choice, register, ambiguity, and content that may be inappropriate for the apparent context. Propose a corrected version while preserving the author's intent and every meaningful detail. For every change, include the exact original excerpt, proposed replacement, type, and a concise reason. Do not silently rewrite or omit content. If no correction is needed, keep correctedText identical and return an empty corrections array. Correction explanations must use ${systemExplainLanguage()}. Return only the required JSON.\n\nMATERIAL:\n${text}`;
   try {
-    const response = await fetch(`${endpoint}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, stream: false, format: schema, messages: [{ role: "user", content: prompt }], options: { temperature: 0 } }),
-      signal: AbortSignal.timeout(30000)
-    });
-    if (!response.ok) throw new Error(`Ollama ${response.status}`);
-    const payload = await response.json();
-    const result = JSON.parse(payload?.message?.content || "{}");
+    const response = await createLocalAiClient(120000).chatJson({ prompt, schema, timeoutMs: 120000 });
+    const result = response.data;
     result.source = "ollama";
+    result.model = response.model;
+    lastLocalAiError = null;
     return result;
-  } catch {
+  } catch (error) {
+    lastLocalAiError = error;
     return null;
   }
 }
@@ -1473,41 +1789,386 @@ function generateDemoCourse() {
   courseCurrentTurnIndex = 0;
   setCourseStage("player");
   setStatus("课程已生成，正在自动生成译文…");
-  void generateCourseTranslations(lesson);
+  scheduleCourseBackgroundEnrichment(lesson);
 }
 
-async function generateCourseTranslations(lesson) {
+function generateCourseTranslations(lesson, options = {}) {
+  if (!localAiRuntimeEnabled()) {
+    setStatus("在线版会显示学习包中的缓存；缺少的译文需要在 macOS 版生成");
+    return Promise.resolve();
+  }
+  const existingRun = courseTranslationRuns.get(lesson.id);
+  if (existingRun) return existingRun;
+  const run = runCourseTranslationGeneration(lesson, options).finally(() => {
+    if (courseTranslationRuns.get(lesson.id) === run) courseTranslationRuns.delete(lesson.id);
+  });
+  courseTranslationRuns.set(lesson.id, run);
+  return run;
+}
+
+function scheduleCourseBackgroundEnrichment(lesson) {
+  if (!lesson?.id || !localAiRuntimeEnabled()) return;
+  window.setTimeout(() => {
+    if (courseEnrichmentRuns.has(lesson.id)) return;
+    const run = courseEnrichmentQueue
+      .catch(() => undefined)
+      .then(() => runCourseBackgroundEnrichment(lesson))
+      .finally(() => {
+        if (courseEnrichmentRuns.get(lesson.id) === run) courseEnrichmentRuns.delete(lesson.id);
+      });
+    courseEnrichmentQueue = run;
+    courseEnrichmentRuns.set(lesson.id, run);
+  }, 300);
+}
+
+function courseAiSignature(lesson) {
+  const source = [
+    AI_CONTENT_VERSION,
+    state.settings.localAiEndpoint,
+    state.settings.localAiModel,
+    lesson.language,
+    lesson.explainLanguage,
+    ...lesson.turns.map((turn) => turn.text)
+  ].join("\u241f");
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function mergeCourseLexicalUnits(lesson, additions) {
+  const rawExisting = Array.isArray(lesson.lexicalUnits) ? lesson.lexicalUnits : [];
+  const existing = rawExisting.filter((item) => isValidCourseLexicalUnit(item, lesson));
+  const byKey = new Map(existing.map((item) => [normalizeLexicalUnit(item.text), item]));
+  let changed = existing.length !== rawExisting.length;
+  (additions || []).forEach((item) => {
+    const text = String(item?.text || "").trim();
+    const key = normalizeLexicalUnit(text);
+    if (!key || !isValidCourseLexicalUnit(item, lesson) || byKey.has(key)) return;
+    byKey.set(key, {
+      text,
+      lemma: String(item?.lemma || text).trim(),
+      type: String(item?.type || "expression").trim(),
+      verified: item?.verified === "dictionary" ? "dictionary" : ""
+    });
+    changed = true;
+  });
+  if (changed) lesson.lexicalUnits = [...byKey.values()];
+  return changed;
+}
+
+function isValidCourseLexicalUnit(item, lesson) {
+  const text = String(item?.text || "").trim();
+  const key = normalizeLexicalUnit(text);
+  if (!key || text.length > 64 || /[.!?。！？]/u.test(text)) return false;
+  const occurs = lesson.turns.some((turn) => normalizeLexicalUnit(turn.text).includes(key));
+  if (!occurs) return false;
+  const known = Object.keys(KNOWN_LEXICAL_UNITS).some((unit) => normalizeLexicalUnit(unit) === key);
+  if (known) return true;
+  const words = text.match(/[\p{L}\p{M}]+(?:['’-][\p{L}\p{M}]+)*/gu) || [];
+  if (words.length < 2 || words.length > 6) return false;
+  if (lesson.turns.some((turn) => normalizeLexicalUnit(turn.text) === key)) return false;
+  return item?.verified === "dictionary";
+}
+
+async function verifyAiCourseLexicalUnits(items, lesson) {
+  const output = [];
+  for (const item of items || []) {
+    const text = String(item?.text || "").trim();
+    const key = normalizeLexicalUnit(text);
+    const candidate = { ...item, text };
+    const known = Object.keys(KNOWN_LEXICAL_UNITS).some((unit) => normalizeLexicalUnit(unit) === key);
+    if (known) {
+      output.push(candidate);
+      continue;
+    }
+    if (!window.OOFR_DICTIONARY?.lookup) continue;
+    try {
+      const entry = await window.OOFR_DICTIONARY.lookup(text, lesson.language);
+      const exactPhrase = entry
+        && !entry.isInflected
+        && normalizeLexicalUnit(entry.lookupKey || entry.word) === key
+        && normalizeLexicalUnit(entry.word) === key;
+      if (exactPhrase) output.push({ ...candidate, verified: "dictionary" });
+    } catch {
+      // An unavailable shard must not turn an arbitrary adjacent word group
+      // into a fixed expression.
+    }
+  }
+  return output;
+}
+
+function detectKnownCourseLexicalUnits(lesson) {
+  return Object.entries(KNOWN_LEXICAL_UNITS)
+    .filter(([text]) => lesson.turns.some((turn) => normalizeLexicalUnit(turn.text).includes(normalizeLexicalUnit(text))))
+    .map(([text, info]) => ({ text, lemma: info.lemma || text, type: "expression" }));
+}
+
+async function runCourseBackgroundEnrichment(lesson) {
+  let changed = mergeCourseLexicalUnits(lesson, detectKnownCourseLexicalUnits(lesson));
+  if (changed) {
+    lesson.updatedAt = nowIso();
+    persist();
+    if (courseActiveLessonId === lesson.id) renderCoursePlayer();
+  }
+
+  if (lesson.turns.some(translationNeedsGeneration)) await generateCourseTranslations(lesson);
+
+  // If the learner opened another course while this job was translating,
+  // yield the expensive explanation phase to the currently visible material.
+  if (courseActiveLessonId && courseActiveLessonId !== lesson.id) return;
+
+  const signature = courseAiSignature(lesson);
+  const pending = lesson.turns.filter((turn) => aiExplanationNeedsGeneration(turn.aiExplanation, lesson));
+  if (!pending.length && lesson.aiPreparedSignature === signature) return;
+
+  let completed = true;
+  for (let offset = 0; offset < pending.length; offset += 6) {
+    const chunk = pending.slice(offset, offset + 6);
+    const enrichment = await loadCourseBatchEnrichment(lesson, chunk);
+    if (!enrichment) {
+      completed = false;
+      break;
+    }
+    const byId = new Map((enrichment.explanations || []).map((item) => [String(item.id || ""), item]));
+    chunk.forEach((turn) => {
+      const explanation = byId.get(turn.id);
+      if (!explanation || !aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) return;
+      const normalized = normalizeAiExplanation(explanation, enrichment.model, lesson.explainLanguage);
+      if (!explanationLanguageMatches(normalized, lesson.explainLanguage)) {
+        completed = false;
+        return;
+      }
+      turn.aiExplanation = normalized;
+      changed = true;
+    });
+    if (mergeCourseLexicalUnits(lesson, enrichment.lexicalUnits)) changed = true;
+    if (changed) {
+      lesson.updatedAt = nowIso();
+      persist();
+      if (courseActiveLessonId === lesson.id) renderCoursePlayer();
+      changed = false;
+    }
+  }
+
+  if (completed && lesson.turns.every((turn) => !aiExplanationNeedsGeneration(turn.aiExplanation, lesson))) {
+    lesson.aiPreparedSignature = signature;
+    lesson.aiPreparedAt = nowIso();
+    lesson.updatedAt = nowIso();
+    persist();
+    if (courseActiveLessonId === lesson.id && elements.coursePlaybackStatus) {
+      elements.coursePlaybackStatus.textContent = "本机 AI 已在后台准备好译文、固定表达与逐句讲解";
+    }
+  }
+}
+
+function normalizeAiExplanation(value, model, explainLanguage = "zh") {
+  return {
+    summary: String(value?.summary || ""),
+    structure: String(value?.structure || ""),
+    grammarPoints: localAiStringList(value?.grammarPoints),
+    morphology: String(value?.morphology || ""),
+    pitfalls: localAiStringList(value?.pitfalls),
+    examples: localAiStringList(value?.examples),
+    model: String(model || value?.model || state.settings.localAiModel),
+    language: explainLanguage,
+    version: AI_CONTENT_VERSION,
+    generatedAt: value?.generatedAt || nowIso()
+  };
+}
+
+function explanationLanguageMatches(value, language = "zh") {
+  if (!value) return false;
+  const text = [
+    value.summary,
+    value.structure,
+    ...localAiStringList(value.grammarPoints),
+    value.morphology,
+    ...localAiStringList(value.pitfalls)
+  ].join(" ");
+  if (language === "zh") return (text.match(/[\u3400-\u9fff]/gu) || []).length >= 6;
+  if (language === "fr") return /[A-Za-zÀ-ÿ]{3,}/u.test(text);
+  return /[A-Za-z]{3,}/u.test(text);
+}
+
+function aiExplanationNeedsGeneration(value, lesson) {
+  return !value
+    || value.version !== AI_CONTENT_VERSION
+    || value.language !== lesson.explainLanguage
+    || !explanationLanguageMatches(value, lesson.explainLanguage);
+}
+
+function courseExplanationSystemInstruction(language) {
+  if (language === "zh") {
+    return "你是面向中文母语者的语言教师。JSON 中的所有解释文字必须只用简体中文；待学语言的原句、单词和例句可以保留原语言。不要附加英文翻译或汉语拼音。不确定的词源或形态不要猜测，直接写“本句无需特别词形说明”。";
+  }
+  if (language === "fr") return "Rédige toutes les explications en français. Ne devine jamais une étymologie ou une morphologie incertaine.";
+  return "Write every explanation in English. Never invent uncertain etymology or morphology.";
+}
+
+async function loadCourseBatchEnrichment(lesson, turns) {
+  if (!turns.length) return { explanations: [], lexicalUnits: [], model: state.settings.localAiModel };
+  const explanationProperties = {
+    id: { type: "string" },
+    summary: { type: "string" },
+    structure: { type: "string" },
+    grammarPoints: { type: "array", items: { type: "string" } },
+    morphology: { type: "string" },
+    pitfalls: { type: "array", items: { type: "string" } },
+    examples: { type: "array", items: { type: "string" } }
+  };
+  const schema = {
+    type: "object",
+    properties: {
+      explanations: {
+        type: "array",
+        items: { type: "object", properties: explanationProperties, required: Object.keys(explanationProperties) }
+      },
+      lexicalUnits: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { text: { type: "string" }, lemma: { type: "string" }, type: { type: "string" } },
+          required: ["text", "lemma", "type"]
+        }
+      }
+    },
+    required: ["explanations", "lexicalUnits"]
+  };
+  const explainNames = { zh: "Simplified Chinese only, without English glosses or pinyin", en: "English", fr: "French" };
+  const items = turns.map((turn) => ({ id: turn.id, text: turn.text, translation: turn.translation || "" }));
+  const prompt = `Prepare these ${lesson.language === "en" ? "English" : "French"} course sentences for later study. Write explanations in ${explainNames[lesson.explainLanguage] || "Simplified Chinese"}. For every id, return a concise meaning, sentence skeleton, important grammar, morphology or conjugation, likely pitfalls, and one useful substitution example. Also identify multi-word fixed expressions, collocations, phrasal units, and elided/pronominal units that learners should click and learn as a whole. Preserve the exact surface text for each lexical unit (for example "un peu" rather than separate "un" and "peu"). Do not include arbitrary adjacent words. Return only the required JSON.\n\nITEMS:\n${JSON.stringify(items)}`;
+  try {
+    const response = await createLocalAiClient(180000).chatJson({
+      system: courseExplanationSystemInstruction(lesson.explainLanguage),
+      prompt,
+      schema,
+      timeoutMs: 180000,
+      options: { num_predict: 1800 }
+    });
+    lastLocalAiError = null;
+    const explanations = (response.data?.explanations || []).filter((item) => {
+      const normalized = normalizeAiExplanation(item, response.model, lesson.explainLanguage);
+      return explanationLanguageMatches(normalized, lesson.explainLanguage);
+    });
+    if (explanations.length !== turns.length) throw new Error("逐句讲解未按设定语言返回");
+    const lexicalUnits = await verifyAiCourseLexicalUnits(response.data?.lexicalUnits || [], lesson);
+    return { ...response.data, explanations, lexicalUnits, model: response.model };
+  } catch (error) {
+    lastLocalAiError = error;
+    return null;
+  }
+}
+
+async function runCourseTranslationGeneration(lesson, { turnIds = null } = {}) {
   let changed = false;
+  const pendingTurns = [];
+  const requestedIds = turnIds ? new Set(turnIds.map(String)) : null;
   for (const turn of lesson.turns) {
+    if (requestedIds && !requestedIds.has(turn.id)) continue;
     const localTranslation = getLocalTranslation(turn.text, lesson.language, lesson.explainLanguage);
     if (localTranslation) {
       if (turn.translation !== localTranslation) {
         turn.translation = localTranslation;
         changed = true;
-        renderCoursePlayer();
       }
       continue;
     }
-    if (turn.translation && !/待补充|待校对|pending/i.test(turn.translation) && !isSuspiciousTranslation(turn.text, turn.translation)) continue;
-    const translation = await translateText(turn.text, lesson.language, lesson.explainLanguage);
+    if (!requestedIds && !translationNeedsGeneration(turn)) continue;
+    pendingTurns.push(turn);
+  }
+
+  if (!pendingTurns.length) {
+    if (changed) {
+      lesson.updatedAt = nowIso();
+      persist();
+      renderCoursePlayer();
+    }
+    setStatus("译文已就绪");
+    return;
+  }
+
+  pendingTurns.forEach((turn) => {
+    courseTranslationPendingIds.add(turn.id);
+    courseTranslationErrorIds.delete(turn.id);
+  });
+  renderCoursePlayer();
+  setStatus(`本机 AI 正在生成 ${pendingTurns.length} 句译文…`);
+
+  const aiTranslations = await translateCourseTurnsWithLocalAi(pendingTurns, lesson);
+  for (const turn of pendingTurns) {
+    let translation = aiTranslations.get(turn.id) || "";
+    if (!translation) {
+      translation = await translateText(turn.text, lesson.language, lesson.explainLanguage);
+    }
     if (translation) {
       turn.translation = translation;
       changed = true;
-      renderCoursePlayer();
-    } else if (isSuspiciousTranslation(turn.text, turn.translation)) {
-      turn.translation = lesson.explainLanguage === "zh" ? "译文待校对" : "Translation needs review";
-      changed = true;
-      renderCoursePlayer();
+      courseTranslationErrorIds.delete(turn.id);
+    } else {
+      courseTranslationErrorIds.add(turn.id);
     }
+    courseTranslationPendingIds.delete(turn.id);
+    renderCoursePlayer();
   }
+
   if (changed) {
     lesson.updatedAt = nowIso();
     persist();
-    renderCoursePlayer();
-    setStatus("译文已生成");
-  } else {
-    setStatus("暂时没有拿到在线译文，课程仍可正常学习");
   }
+  renderCoursePlayer();
+  const failedCount = pendingTurns.filter((turn) => courseTranslationErrorIds.has(turn.id)).length;
+  if (failedCount) {
+    setStatus(`已生成 ${pendingTurns.length - failedCount}/${pendingTurns.length} 句译文；失败句可单独重试。`);
+  } else {
+    setStatus("译文已生成");
+  }
+}
+
+function translationNeedsGeneration(turn) {
+  const value = String(turn?.translation || "").trim();
+  return !value || /待补充|待校对|生成失败|pending|needs review/i.test(value) || isSuspiciousTranslation(turn.text, value);
+}
+
+async function translateCourseTurnsWithLocalAi(turns, lesson) {
+  const translations = new Map();
+  if (!turns.length || lesson.language === lesson.explainLanguage) return translations;
+  const targetNames = { zh: "Simplified Chinese", en: "English", fr: "French" };
+  const schema = {
+    type: "object",
+    properties: {
+      translations: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { id: { type: "string" }, text: { type: "string" } },
+          required: ["id", "text"]
+        }
+      }
+    },
+    required: ["translations"]
+  };
+  const source = lesson.language === "en" ? "English" : "French";
+  const target = targetNames[lesson.explainLanguage] || "Simplified Chinese";
+  const material = turns.map((turn) => ({ id: turn.id, text: turn.text }));
+  const prompt = `Translate every item from ${source} to ${target} for a language-learning course. Preserve names, tone and meaning. Do not explain, omit, merge or add information. Keep each id unchanged. Return only the required JSON.\n\nITEMS:\n${JSON.stringify(material)}`;
+  try {
+    const response = await createLocalAiClient(150000).chatJson({ prompt, schema, timeoutMs: 150000, options: { num_predict: 1200 } });
+    const knownIds = new Set(turns.map((turn) => turn.id));
+    (response.data?.translations || []).forEach((item) => {
+      const id = String(item?.id || "");
+      const text = String(item?.text || "").trim();
+      if (knownIds.has(id) && text && !isSuspiciousTranslation(turns.find((turn) => turn.id === id)?.text, text)) {
+        translations.set(id, text);
+      }
+    });
+    lastLocalAiError = null;
+  } catch (error) {
+    lastLocalAiError = error;
+  }
+  return translations;
 }
 
 function splitCourseTurns(text, { materialType = "" } = {}) {
@@ -1653,7 +2314,14 @@ function renderCourseTranscript(lesson) {
     top.append(el("span", "course-turn-number", String(originalIndex + 1).padStart(2, "0")), el("span", "speaker-chip", turn.speakerLabel));
     const text = el("p", "course-turn-text");
     appendCourseWords(text, turn.text, lesson);
-    const translation = el("p", "course-turn-translation", turn.translation || (lesson.explainLanguage === "en" ? "Translation pending" : "译文待补充"));
+    const translationPending = courseTranslationPendingIds.has(turn.id);
+    const translationFailed = courseTranslationErrorIds.has(turn.id);
+    const translationText = translationPending
+      ? (lesson.explainLanguage === "zh" ? "本机 AI 正在生成译文…" : "Local AI is translating…")
+      : turn.translation || (isHostedOnlineRuntime()
+        ? (lesson.explainLanguage === "en" ? "Generate on OoFR Desktop, then import a learning package" : "需要在桌面端生成，或导入学习包")
+        : (lesson.explainLanguage === "en" ? "Translation pending" : "译文待补充"));
+    const translation = el("p", `course-turn-translation${translationPending ? " is-pending" : ""}${translationFailed ? " is-error" : ""}`, translationText);
     translation.hidden = !elements.courseTranslationToggle.checked;
     const actions = el("div", "course-turn-actions");
     const playButton = button("", "mini-button sentence-play-button", () => playCourseTurn(lesson, originalIndex), "play");
@@ -1665,6 +2333,16 @@ function renderCourseTranscript(lesson) {
     const saveButton = button(phraseSaved ? "已收藏" : "收藏句子", `mini-button phrase-save-button${phraseSaved ? " is-saved" : ""}`, () => toggleCoursePhraseFavorite(turn, lesson), phraseSaved ? "check" : "heart");
     saveButton.setAttribute("aria-pressed", String(phraseSaved));
     actions.append(saveButton);
+    if (translationNeedsGeneration(turn) || translationPending || translationFailed) {
+      const retryTranslationButton = button(translationPending ? "翻译中…" : "重试翻译", "mini-button translation-retry-button", () => {
+        void generateCourseTranslations(lesson, { turnIds: [turn.id] });
+      }, "refresh");
+      retryTranslationButton.disabled = translationPending;
+      actions.append(retryTranslationButton);
+    }
+    const hasValidExplanation = !aiExplanationNeedsGeneration(turn.aiExplanation, lesson);
+    const explanationLabel = hasValidExplanation ? "查看讲解" : isHostedOnlineRuntime() ? "需桌面生成" : "AI 讲解";
+    actions.append(button(explanationLabel, "mini-button", () => openCourseSentenceDetail(lesson, originalIndex), "spark"));
     if (turn.recording.status === "recorded") {
       actions.append(
         button(`我的录音 · ${formatCourseDuration(turn.recording.durationMs)}`, "mini-button recording-ready", () => playCourseRecording(turn), "play"),
@@ -1726,7 +2404,7 @@ function renderCourseWordList(lesson) {
     const info = getDemoWordInfo(word, lesson);
     const item = el("button", "course-word-list-item");
     item.type = "button";
-    item.append(el("strong", "", info.lemma), el("span", "", info.pos));
+    item.append(el("strong", "", info.displayWord || info.lemma), el("span", "", info.pos));
     item.addEventListener("click", () => showCourseWordInfo(word, lesson, item));
     elements.courseWordList.append(item);
   });
@@ -1741,6 +2419,8 @@ function getDemoWordInfo(word, lesson) {
   const knownUnit = Object.entries(KNOWN_LEXICAL_UNITS).find(([key]) => normalizeLexicalUnit(key) === unitKey)?.[1];
   if (knownUnit) return {
     ...knownUnit,
+    displayWord: isVerbPartOfSpeech(knownUnit.pos) ? knownUnit.lemma : word,
+    spokenForm: canonicalCourseLookupSurface(word, lesson.language),
     forms: buildCourseWordForms(word, knownUnit.lemma, knownUnit.forms, lesson.language),
     source: "OoFR 开放词库"
   };
@@ -1751,12 +2431,15 @@ function getDemoWordInfo(word, lesson) {
   const localEntry = resolved.lexicon;
   if (detectedUnit || localEntry) {
     const lemma = detectedUnit?.lemma || localEntry?.word || resolved.lemma || word;
-    const override = COURSE_WORD_OVERRIDES[normalizeWord(lemma)];
+    const override = COURSE_WORD_OVERRIDES[normalizeWord(lemma)] || COURSE_WORD_OVERRIDES[foldWordKey(lemma)];
     const isInflected = normalizeLexicalUnit(lemma) !== unitKey;
+    const pos = detectedUnit?.type === "expression" ? "固定表达" : isInflected ? `词形 / 省音 · ${override?.pos || "词条"}` : override?.pos || "开放词典词条";
     return {
       lemma: override?.lemma || lemma,
+      displayWord: vocabularyDisplayWord(word, override?.lemma || lemma, pos, lesson.language),
+      spokenForm: canonicalCourseLookupSurface(word, lesson.language),
       ipa: localEntry?.ipa || "音标待补充",
-      pos: detectedUnit?.type === "expression" ? "固定表达" : isInflected ? `词形 / 省音 · ${override?.pos || "词条"}` : override?.pos || "开放词典词条",
+      pos,
       zh: override?.zh || localEntry?.zh || "本地词库暂无中文释义，可查询 Wiktionary",
       en: override?.en || localEntry?.zh || "Open Wiktionary lookup available",
       fr: override?.fr || localEntry?.zh || "Définition disponible dans le Wiktionnaire",
@@ -1773,14 +2456,16 @@ function getDemoWordInfo(word, lesson) {
     slowly: { lemma: "slowly", ipa: "/ˈsloʊ.li/", pos: "adverb", zh: "缓慢地", en: "at a low speed", forms: "slow · slower · slowest" }
   } : {
     bonjour: { lemma: "bonjour", ipa: "/bɔ̃.ʒuʁ/", pos: "interjection", zh: "你好；早安", en: "hello; good morning", forms: "常用问候表达" },
-    pratiquer: { lemma: "pratiquer", ipa: "/pʁa.ti.ke/", pos: "verb", zh: "练习；实践", en: "to practise; to do regularly", forms: "je pratique · nous pratiquons · ils pratiquent" },
+    pratiquer: { lemma: "pratiquer", ipa: "/pʁa.ti.ke/", pos: "verb", zh: "练习、从事（运动或活动）；从业、执业；实行、采用（方法）；信奉、履行（宗教）；开设、开出（通道或切口）；收取、实行（价格）", en: "to practise or engage in; to work as a profession; to apply a method; to observe a religion; to make an opening; to charge a price", forms: "je pratique · nous pratiquons · ils pratiquent" },
     répéter: { lemma: "répéter", ipa: "/ʁe.pe.te/", pos: "verb", zh: "重复；复述", en: "to repeat", forms: "je répète · nous répétons · ils répètent" },
     phrase: { lemma: "phrase", ipa: "/fʁaz/", pos: "noun", zh: "句子；短语", en: "sentence; phrase", forms: "une phrase · des phrases" }
   };
   const demo = dictionary[normalized];
-  if (demo) return { ...demo, fr: demo.en, source: "OoFR 内置示例" };
+  if (demo) return { ...demo, displayWord: vocabularyDisplayWord(word, demo.lemma, demo.pos, lesson.language), spokenForm: canonicalCourseLookupSurface(word, lesson.language), fr: demo.en, source: "OoFR 内置示例" };
   return {
     lemma: lookupSurface,
+    displayWord: lookupSurface,
+    spokenForm: lookupSurface,
     ipa: "音标待补充",
     pos: "词条",
     zh: "本地词库暂无释义，正在查询开放词典",
@@ -1850,9 +2535,46 @@ function courseLexicalUnitPattern(lesson) {
 
 function wordMeaningForSystem(info) {
   const language = systemExplainLanguage();
-  if (language === "fr") return info.fr || info.en || info.zh || "Définition en attente";
-  if (language === "en") return info.en || info.fr || info.zh || "Meaning pending";
-  return conciseChineseDictionaryMeaning(info.zh || info.en || info.fr || "释义待补充");
+  const value = language === "fr"
+    ? info.fr || info.en || info.zh || "Définition en attente"
+    : language === "en"
+      ? info.en || info.fr || info.zh || "Meaning pending"
+      : info.zh || "暂无简中释义";
+  return formatDictionaryMeaning(value, language, 10, true);
+}
+
+function dictionaryUiLanguage() {
+  const language = systemExplainLanguage();
+  return ["zh", "en", "fr"].includes(language) ? language : "zh";
+}
+
+function formatDictionaryMeaning(value, language = dictionaryUiLanguage(), limit = 6, numbered = true) {
+  if (window.OOFR_DICTIONARY?.formatMeaning) {
+    return window.OOFR_DICTIONARY.formatMeaning(value, { language, limit, numbered });
+  }
+  const parts = String(value || "")
+    .replace(/\\n/g, "\n")
+    .replace(/[\u0000-\u001f\u007f\ufffd]/g, " ")
+    .split(/\s*(?:\n+|；|;|•|\s+·\s+)\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, limit);
+  if (!parts.length) return language === "zh" ? "暂无简中释义" : "Meaning unavailable";
+  if (!numbered || parts.length === 1) return parts.join(language === "zh" ? "；" : "; ");
+  return parts.map((part, index) => `${index + 1}. ${part}`).join("\n");
+}
+
+function formatDictionaryPartOfSpeech(value) {
+  return window.OOFR_DICTIONARY?.formatPartOfSpeech
+    ? window.OOFR_DICTIONARY.formatPartOfSpeech(value, dictionaryUiLanguage())
+    : String(value || "词语");
+}
+
+function formatDictionarySource(value) {
+  const source = window.OOFR_DICTIONARY?.formatSource
+    ? window.OOFR_DICTIONARY.formatSource(value)
+    : String(value || "OoFR 离线开放词典");
+  return source || "OoFR 离线开放词典";
 }
 
 function showCourseWordInfo(word, lesson, anchor = null) {
@@ -1860,23 +2582,27 @@ function showCourseWordInfo(word, lesson, anchor = null) {
   selectedCourseWord = { word, lesson, anchor, info };
   renderCourseWordPopover(info);
   const meaning = wordMeaningForSystem(info);
-  if (elements.courseExplanationTitle) elements.courseExplanationTitle.textContent = `${info.lemma} · ${info.ipa}`;
+  if (elements.courseExplanationTitle) elements.courseExplanationTitle.textContent = `${info.displayWord || info.lemma} · ${info.ipa}`;
   if (elements.courseExplanationBody) elements.courseExplanationBody.innerHTML = `<strong>${escapeHtml(meaning)}</strong><br><span>${escapeHtml(info.pos)} · ${escapeHtml(info.forms)}</span>`;
   elements.courseWordPopover.hidden = false;
   positionCourseWordPopover();
   playSelectedCourseWord();
-  void loadExternalWordInfo(word, lesson);
+  void loadExternalWordInfo(word, lesson, anchor);
 }
 
 function renderCourseWordPopover(info) {
   if (!selectedCourseWord) return;
   const lesson = selectedCourseWord.lesson;
-  const favorite = Boolean(findVocabulary(selectedCourseWord.word));
-  elements.coursePopoverWord.textContent = info.lemma || selectedCourseWord.word;
-  elements.coursePopoverMeta.textContent = `${info.pos || "词条"} · ${lesson.language === "en" ? "English" : "Français"}`;
+  const favorite = Boolean(findVocabulary(selectedCourseWord.word, info));
+  elements.coursePopoverWord.textContent = info.displayWord || info.lemma || selectedCourseWord.word;
+  elements.coursePopoverMeta.textContent = `${formatDictionaryPartOfSpeech(info.pos)} · ${lesson.language === "en" ? "English" : "Français"}`;
   elements.coursePopoverPronunciation.textContent = info.ipa || "音标待补充";
+  const spokenForm = courseWordSpokenForm(info, selectedCourseWord.word);
+  elements.coursePopoverWordPlayBtn.title = `播放词条：${spokenForm}`;
+  elements.coursePopoverWordPlayBtn.setAttribute("aria-label", `播放词条：${spokenForm}`);
   elements.coursePopoverMeaning.textContent = wordMeaningForSystem(info);
-  elements.coursePopoverForms.textContent = [info.forms || "词形信息待补充", info.source ? `来源：${info.source}` : ""].filter(Boolean).join(" · ");
+  elements.coursePopoverForms.textContent = info.forms || `原型：${info.lemma || selectedCourseWord.word}`;
+  if (elements.coursePopoverSource) elements.coursePopoverSource.textContent = `来源：${formatDictionarySource(info.source)}`;
   setButtonContent(elements.courseWordFavoriteBtn, favorite ? "check" : "heart", favorite ? "已收藏" : "收藏");
   elements.courseWordFavoriteBtn.title = favorite ? "已收藏" : "收藏词语";
   elements.courseWordFavoriteBtn.setAttribute("aria-label", favorite ? "已收藏" : "收藏词语");
@@ -1906,9 +2632,9 @@ function closeCourseWordPopover() {
 function toggleCourseWordFavorite(event) {
   event?.stopPropagation();
   if (!selectedCourseWord) return;
-  const existing = findVocabulary(selectedCourseWord.word);
+  const existing = findVocabulary(selectedCourseWord.word, selectedCourseWord.info);
   if (!existing) {
-    addWordToVocabulary(selectedCourseWord.word);
+    addWordToVocabulary(selectedCourseWord.word, selectedCourseWord.info);
     setStatus(`已收藏：${selectedCourseWord.word}`);
   } else {
     state.vocabulary = state.vocabulary.filter((word) => word.id !== existing.id);
@@ -1954,25 +2680,18 @@ function openCourseWordDetail() {
   const runId = ++courseWordDetailRunId;
   const selection = selectedCourseWord;
   renderCourseWordDetail(selection.info, selection);
-  elements.courseWordDetailStatus.textContent = "正在读取开放词典并整理简中释义…";
+  elements.courseWordDetailStatus.textContent = "正在读取本地开放词典…";
   if (!elements.courseWordDetailDialog.open) elements.courseWordDetailDialog.showModal();
   void (async () => {
-    const external = await loadExternalWordInfo(selection.word, selection.lesson);
+    const external = await loadExternalWordInfo(selection.word, selection.lesson, selection.anchor);
     if (runId !== courseWordDetailRunId || !elements.courseWordDetailDialog.open) return;
     const info = external || selection.info;
     selection.info = info;
     renderCourseWordDetail(info, selection);
-    elements.courseWordDetailStatus.textContent = "开放词典整理完成，正在尝试本机开源 AI 补充特殊用法…";
-    const aiDetail = await loadCourseWordDetailWithLocalAi(selection, info);
-    if (runId !== courseWordDetailRunId || !elements.courseWordDetailDialog.open) return;
-    if (aiDetail) {
-      renderCourseWordDetail(info, selection);
-      appendCourseWordDetailSection(elements.courseWordDetailBody, "AI 详解", [aiDetail.grammar, aiDetail.usage, aiDetail.context].filter(Boolean).join("\n\n"));
-      if (selectedCourseWord === selection) renderCourseWordPopover(info);
-      elements.courseWordDetailStatus.textContent = `由本机开源 AI（${state.settings.localAiModel}）补充；内容可结合原句核对。`;
-    } else {
-      elements.courseWordDetailStatus.textContent = "当前使用开放词典与本地规则；未连接本机开源 AI 时也可正常查看。";
-    }
+    if (selectedCourseWord === selection) renderCourseWordPopover(info);
+    elements.courseWordDetailStatus.textContent = external
+      ? "本地开放词典已就绪。词义不使用生成式 AI，避免补写或混淆义项。"
+      : "本地词典暂无这一词条，已保留课程中的基础信息。";
   })();
 }
 
@@ -1981,22 +2700,132 @@ function closeCourseWordDetail() {
   if (elements.courseWordDetailDialog?.open) elements.courseWordDetailDialog.close();
 }
 
+async function openCourseSentenceDetail(lesson, turnIndex) {
+  const turn = lesson?.turns?.[turnIndex];
+  if (!turn || !elements.courseSentenceDetailDialog) return;
+  const runId = ++courseSentenceDetailRunId;
+  elements.courseSentenceDetailTitle.textContent = `第 ${turnIndex + 1} 句讲解`;
+  elements.courseSentenceDetailMeta.textContent = turn.text;
+  elements.courseSentenceDetailBody.replaceChildren();
+  if (!elements.courseSentenceDetailDialog.open) elements.courseSentenceDetailDialog.showModal();
+  if (!aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) {
+    renderCourseSentenceExplanation(turn.aiExplanation);
+    elements.courseSentenceDetailStatus.textContent = courseExplanationCacheLabel(turn.aiExplanation);
+    return;
+  }
+  if (!localAiRuntimeEnabled()) {
+    appendCourseWordDetailSection(elements.courseSentenceDetailBody, "桌面端生成", "这句话还没有缓存讲解。请在 macOS 版打开课程并等待后台生成，再导出学习包到手机。");
+    elements.courseSentenceDetailStatus.textContent = "在线 AI 暂未开放；当前不会上传素材或消耗 token";
+    return;
+  }
+  const backgroundRun = courseEnrichmentRuns.get(lesson.id);
+  if (backgroundRun) {
+    elements.courseSentenceDetailStatus.textContent = "后台正在准备这节素材的讲解…";
+    await backgroundRun;
+    if (runId !== courseSentenceDetailRunId || !elements.courseSentenceDetailDialog.open) return;
+    if (!aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) {
+      renderCourseSentenceExplanation(turn.aiExplanation);
+      elements.courseSentenceDetailStatus.textContent = courseExplanationCacheLabel(turn.aiExplanation);
+      return;
+    }
+  }
+  elements.courseSentenceDetailStatus.textContent = "正在请本机 AI 结合前后文分析语法…";
+  const explanation = await loadCourseSentenceExplanation(lesson, turnIndex);
+  if (runId !== courseSentenceDetailRunId || !elements.courseSentenceDetailDialog.open) return;
+  if (!explanation) {
+    elements.courseSentenceDetailStatus.textContent = describeLocalAiError(lastLocalAiError);
+    return;
+  }
+  turn.aiExplanation = explanation;
+  lesson.updatedAt = nowIso();
+  persist();
+  renderCourseSentenceExplanation(explanation);
+  elements.courseSentenceDetailStatus.textContent = `本机开源 AI（${explanation.model}）· 已缓存到当前课程`;
+}
+
+function courseExplanationCacheLabel(explanation) {
+  const model = String(explanation?.model || "").trim();
+  if (explanation?.cacheSource === "learning-package" || HOSTED_ONLINE_RUNTIME) {
+    return `学习包中的 AI 缓存${model ? ` · ${model}` : ""} · 可离线查看`;
+  }
+  return `本机开源 AI（${model || state.settings.localAiModel}）· 已缓存到当前课程`;
+}
+
+function closeCourseSentenceDetail() {
+  courseSentenceDetailRunId += 1;
+  if (elements.courseSentenceDetailDialog?.open) elements.courseSentenceDetailDialog.close();
+}
+
+function renderCourseSentenceExplanation(explanation) {
+  elements.courseSentenceDetailBody.replaceChildren();
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "句意", explanation.summary);
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "句式骨架", explanation.structure);
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "语法点", localAiStringList(explanation.grammarPoints).join("\n"));
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "词形变化", explanation.morphology);
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "易错点", localAiStringList(explanation.pitfalls).join("\n"));
+  appendCourseWordDetailSection(elements.courseSentenceDetailBody, "替换例句", localAiStringList(explanation.examples).join("\n"));
+}
+
+function localAiStringList(value) {
+  return (Array.isArray(value) ? value : value ? [value] : []).map(String).filter(Boolean);
+}
+
+async function loadCourseSentenceExplanation(lesson, turnIndex) {
+  const turn = lesson.turns[turnIndex];
+  const schema = {
+    type: "object",
+    properties: {
+      summary: { type: "string" },
+      structure: { type: "string" },
+      grammarPoints: { type: "array", items: { type: "string" } },
+      morphology: { type: "string" },
+      pitfalls: { type: "array", items: { type: "string" } },
+      examples: { type: "array", items: { type: "string" } }
+    },
+    required: ["summary", "structure", "grammarPoints", "morphology", "pitfalls", "examples"]
+  };
+  const explainNames = { zh: "Simplified Chinese only, without English glosses or pinyin", en: "English", fr: "French" };
+  const context = {
+    previous: lesson.turns[turnIndex - 1]?.text || "",
+    current: turn.text,
+    next: lesson.turns[turnIndex + 1]?.text || ""
+  };
+  const prompt = `Explain the CURRENT ${lesson.language === "en" ? "English" : "French"} sentence for a language learner. Write explanations in ${explainNames[lesson.explainLanguage] || "Simplified Chinese"}. Use the surrounding sentences only to resolve context. Explain the sentence skeleton, grammar, conjugation or morphology, likely mistakes, and give 2 useful substitution examples. Be accurate and concise. Return only the required JSON.\n\nCONTEXT:\n${JSON.stringify(context)}`;
+  try {
+    const response = await createLocalAiClient(120000).chatJson({
+      system: courseExplanationSystemInstruction(lesson.explainLanguage),
+      prompt,
+      schema,
+      timeoutMs: 120000,
+      options: { num_predict: 900 }
+    });
+    const normalized = normalizeAiExplanation(response.data, response.model, lesson.explainLanguage);
+    if (!explanationLanguageMatches(normalized, lesson.explainLanguage)) throw new Error("逐句讲解未按设定语言返回");
+    lastLocalAiError = null;
+    return normalized;
+  } catch (error) {
+    lastLocalAiError = error;
+    return null;
+  }
+}
+
 function renderCourseWordDetail(info, selection = selectedCourseWord) {
   if (!selection || !elements.courseWordDetailBody) return;
-  const meaning = conciseChineseDictionaryMeaning(info.zh || wordMeaningForSystem(info));
+  const meaning = formatDictionaryMeaning(info.zh || "暂无简中释义", "zh", 20, true);
   const sentence = selectedCourseWordSentence(selection);
-  elements.courseWordDetailTitle.textContent = info.lemma || selection.word;
-  elements.courseWordDetailMeta.textContent = `${info.pos || "词条"} · 原文形式：${selection.word}`;
+  elements.courseWordDetailTitle.textContent = info.displayWord || info.lemma || selection.word;
+  elements.courseWordDetailMeta.textContent = `${formatDictionaryPartOfSpeech(info.pos)} · 原文形式：${selection.word}`;
   elements.courseWordDetailBody.replaceChildren();
   appendCourseWordDetailSection(elements.courseWordDetailBody, "简中释义", meaning);
   appendCourseWordDetailSection(elements.courseWordDetailBody, "词形与省音", info.forms || buildCourseWordForms(selection.word, info.lemma, "", selection.lesson.language));
-  appendCourseWordDetailSection(elements.courseWordDetailBody, "特殊用法与语法", courseWordGrammarExplanation(selection.word, info));
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "特殊用法与语法", info.aiUsageNote || courseWordGrammarExplanation(selection.word, info));
+  if (info.contextMeaning) appendCourseWordDetailSection(elements.courseWordDetailBody, "当前语境义", info.contextMeaning);
   if (sentence) appendCourseWordDetailSection(elements.courseWordDetailBody, "当前句中的作用", sentence);
   const dictionaryNotes = cleanDictionaryDetailNotes(info.dictionaryDetails);
   if (dictionaryNotes && (systemExplainLanguage() !== "zh" || /[\u3400-\u9fff]/u.test(dictionaryNotes))) {
     appendCourseWordDetailSection(elements.courseWordDetailBody, "开放词典补充", dictionaryNotes);
   }
-  appendCourseWordDetailSection(elements.courseWordDetailBody, "来源", info.source || "OoFR 开放词库");
+  appendCourseWordDetailSection(elements.courseWordDetailBody, "来源", formatDictionarySource(info.source));
 }
 
 function appendCourseWordDetailSection(container, title, content) {
@@ -2007,10 +2836,14 @@ function appendCourseWordDetailSection(container, title, content) {
 }
 
 function selectedCourseWordSentence(selection) {
-  const turnId = selection.anchor?.closest?.(".course-turn-row")?.dataset?.turnId;
-  const turn = selection.lesson.turns.find((item) => item.id === turnId)
-    || selection.lesson.turns.find((item) => normalizeLexicalUnit(item.text).includes(normalizeLexicalUnit(selection.word)));
+  const turn = selectedCourseWordTurn(selection);
   return turn ? `${turn.text}${turn.translation ? `\n${turn.translation}` : ""}` : "";
+}
+
+function selectedCourseWordTurn(selection) {
+  const turnId = selection.anchor?.closest?.(".course-turn-row")?.dataset?.turnId;
+  return selection.lesson.turns.find((item) => item.id === turnId)
+    || selection.lesson.turns.find((item) => normalizeLexicalUnit(item.text).includes(normalizeLexicalUnit(selection.word)));
 }
 
 function courseWordGrammarExplanation(surface, info) {
@@ -2021,7 +2854,7 @@ function courseWordGrammarExplanation(surface, info) {
   if (/^j['’]/.test(normalized)) return `J’ 是主语代词 Je 在元音或哑音 h 前的省音；后面的词形是 ${lemma} 的变位。`;
   if (/^m['’]/.test(normalized)) return `m’ 是代词 me 在元音或哑音 h 前的省音；当前表达来自 ${lemma}。`;
   if (normalizeWord(lemma) === "organiser") return "organiser 是规则 -er 动词，常表示“组织、安排、筹办”。常见结构：organiser une visite（安排参观）、organiser une réunion（组织会议）；s’organiser 表示“安排好自己、做好规划”。";
-  if (normalizeWord(lemma) === "esperer") return "espérer 可接名词或动词不定式；espérer que 后通常接陈述式。词干在部分现在时变位中会出现 é → è 的变化，例如 j’espère。";
+  if (normalizeWord(lemma) === "espérer") return "espérer 可接名词或动词不定式；espérer que 后通常接陈述式。词干在部分现在时变位中会出现 é → è 的变化，例如 j’espère。";
   return info.pos === "固定表达" ? "这是一个需要整体理解和记忆的固定表达，不建议逐词直译。" : `当前词条以 ${lemma} 为原型；详细词形关系见上方说明。`;
 }
 
@@ -2037,34 +2870,182 @@ function cleanDictionaryDetailNotes(value) {
     .join(" · ");
 }
 
-async function loadCourseWordDetailWithLocalAi(selection, info) {
-  const endpoint = String(state.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
-  const model = String(state.settings.localAiModel || "gemma3:4b");
-  const sentence = selectedCourseWordSentence(selection);
+function dictionaryEnrichmentKey(word, lesson, info) {
+  const lemma = normalizeLexicalUnit(info?.lemma || word);
+  const partOfSpeech = normalizeLexicalUnit(info?.pos || info?.partOfSpeech || "word");
+  return [DICTIONARY_ENRICHMENT_VERSION, lesson?.language || "fr", lemma, partOfSpeech].join(":");
+}
+
+function applyDictionaryEnrichment(info, enrichment) {
+  if (!enrichment?.senses?.length) return info;
+  const localSenses = dictionarySenseList(info.zh, "zh", 20);
+  const aiSenses = validatedAiDictionarySenses(enrichment.senses, enrichment.evidenceCount || 1);
+  if (!aiSenses.length) return info;
+  const trusted = isTrustedDictionaryInfo(info);
+  const senses = trusted
+    ? localSenses
+    : mergeDictionarySenses(aiSenses, localSenses, 12);
+  if (!senses.length) return info;
+  const forms = [info.forms, enrichment.formNote]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .join("\n");
+  return {
+    ...info,
+    zh: senses.join("；"),
+    forms,
+    contextMeaning: String(enrichment.contextMeaning || "").trim(),
+    aiUsageNote: String(enrichment.usageNote || "").trim(),
+    source: trusted
+      ? formatDictionarySource(info.source)
+      : `${formatDictionarySource(info.source)} · 本机 ${enrichment.model || "AI"} 按词典证据整理`,
+    aiDictionary: true,
+    aiModel: enrichment.model || ""
+  };
+}
+
+function dictionarySenseList(value, language = "zh", limit = 12) {
+  if (window.OOFR_DICTIONARY?.senseList) return window.OOFR_DICTIONARY.senseList(value, language, limit);
+  return String(value || "")
+    .split(/\s*(?:\n+|；|;|•|\s+·\s+)\s*/)
+    .map((sense) => sense.trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function isTrustedDictionaryInfo(info) {
+  return /OoFR\s*校订/i.test(String(info?.source || ""));
+}
+
+function dictionaryEvidenceGlosses(info) {
+  const source = String(info?.en || info?.dictionaryDetails || "");
+  return dictionarySenseList(source, "en", 8)
+    .map((gloss) => gloss.replace(/^(?:to|a|an|the)\s+/i, "").trim())
+    .filter(Boolean);
+}
+
+function validatedAiDictionarySenses(values, evidenceCount = 1) {
+  const upperBound = Math.max(1, Math.min(8, Number(evidenceCount) || 1));
+  return dictionarySenseList((values || []).join("；"), "zh", upperBound)
+    .map((sense) => sense.replace(/^[\d①-⑳]+[.、．)）]\s*/u, "").trim())
+    .filter((sense) => sense.length <= 32)
+    .filter((sense) => !/^(?:对|在)(?:某|一个|一些).*(?:进行|执行|处理|操作|分析|评估|研究|探索|尝试)$/u.test(sense));
+}
+
+function mergeDictionarySenses(primary, secondary, limit = 12) {
+  const output = [];
+  const keys = new Set();
+  [...primary, ...secondary].forEach((sense) => {
+    const value = String(sense || "").trim();
+    const key = value.toLocaleLowerCase().replace(/[\s,，、.。()（）]/g, "");
+    if (!value || !key || keys.has(key) || output.length >= limit) return;
+    keys.add(key);
+    output.push(value);
+  });
+  return output;
+}
+
+function enrichCourseWordInfo(word, lesson, info, anchor = null) {
+  if (!info || !lesson || !globalThis.OoFROllama?.Client || !localAiRuntimeEnabled()) return Promise.resolve(info);
+  const key = dictionaryEnrichmentKey(word, lesson, info);
+  const cached = state.dictionaryEntries?.[key];
+  if (cached?.version === DICTIONARY_ENRICHMENT_VERSION && cached.senses?.length) {
+    const enriched = applyDictionaryEnrichment(info, cached);
+    dictionaryCache.set(`${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(selectedCourseWordTurn({ word, lesson, anchor })?.text || "")}`, enriched);
+    if (selectedCourseWord?.word === word) {
+      selectedCourseWord.info = enriched;
+      renderCourseWordPopover(enriched);
+    }
+    return Promise.resolve(enriched);
+  }
+  if (dictionaryEnrichmentRuns.has(key)) return dictionaryEnrichmentRuns.get(key).then((result) => applyDictionaryEnrichment(info, result));
+
+  if (selectedCourseWord?.word === word && elements.coursePopoverSource) {
+    elements.coursePopoverSource.textContent = `来源：${formatDictionarySource(info.source)} · 本机 AI 正在核对…`;
+  }
+  const run = dictionaryEnrichmentQueue
+    .catch(() => undefined)
+    .then(() => requestDictionaryEnrichment(word, lesson, info, anchor))
+    .finally(() => dictionaryEnrichmentRuns.delete(key));
+  dictionaryEnrichmentQueue = run;
+  dictionaryEnrichmentRuns.set(key, run);
+  return run.then((enrichment) => {
+    if (!enrichment?.senses?.length) {
+      if (selectedCourseWord?.word === word) renderCourseWordPopover(info);
+      return info;
+    }
+    if (!state.dictionaryEntries) state.dictionaryEntries = {};
+    state.dictionaryEntries[key] = enrichment;
+    persist();
+    const enriched = applyDictionaryEnrichment(info, enrichment);
+    const context = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
+    dictionaryCache.set(`${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(context)}`, enriched);
+    if (selectedCourseWord?.word === word) {
+      selectedCourseWord.info = enriched;
+      renderCourseWordPopover(enriched);
+    }
+    return enriched;
+  });
+}
+
+async function requestDictionaryEnrichment(word, lesson, info, anchor) {
+  const sentence = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
+  const evidenceGlosses = dictionaryEvidenceGlosses(info);
+  const trusted = isTrustedDictionaryInfo(info);
   const schema = {
     type: "object",
     properties: {
-      zhMeaning: { type: "string" },
-      grammar: { type: "string" },
-      usage: { type: "string" },
-      context: { type: "string" }
+      senses: { type: "array", items: { type: "string" } },
+      contextMeaning: { type: "string" },
+      formNote: { type: "string" },
+      usageNote: { type: "string" }
     },
-    required: ["zhMeaning", "grammar", "usage", "context"]
+    required: ["senses", "contextMeaning", "formNote", "usageNote"]
   };
-  const prompt = `Explain this ${selection.lesson.language === "en" ? "English" : "French"} word or expression for a Chinese learner. Use Simplified Chinese. The short meaning must be concise. Explain elision, contraction, conjugation, fixed usage, grammar and its role in the supplied sentence when relevant. Do not output IPA or repeat pronunciation because the UI displays it separately. Do not invent meanings. Return only JSON.\n\nSURFACE: ${selection.word}\nLEMMA: ${info.lemma}\nPART OF SPEECH: ${info.pos}\nKNOWN MEANING: ${conciseChineseDictionaryMeaning(info.zh)}\nSENTENCE: ${sentence}`;
+  const prompt = `Clean this ${lesson.language === "en" ? "English" : "French"} dictionary entry for a Chinese learner. Return Simplified Chinese only except for cited word forms.
+
+STRICT EVIDENCE RULES:
+1. The senses array may translate or merge only the numbered EVIDENCE_GLOSSES below. Never add a meaning, domain, profession, object or use that is not explicitly present in those glosses.
+2. Return at most ${Math.max(1, evidenceGlosses.length)} short senses. Fewer accurate senses are better than invented completeness. If evidence is sparse, keep the result sparse.
+3. Do not produce examples, IPA, etymology, source notes, part-of-speech labels or near-duplicate paraphrases in senses.
+4. LOCAL_CHINESE is reference text only. Correct its wording when an English gloss supports the correction; do not expand beyond the English evidence.
+5. For an inflected verb, explain the exact form in formNote. For an elision, explain the expansion. For non-verbs such as ça, retain the actual pronunciation-bearing headword.
+6. contextMeaning must state only the meaning used in SENTENCE. usageNote may explain one important grammar or register point, but must not invent dictionary senses.
+Return only the required JSON.
+
+SURFACE: ${word}
+LEMMA: ${info.lemma || word}
+PART_OF_SPEECH: ${info.pos || "unknown"}
+TRUSTED_CURATED_ENTRY: ${trusted ? "yes" : "no"}
+LOCAL_CHINESE: ${conciseChineseDictionaryMeaning(info.zh)}
+EVIDENCE_GLOSSES:
+${evidenceGlosses.length ? evidenceGlosses.map((gloss, index) => `${index + 1}. ${gloss}`).join("\n") : "1. No English gloss available; preserve LOCAL_CHINESE without adding meanings."}
+SENTENCE: ${sentence}`;
   try {
-    const response = await fetch(`${endpoint}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, stream: false, format: schema, messages: [{ role: "user", content: prompt }], options: { temperature: 0 } }),
-      signal: AbortSignal.timeout(15000)
+    const response = await createLocalAiClient(90000).chatJson({
+      prompt,
+      schema,
+      timeoutMs: 90000,
+      options: { num_predict: 360 }
     });
-    if (!response.ok) throw new Error(`Ollama ${response.status}`);
-    const payload = await response.json();
-    const detail = JSON.parse(payload?.message?.content || "{}");
-    if (detail.zhMeaning) info.zh = conciseChineseDictionaryMeaning(detail.zhMeaning);
-    return detail;
-  } catch {
+    const senses = validatedAiDictionarySenses(response.data?.senses || [], Math.max(1, evidenceGlosses.length));
+    if (!senses.length) throw new Error("模型没有返回可用的简中义项");
+    lastLocalAiError = null;
+    return {
+      version: DICTIONARY_ENRICHMENT_VERSION,
+      lemma: String(info.lemma || word),
+      partOfSpeech: String(info.pos || ""),
+      evidenceCount: Math.max(1, evidenceGlosses.length),
+      senses,
+      contextMeaning: String(response.data?.contextMeaning || "").trim(),
+      formNote: String(response.data?.formNote || "").trim(),
+      usageNote: String(response.data?.usageNote || "").trim(),
+      model: response.model,
+      updatedAt: nowIso()
+    };
+  } catch (error) {
+    lastLocalAiError = error;
     return null;
   }
 }
@@ -2072,12 +3053,17 @@ async function loadCourseWordDetailWithLocalAi(selection, info) {
 function playSelectedCourseWord() {
   if (!selectedCourseWord) return;
   const { word, lesson, info } = selectedCourseWord;
+  const spokenForm = courseWordSpokenForm(info, word);
   if (info.audio) {
     const audio = new Audio(info.audio);
-    audio.play().catch(() => speakCourseWord(word, lesson));
+    audio.play().catch(() => speakCourseWord(spokenForm, lesson));
     return;
   }
-  speakCourseWord(word, lesson);
+  speakCourseWord(spokenForm, lesson);
+}
+
+function courseWordSpokenForm(info, surface) {
+  return String(info?.spokenForm || canonicalCourseLookupSurface(surface, info?.language || "fr") || info?.displayWord || info?.lemma || "").trim();
 }
 
 function speakCourseWord(word, lesson) {
@@ -2091,8 +3077,9 @@ function speakCourseWord(word, lesson) {
   window.speechSynthesis.speak(utterance);
 }
 
-async function loadExternalWordInfo(word, lesson) {
-  const key = `${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}`;
+async function loadExternalWordInfo(word, lesson, anchor = null) {
+  const context = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
+  const key = `${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(context)}`;
   if (dictionaryCache.has(key)) {
     const info = { ...getDemoWordInfo(word, lesson), ...dictionaryCache.get(key) };
     if (selectedCourseWord?.word === word) {
@@ -2101,8 +3088,46 @@ async function loadExternalWordInfo(word, lesson) {
     }
     return info;
   }
+  const base = getDemoWordInfo(word, lesson);
+  if (window.OOFR_DICTIONARY?.lookup) {
+    try {
+      const local = await window.OOFR_DICTIONARY.lookup(word, lesson.language, { context });
+      if (local) {
+        const knownUnit = Object.keys(KNOWN_LEXICAL_UNITS).some((unit) => normalizeLexicalUnit(unit) === normalizeLexicalUnit(word));
+        const lemma = knownUnit ? base.lemma : (local.lemma || local.word || base.lemma);
+        const override = COURSE_WORD_OVERRIDES[normalizeWord(lemma)] || COURSE_WORD_OVERRIDES[foldWordKey(lemma)];
+        const pos = knownUnit ? base.pos : (override?.pos || local.pos || base.pos);
+        const surface = canonicalCourseLookupSurface(word, lesson.language);
+        const formDescription = local.form?.features ? `词形：${local.form.features}` : "";
+        const info = {
+          ...base,
+          lemma,
+          displayWord: vocabularyDisplayWord(word, lemma, pos, lesson.language),
+          spokenForm: surface,
+          ipa: local.formIpa || local.ipa || base.ipa,
+          pos,
+          zh: knownUnit ? base.zh : (override?.zh || local.zh || base.zh || "暂无简中释义"),
+          en: override?.en || local.en || base.en,
+          fr: override?.fr || base.fr || local.en,
+          audio: local.isInflected ? "" : local.audio,
+          forms: buildCourseWordForms(word, lemma, [formDescription, base.forms].filter(Boolean).join(" · "), lesson.language),
+          dictionaryDetails: local.en,
+          source: `${local.source || "OoFR 离线开放词典"}${override ? " · OoFR 校订" : ""} · 本地词典`,
+          language: lesson.language,
+          partOfSpeech: pos
+        };
+        dictionaryCache.set(key, info);
+        if (selectedCourseWord?.word === word) {
+          selectedCourseWord.info = info;
+          renderCourseWordPopover(info);
+        }
+        return info;
+      }
+    } catch {
+      // The compact legacy lexicon and online fallback remain available.
+    }
+  }
   try {
-    const base = getDemoWordInfo(word, lesson);
     const title = base.lemma || word;
     const preferredWiki = systemExplainLanguage();
     const wikiOrder = Array.from(new Set([preferredWiki, lesson.language, "en", "fr"]));
@@ -2193,13 +3218,16 @@ function conciseChineseDictionaryMeaning(value) {
     .replace(/(?:国际音标|音标|发音|读音)(?:\([^)]*\))?\s*[:：]?\s*/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+  if (window.OOFR_DICTIONARY?.senseList) {
+    const senses = window.OOFR_DICTIONARY.senseList(simplified, "zh", 12);
+    return senses.join("；") || "释义待补充";
+  }
   const useful = simplified
-    .split(/\s*·\s*|\n+/)
+    .split(/\s*(?:；|;|·|\n+)\s*/)
     .map((part) => part.trim())
     .filter(Boolean)
-    .filter((part) => !/源自|继承自|词源|同音词|近音词/.test(part))
-    .join("；");
-  return useful.length > 110 ? `${useful.slice(0, 110).replace(/\s+\S*$/, "")}…` : useful || "释义待补充";
+    .filter((part) => !/源自|继承自|词源|同音词|近音词/.test(part));
+  return useful.slice(0, 12).join("；") || "释义待补充";
 }
 
 function mergeDictionaryDefinition(external, local) {
@@ -2238,18 +3266,28 @@ async function translateText(text, sourceLanguage, targetLanguage) {
   if (localTranslation) return localTranslation;
   const key = `${sourceLanguage}:${targetLanguage}:${text}`;
   if (translationCache.has(key)) return translationCache.get(key);
+  const schema = {
+    type: "object",
+    properties: { translation: { type: "string" } },
+    required: ["translation"]
+  };
+  const targetNames = { zh: "Simplified Chinese", "zh-CN": "Simplified Chinese", en: "English", fr: "French" };
+  const source = sourceLanguage === "en" ? "English" : "French";
+  const target = targetNames[targetLanguage] || "Simplified Chinese";
   try {
-    const source = sourceLanguage === "en" ? "en" : "fr";
-    const target = targetLanguage === "en" ? "en" : targetLanguage === "fr" ? "fr" : "zh-CN";
-    const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`);
-    if (!response.ok) throw new Error(`translation ${response.status}`);
-    const payload = await response.json();
-    const result = String(payload?.responseData?.translatedText || "").trim();
-    const matchingRecord = (payload?.matches || []).find((item) => String(item?.translation || "").trim() === result);
-    if (!result || Number(matchingRecord?.quality ?? 1) <= 0 || isSuspiciousTranslation(text, result)) throw new Error("low-confidence translation");
+    const response = await createLocalAiClient(90000).chatJson({
+      prompt: `Translate from ${source} to ${target}. Preserve meaning and tone. Return only the required JSON.\n\nTEXT:\n${text}`,
+      schema,
+      timeoutMs: 90000,
+      options: { num_predict: 500 }
+    });
+    const result = String(response.data?.translation || "").trim();
+    if (!result || isSuspiciousTranslation(text, result)) throw new Error("low-confidence translation");
     translationCache.set(key, result);
+    lastLocalAiError = null;
     return result;
-  } catch {
+  } catch (error) {
+    lastLocalAiError = error;
     return "";
   }
 }
@@ -3187,9 +4225,7 @@ function openCourseFromAlbum(album) {
   persist();
   renderView();
   setCourseStage("player");
-  if (lesson.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
-    void generateCourseTranslations(lesson);
-  }
+  scheduleCourseBackgroundEnrichment(lesson);
 }
 
 function renderLibraryDetail() {
@@ -3323,9 +4359,7 @@ function openCourseFromEntry(entry) {
   renderView();
   setCourseStage("player");
   setStatus(`已打开课程：${entry.title}`);
-  if (lesson.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
-    void generateCourseTranslations(lesson);
-  }
+  scheduleCourseBackgroundEnrichment(lesson);
 }
 
 function syncCourseFromEntry(entry) {
@@ -3344,6 +4378,7 @@ function syncCourseFromEntry(entry) {
       translation: old?.translation || "",
       speakerId: isDialogue ? (part.speakerId || old?.speakerId || (index % 2 === 0 ? "a" : "b")) : "narrator",
       speakerLabel: isDialogue ? (part.speakerLabel || old?.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
+      aiExplanation: old?.aiExplanation || null,
       recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
     };
   });
@@ -3356,6 +4391,9 @@ function syncCourseFromEntry(entry) {
     description: `${turns.length} 句 · 来自自建素材`,
     createdAt: existing?.createdAt || entry.createdAt,
     updatedAt: nowIso(),
+    aiPreparedAt: existing?.aiPreparedAt || null,
+    aiPreparedSignature: existing?.aiPreparedSignature || "",
+    lexicalUnits: existing?.lexicalUnits || [],
     turns,
     practice: existing?.practice || { completed: 0, correct: 0 }
   });
@@ -3391,9 +4429,7 @@ function renderCourseAlbumDetail(album, course) {
   courseSection.append(el("p", "eyebrow", "课程"), preview);
   wrap.append(header, courseSection, renderAlbumMaterialSection(album));
   elements.libraryDetail.append(wrap);
-  if (course.turns.some((turn) => !turn.translation || /待补充|pending/i.test(turn.translation))) {
-    void generateCourseTranslations(course);
-  }
+  scheduleCourseBackgroundEnrichment(course);
 }
 
 function syncCourseFromAlbumEntries(album) {
@@ -3410,6 +4446,7 @@ function syncCourseFromAlbumEntries(album) {
       translation: old?.translation || "",
       speakerId: part.speakerId || old?.speakerId || "a",
       speakerLabel: part.speakerLabel || old?.speakerLabel || "默认说话人",
+      aiExplanation: old?.aiExplanation || null,
       recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
     };
   }));
@@ -3634,7 +4671,7 @@ function phrasebookItemsForSelected() {
       text: item.word,
       translation: item.zh || "释义待补充",
       sourceTitle: "词汇库",
-      language: "fr",
+      language: item.language === "en" ? "en" : "fr",
       status: item.status === "got" ? "got" : "new",
       updatedAt: item.updatedAt,
       sourceKey: "词汇库",
@@ -4303,13 +5340,18 @@ function openVocabDialog(vocabId) {
     onSubmit(values) {
       const info = resolveWordInfo(values.word);
       if (!info.lemma) return false;
+      const presentation = vocabularyPresentation(values.word, {
+        lemma: info.lexicon?.word || info.lemma,
+        pos: item?.partOfSpeech || ""
+      }, item?.language === "en" ? "en" : "fr");
       const wordbookIds = values.wordbookId ? [values.wordbookId] : [];
 
-      const existing = state.vocabulary.find((word) => word.normalized === info.lemma && word.id !== item?.id);
+      const existing = state.vocabulary.find((word) => word.normalized === presentation.identity && word.id !== item?.id);
       if (existing) {
-        existing.word = values.word.trim();
-        existing.lemma = info.lemma;
-        existing.normalized = info.lemma;
+        existing.word = presentation.displayWord;
+        existing.surface = presentation.surface;
+        existing.lemma = presentation.lemma;
+        existing.normalized = presentation.identity;
         existing.ipa = values.ipa.trim();
         existing.zh = values.zh.trim();
         existing.status = values.status;
@@ -4317,9 +5359,10 @@ function openVocabDialog(vocabId) {
         trackSeenForm(existing, values.word);
         existing.updatedAt = nowIso();
       } else if (item) {
-        item.word = values.word.trim();
-        item.lemma = info.lemma;
-        item.normalized = info.lemma;
+        item.word = presentation.displayWord;
+        item.surface = presentation.surface;
+        item.lemma = presentation.lemma;
+        item.normalized = presentation.identity;
         item.ipa = values.ipa.trim();
         item.zh = values.zh.trim();
         item.status = values.status;
@@ -4329,9 +5372,11 @@ function openVocabDialog(vocabId) {
       } else {
         state.vocabulary.push({
           id: makeId("word"),
-          word: values.word.trim(),
-          lemma: info.lemma,
-          normalized: info.lemma,
+          word: presentation.displayWord,
+          surface: presentation.surface,
+          lemma: presentation.lemma,
+          normalized: presentation.identity,
+          partOfSpeech: presentation.pos,
           ipa: values.ipa.trim(),
           zh: values.zh.trim(),
           status: values.status,
@@ -4589,8 +5634,8 @@ function recordPracticeIfEntry() {
   renderLibrary();
 }
 
-function addWordToVocabulary(rawWord) {
-  const item = ensureVocabularyItem(rawWord);
+function addWordToVocabulary(rawWord, courseInfo = null) {
+  const item = ensureVocabularyItem(rawWord, courseInfo);
   trackSeenForm(item, rawWord);
   const selectedBookId = selectedCustomWordbookId();
   if (selectedBookId) {
@@ -4599,24 +5644,31 @@ function addWordToVocabulary(rawWord) {
   return item;
 }
 
-function ensureVocabularyItem(rawWord) {
-  const existing = findVocabulary(rawWord);
+function ensureVocabularyItem(rawWord, courseInfo = null) {
+  const existing = findVocabulary(rawWord, courseInfo);
   if (existing) return existing;
-  const item = buildVocabularyItem(rawWord);
+  const item = buildVocabularyItem(rawWord, courseInfo);
   state.vocabulary.push(item);
   return item;
 }
 
-function buildVocabularyItem(rawWord) {
+function buildVocabularyItem(rawWord, courseInfo = null) {
   const info = resolveWordInfo(rawWord);
   const hint = info.lexicon || lookupLexicon(rawWord);
+  const presentation = vocabularyPresentation(rawWord, {
+    lemma: courseInfo?.lemma || hint?.word || info.lemma,
+    pos: courseInfo?.partOfSpeech || courseInfo?.pos || ""
+  });
   return {
     id: makeId("word"),
-    word: hint?.word || rawWord.trim(),
-    lemma: info.lemma,
-    normalized: info.lemma,
-    ipa: hint?.ipa || "",
-    zh: hint?.zh || "",
+    word: presentation.displayWord,
+    surface: presentation.surface,
+    lemma: presentation.lemma,
+    normalized: presentation.identity,
+    partOfSpeech: presentation.pos,
+    ipa: courseInfo?.ipa || hint?.ipa || "",
+    zh: courseInfo?.zh || hint?.zh || "",
+    en: courseInfo?.en || "",
     status: "new",
     wordbookIds: selectedCustomWordbookId() ? [selectedCustomWordbookId()] : [],
     seenForms: [{ form: rawWord.trim(), normalized: info.normalized, count: 1 }],
@@ -4660,9 +5712,13 @@ function deleteVocabulary(vocabId) {
   renderWordPanel();
 }
 
-function findVocabulary(rawWord) {
+function findVocabulary(rawWord, courseInfo = null) {
   const info = resolveWordInfo(rawWord);
-  return state.vocabulary.find((item) => item.normalized === info.lemma || item.lemma === info.lemma) || null;
+  const presentation = vocabularyPresentation(rawWord, {
+    lemma: courseInfo?.lemma || info.lexicon?.word || info.lemma,
+    pos: courseInfo?.partOfSpeech || courseInfo?.pos || ""
+  });
+  return state.vocabulary.find((item) => item.normalized === presentation.identity) || null;
 }
 
 function getVocabulary(vocabId) {
@@ -4766,7 +5822,7 @@ function selectedCustomWordbookId() {
 function lookupLexicon(rawWord) {
   const lexicon = window.OOFR_LEXICON || {};
   const normalized = normalizeWord(rawWord);
-  const candidates = wordLookupCandidates(normalized);
+  const candidates = legacyLexiconCandidates(normalized);
   return candidates.map((candidate) => lexicon[candidate]).find(Boolean) || null;
 }
 
@@ -4782,7 +5838,7 @@ function resolveWordInfo(rawWord) {
   const lexicon = window.OOFR_LEXICON || {};
   const forms = window.OOFR_FORM_LEMMAS || {};
   const normalized = normalizeWord(rawWord);
-  const candidates = wordLookupCandidates(normalized);
+  const candidates = legacyLexiconCandidates(normalized);
   const direct = lexicon[normalized];
   const directHasMeaning = Boolean(direct?.zh);
   const mappedLemma = directHasMeaning ? "" : candidates.map((candidate) => forms[candidate]).find(Boolean);
@@ -4814,6 +5870,16 @@ function wordLookupCandidates(normalized) {
   add(normalized.replace(/['-]/g, "_"));
   normalized.split(/['-]/).filter(Boolean).reverse().forEach(add);
   return candidates;
+}
+
+function legacyLexiconCandidates(normalized) {
+  const exact = wordLookupCandidates(normalized);
+  // The compact legacy lexicon used accent-folded keys. Reusing such a key for
+  // an accented spelling can return another word (ça/ca, à/a, où/ou), so only
+  // consult those aliases when the input itself has no accents.
+  if (foldWordKey(normalized) !== normalized) return exact;
+  return exact.flatMap((candidate) => [candidate, foldWordKey(candidate)])
+    .filter((candidate, index, list) => candidate && list.indexOf(candidate) === index);
 }
 
 function elidedCore(normalized) {
@@ -4866,10 +5932,44 @@ function normalizeWord(word) {
   return String(word || "")
     .toLocaleLowerCase("fr-FR")
     .replace(/[’]/g, "'")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zœæç'\-]/g, "")
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M}'\-]/gu, "")
     .replace(/^['-]+|['-]+$/g, "");
+}
+
+function foldWordKey(word) {
+  return normalizeWord(word).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function isVerbPartOfSpeech(pos) {
+  return /(^|[\s/·;,；，|])(verb|verbe|动词)([\s/·;,；，|]|$)/i.test(String(pos || ""));
+}
+
+function likelyFrenchVerbLemma(lemma, surface = "") {
+  const normalizedLemma = normalizeWord(lemma);
+  return normalizedLemma !== normalizeWord(surface) && /(?:er|ir|re|oir)$/.test(normalizedLemma);
+}
+
+function vocabularyDisplayWord(surface, lemma, pos, language = "fr") {
+  const cleanSurface = canonicalCourseLookupSurface(surface, language) || String(surface || "").trim();
+  if (/\s/u.test(cleanSurface)) return cleanSurface;
+  return isVerbPartOfSpeech(pos) || (language === "fr" && likelyFrenchVerbLemma(lemma, cleanSurface))
+    ? String(lemma || cleanSurface).trim()
+    : cleanSurface;
+}
+
+function vocabularyPresentation(surface, info = {}, language = "fr") {
+  const cleanSurface = canonicalCourseLookupSurface(surface, language) || String(surface || "").trim();
+  const lemma = String(info.lemma || cleanSurface).trim();
+  const pos = String(info.pos || info.partOfSpeech || "");
+  const displayWord = vocabularyDisplayWord(cleanSurface, lemma, pos, language);
+  return {
+    surface: cleanSurface,
+    lemma,
+    pos,
+    displayWord,
+    identity: normalizeWord(displayWord)
+  };
 }
 
 function splitSentences(text) {
@@ -4967,7 +6067,7 @@ function syncSettingsControls() {
   elements.pauseControl.value = state.settings.pause;
   if (elements.systemLanguageSelect) elements.systemLanguageSelect.value = state.settings.systemLanguage || "zh";
   if (elements.localAiEndpointInput) elements.localAiEndpointInput.value = state.settings.localAiEndpoint || "http://127.0.0.1:11434";
-  if (elements.localAiModelInput) elements.localAiModelInput.value = state.settings.localAiModel || "gemma3:4b";
+  if (elements.localAiModelInput) elements.localAiModelInput.value = state.settings.localAiModel || "auto";
   document.documentElement.lang = state.settings.systemLanguage === "fr" ? "fr" : state.settings.systemLanguage === "en" ? "en" : "zh-CN";
   setRepeat(state.settings.repeat);
 }
@@ -5268,6 +6368,207 @@ function exportData() {
   downloadJson(state, `oofr-backup-${dateStamp()}.json`);
 }
 
+function activeLearningPackageMaterial(lesson) {
+  const entry = state.entries.find((item) => item.courseLessonId === lesson.id) || null;
+  const tape = entry ? getTape(entry.tapeId) : null;
+  const album = tape ? getAlbum(tape.albumId) : state.albums.find((item) => item.courseLessonId === lesson.id) || null;
+  return { album, tape, entry };
+}
+
+function dictionaryEntriesForLesson(lesson) {
+  const terms = new Set();
+  lesson.turns.forEach((turn) => {
+    const words = String(turn.text || "").match(new RegExp(WORD_PATTERN_SOURCE, "gu")) || [];
+    words.forEach((word) => terms.add(normalizeLexicalUnit(word)));
+  });
+  (lesson.lexicalUnits || []).forEach((item) => {
+    terms.add(normalizeLexicalUnit(item.text));
+    terms.add(normalizeLexicalUnit(item.lemma));
+  });
+  return Object.fromEntries(Object.entries(state.dictionaryEntries || {}).filter(([, item]) => terms.has(normalizeLexicalUnit(item.lemma))));
+}
+
+function exportActiveLearningPackage() {
+  const lesson = getActiveCourseLesson();
+  if (!lesson || !globalThis.OoFRLearningPackage?.build) {
+    setStatus("当前课程无法导出学习包");
+    return;
+  }
+  try {
+    const payload = globalThis.OoFRLearningPackage.build({
+      appVersion: APP_VERSION,
+      lesson,
+      material: activeLearningPackageMaterial(lesson),
+      dictionaryEntries: dictionaryEntriesForLesson(lesson),
+      phraseItems: state.phraseItems.filter((item) => item.sourceLessonId === lesson.id)
+    });
+    downloadJson(payload, `${slugifyFilePart(lesson.title)}-${dateStamp()}.oofr-learning.json`);
+    const explanationCount = lesson.turns.filter((turn) => turn.aiExplanation).length;
+    setStatus(`学习包已导出：${lesson.turns.length} 句 · ${explanationCount} 句讲解`);
+  } catch (error) {
+    setStatus(error.message || "学习包导出失败");
+  }
+}
+
+async function previewLearningPackageFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const raw = JSON.parse(await file.text());
+    pendingLearningPackage = globalThis.OoFRLearningPackage.validate(raw);
+    renderLearningPackagePreview(pendingLearningPackage, file.name);
+    if (!elements.learningPackageDialog.open) elements.learningPackageDialog.showModal();
+  } catch (error) {
+    pendingLearningPackage = null;
+    setStatus(error.message || "学习包读取失败");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function renderLearningPackagePreview(pkg, filename = "") {
+  const lesson = pkg.course;
+  const explanationCount = lesson.turns.filter((turn) => turn.aiExplanation).length;
+  const translatedCount = lesson.turns.filter((turn) => String(turn.translation || "").trim()).length;
+  const lexicalCount = Array.isArray(lesson.lexicalUnits) ? lesson.lexicalUnits.length : 0;
+  const existing = state.courseLessons.some((item) => item.id === lesson.id);
+  elements.learningPackageTitle.textContent = `导入：${lesson.title}`;
+  elements.learningPackagePreview.replaceChildren(
+    el("p", "learning-package-source", filename ? `文件：${filename}` : `来源版本：${pkg.appVersion || "未知"}`),
+    learningPackagePreviewRow("课程", lesson.title),
+    learningPackagePreviewRow("内容", `${lesson.turns.length} 句 · ${translatedCount} 句译文`),
+    learningPackagePreviewRow("AI 缓存", `${explanationCount} 句讲解 · ${lexicalCount} 个固定表达`),
+    learningPackagePreviewRow("来源", pkg.material?.album?.title || pkg.material?.tape?.title || pkg.material?.entry?.title || "独立课程"),
+    el("p", `micro-copy learning-package-conflict${existing ? " is-warning" : ""}`, existing
+      ? "这台设备已有同一课程。默认更新课程，并保留本机逐句录音；也可以导入为副本。"
+      : "这是一门新课程。点击“更新已有课程”会直接加入当前设备。")
+  );
+  elements.learningPackageUpdateBtn.textContent = existing ? "更新已有课程" : "导入课程";
+}
+
+function learningPackagePreviewRow(label, value) {
+  const row = el("div", "learning-package-preview-row");
+  row.append(el("span", "micro-copy", label), el("strong", "", value));
+  return row;
+}
+
+function closeLearningPackagePreview() {
+  pendingLearningPackage = null;
+  if (elements.learningPackageDialog?.open) elements.learningPackageDialog.close();
+}
+
+function importPendingLearningPackage(strategy) {
+  if (!pendingLearningPackage) return;
+  try {
+    const importedTitle = applyLearningPackage(pendingLearningPackage, strategy);
+    closeLearningPackagePreview();
+    setStatus(`${strategy === "copy" ? "学习包已作为副本导入" : "学习包已导入"}：${importedTitle}`);
+  } catch (error) {
+    setStatus(error.message || "学习包导入失败");
+  }
+}
+
+function applyLearningPackage(pkg, strategy = "update") {
+  const source = globalThis.OoFRLearningPackage.validate(pkg);
+  const copyMode = strategy === "copy";
+  const sourceLessonId = String(source.course.id);
+  const lessonId = copyMode ? makeId("course") : sourceLessonId;
+  const importedLesson = cloneJson(source.course);
+  importedLesson.id = lessonId;
+  if (copyMode) importedLesson.title = `${importedLesson.title}（导入）`;
+  importedLesson.turns = importedLesson.turns.map((turn, index) => ({
+    ...turn,
+    id: copyMode ? `${lessonId}_turn_${index + 1}` : String(turn.id || `${lessonId}_turn_${index + 1}`),
+    recording: { status: "none", durationMs: 0, mediaKey: "" }
+  }));
+
+  const existingLesson = copyMode ? null : state.courseLessons.find((item) => item.id === lessonId);
+  if (existingLesson) {
+    const recordings = new Map(existingLesson.turns.flatMap((turn) => [
+      [`id:${turn.id}`, turn.recording],
+      [`text:${normalizeLexicalUnit(turn.text)}`, turn.recording]
+    ]));
+    importedLesson.turns.forEach((turn) => {
+      turn.recording = recordings.get(`id:${turn.id}`) || recordings.get(`text:${normalizeLexicalUnit(turn.text)}`) || turn.recording;
+    });
+  }
+  const normalizedLesson = normalizeCourseLesson(importedLesson);
+  if (!normalizedLesson) throw new Error("学习包中的课程格式无效");
+
+  const material = importLearningPackageMaterial(source.material, normalizedLesson, copyMode);
+  const lessonIndex = state.courseLessons.findIndex((item) => item.id === normalizedLesson.id);
+  if (lessonIndex >= 0) state.courseLessons.splice(lessonIndex, 1, normalizedLesson);
+  else state.courseLessons.unshift(normalizedLesson);
+
+  state.dictionaryEntries = normalizeDictionaryEntryCache({ ...state.dictionaryEntries, ...source.dictionaryEntries });
+  source.phraseItems.forEach((raw) => {
+    const item = normalizePhraseItem({
+      ...raw,
+      id: copyMode ? makeId("phrase") : raw.id,
+      sourceLessonId: normalizedLesson.id,
+      sourceTitle: normalizedLesson.title
+    });
+    if (!item) return;
+    const existing = state.phraseItems.find((candidate) => candidate.id === item.id || (candidate.sourceLessonId === item.sourceLessonId && candidate.text === item.text));
+    if (!existing) state.phraseItems.push(item);
+  });
+
+  state.activeCourseId = normalizedLesson.id;
+  state.activeEntryId = material.entry?.id || null;
+  state.ui.activeView = "course";
+  courseActiveLessonId = normalizedLesson.id;
+  courseCurrentTurnIndex = 0;
+  persist();
+  renderAll();
+  setCourseStage("player");
+  return normalizedLesson.title;
+}
+
+function importLearningPackageMaterial(material, lesson, copyMode) {
+  if (!material || (!material.album && !material.tape && !material.entry)) return { album: null, tape: null, entry: null };
+  const albumSource = material.album || {};
+  const albumId = copyMode ? makeId("album") : String(albumSource.id || state.ui.selectedAlbumId || makeId("album"));
+  let album = normalizeAlbum({
+    ...albumSource,
+    id: albumId,
+    title: copyMode ? `${albumSource.title || lesson.title}（导入）` : (albumSource.title || lesson.title),
+    courseLessonId: ""
+  });
+  if (!album) album = normalizeAlbum({ id: albumId, title: lesson.title, description: "从学习包导入", courseLessonId: "" });
+  const albumIndex = state.albums.findIndex((item) => item.id === album.id);
+  if (albumIndex >= 0) state.albums.splice(albumIndex, 1, album);
+  else state.albums.push(album);
+
+  const tapeSource = material.tape || {};
+  const tapeId = copyMode ? makeId("tape") : String(tapeSource.id || makeId("tape"));
+  let tape = normalizeTape({ ...tapeSource, id: tapeId, albumId: album.id, title: tapeSource.title || "导入素材" });
+  if (!tape) tape = normalizeTape({ id: tapeId, albumId: album.id, title: "导入素材", description: "" });
+  const tapeIndex = state.tapes.findIndex((item) => item.id === tape.id);
+  if (tapeIndex >= 0) state.tapes.splice(tapeIndex, 1, tape);
+  else state.tapes.push(tape);
+
+  const entrySource = material.entry || {};
+  const entryId = copyMode ? makeId("entry") : String(entrySource.id || makeId("entry"));
+  const fallbackText = lesson.turns.map((turn) => lesson.materialType === "情景对话" ? `${turn.speakerLabel}: ${turn.text}` : turn.text).join("\n");
+  let entry = normalizeEntry({
+    ...entrySource,
+    id: entryId,
+    tapeId: tape.id,
+    title: entrySource.title || lesson.title,
+    text: typeof entrySource.text === "string" ? entrySource.text : fallbackText,
+    language: lesson.language,
+    materialType: lesson.materialType,
+    courseLessonId: lesson.id
+  });
+  if (!entry) throw new Error("学习包素材格式无效");
+  const entryIndex = state.entries.findIndex((item) => item.id === entry.id);
+  if (entryIndex >= 0) state.entries.splice(entryIndex, 1, entry);
+  else state.entries.push(entry);
+  state.ui.selectedAlbumId = album.id;
+  state.ui.selectedTapeId = tape.id;
+  return { album, tape, entry };
+}
+
 function exportWordbooks() {
   const scopeValue = elements.wordbookExportScope?.value || ALL_WORDBOOK_ID;
   const payload = buildWordbookExportPayload(scopeValue);
@@ -5478,7 +6779,7 @@ function mergeImportedVocabulary(incomingVocabulary, conflictStrategy) {
       wordbookIds: validWordbookIds(incoming.wordbookIds),
       seenForms: mergeSeenForms([], incoming.seenForms)
     };
-    const existing = state.vocabulary.find((word) => word.normalized === item.normalized || word.lemma === item.normalized);
+    const existing = state.vocabulary.find((word) => word.normalized === item.normalized);
     if (!existing) {
       const idExists = state.vocabulary.some((word) => word.id === item.id);
       state.vocabulary.push({
@@ -5585,12 +6886,13 @@ function ensureStateShape(raw) {
     phraseItems: Array.isArray(stateLike.phraseItems)
       ? stateLike.phraseItems.map(normalizePhraseItem).filter(Boolean)
       : fallback.phraseItems,
+    dictionaryEntries: normalizeDictionaryEntryCache(stateLike.dictionaryEntries),
     study: normalizeStudyState(stateLike.study || fallback.study)
   };
 
   next.settings.systemLanguage = ["zh", "en", "fr"].includes(next.settings.systemLanguage) ? next.settings.systemLanguage : "zh";
   next.settings.localAiEndpoint = String(next.settings.localAiEndpoint || "http://127.0.0.1:11434").replace(/\/$/, "");
-  next.settings.localAiModel = String(next.settings.localAiModel || "gemma3:4b").trim();
+  next.settings.localAiModel = String(next.settings.localAiModel || "auto").trim() || "auto";
 
   next.phraseItems = next.phraseItems.filter((item) => item.id !== "demo_phrase_3" && item.text !== "I would like to practise for ten minutes.");
 
@@ -5653,7 +6955,7 @@ function createStarterState(legacy) {
     voiceLocked: Boolean(legacy?.voice),
     systemLanguage: "zh",
     localAiEndpoint: "http://127.0.0.1:11434",
-    localAiModel: "gemma3:4b"
+    localAiModel: "auto"
   };
 
   return {
@@ -5706,8 +7008,29 @@ function createStarterState(legacy) {
     activeCourseId: "demo_lesson",
     courseLessons: [createDemoCourseLesson()],
     phraseItems: createDemoPhraseItems(),
+    dictionaryEntries: {},
     study: normalizeStudyState({})
   };
+}
+
+function normalizeDictionaryEntryCache(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const entries = Object.entries(value)
+    .filter(([key, item]) => key && item && typeof item === "object")
+    .sort((left, right) => String(right[1].updatedAt || "").localeCompare(String(left[1].updatedAt || "")))
+    .slice(0, 800)
+    .map(([key, item]) => [String(key), {
+      version: String(item.version || ""),
+      lemma: String(item.lemma || ""),
+      partOfSpeech: String(item.partOfSpeech || ""),
+      senses: (Array.isArray(item.senses) ? item.senses : []).map(String).filter(Boolean).slice(0, 20),
+      contextMeaning: String(item.contextMeaning || ""),
+      formNote: String(item.formNote || ""),
+      usageNote: String(item.usageNote || ""),
+      model: String(item.model || ""),
+      updatedAt: item.updatedAt || nowIso()
+    }]);
+  return Object.fromEntries(entries);
 }
 
 function normalizeStudyState(study) {
@@ -5788,11 +7111,11 @@ function normalizeWordbook(wordbook) {
 }
 
 function normalizeVocabularyList(items) {
-  const byLemma = new Map();
+  const byIdentity = new Map();
   items.map(normalizeVocabulary).filter(Boolean).forEach((item) => {
-    const existing = byLemma.get(item.normalized);
+    const existing = byIdentity.get(item.normalized);
     if (!existing) {
-      byLemma.set(item.normalized, item);
+      byIdentity.set(item.normalized, item);
       return;
     }
     existing.status = existing.status === "got" || item.status === "got" ? "got" : "new";
@@ -5802,26 +7125,34 @@ function normalizeVocabularyList(items) {
     existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
     existing.updatedAt = item.updatedAt > existing.updatedAt ? item.updatedAt : existing.updatedAt;
   });
-  return Array.from(byLemma.values());
+  return Array.from(byIdentity.values());
 }
 
 function normalizeVocabulary(item) {
   if (!item?.word) return null;
-  const info = resolveWordInfo(item.word);
-  const normalized = info.lemma || item.lemma || item.normalized || normalizeWord(item.word);
-  if (!normalized) return null;
-  const hint = info.lexicon || lookupLexicon(item.word);
-  const originalForm = normalizeWord(item.word);
+  const language = item.language === "en" ? "en" : "fr";
+  const surface = preferredVocabularySurface(item);
+  const info = resolveWordInfo(surface);
+  const hint = info.lexicon || lookupLexicon(surface);
+  const lemma = item.lemma || hint?.word || info.lemma || surface;
+  const partOfSpeech = String(item.partOfSpeech || item.pos || "");
+  const presentation = vocabularyPresentation(surface, { lemma, pos: partOfSpeech }, language);
+  if (!presentation.identity) return null;
+  const originalForm = normalizeWord(surface);
   const seenForms = Array.isArray(item.seenForms)
     ? item.seenForms.map(normalizeSeenForm).filter(Boolean)
-    : [{ form: String(item.word), normalized: originalForm, count: 1 }];
+    : [{ form: surface, normalized: originalForm, count: 1 }];
   return {
     id: item.id || makeId("word"),
-    word: hint?.word || String(item.word),
-    lemma: normalized,
-    normalized,
+    word: presentation.displayWord,
+    surface: presentation.surface,
+    lemma: presentation.lemma,
+    normalized: presentation.identity,
+    partOfSpeech,
+    language,
     ipa: String(item.ipa || hint?.ipa || ""),
     zh: String(item.zh || hint?.zh || ""),
+    en: String(item.en || ""),
     status: item.status === "got" ? "got" : "new",
     wordbookIds: cleanWordbookIds([
       ...(Array.isArray(item.wordbookIds) ? item.wordbookIds : []),
@@ -5831,6 +7162,15 @@ function normalizeVocabulary(item) {
     createdAt: item.createdAt || nowIso(),
     updatedAt: item.updatedAt || nowIso()
   };
+}
+
+function preferredVocabularySurface(item) {
+  if (String(item?.surface || "").trim()) return String(item.surface).trim();
+  const seen = (Array.isArray(item?.seenForms) ? item.seenForms : [])
+    .filter((entry) => String(entry?.form || "").trim())
+    .sort((left, right) => Number(right.count || 0) - Number(left.count || 0));
+  const recordedSurface = seen.find((entry) => normalizeWord(entry.form) !== normalizeWord(item.word));
+  return String(recordedSurface?.form || seen[0]?.form || item?.word || "").trim();
 }
 
 function validWordbookIds(ids = [], wordbooks = state?.wordbooks || []) {
@@ -5893,7 +7233,7 @@ function persist({ skipCloud = false } = {}) {
     setStatus("保存失败");
   });
   queueSyncedSettings();
-  if (!skipCloud) {
+  if (CLOUD_SYNC_ENABLED && !skipCloud) {
     writeCloudLocalMeta({ lastLocalChangeAt: new Date().toISOString() });
     queueCloudSync();
   }

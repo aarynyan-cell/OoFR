@@ -1,0 +1,2336 @@
+{
+  "type": "oofr.dictionary.v3",
+  "version": "2026.10.07",
+  "builtAt": "2026-10-07T07:50:27.431192+00:00",
+  "shards": 128,
+  "languages": {
+    "fr": {
+      "entries": {
+        "count": 94010,
+        "files": [
+          {
+            "shard": "00",
+            "file": "fr/entries-00.json",
+            "count": 766,
+            "bytes": 203336
+          },
+          {
+            "shard": "01",
+            "file": "fr/entries-01.json",
+            "count": 787,
+            "bytes": 215387
+          },
+          {
+            "shard": "02",
+            "file": "fr/entries-02.json",
+            "count": 725,
+            "bytes": 196880
+          },
+          {
+            "shard": "03",
+            "file": "fr/entries-03.json",
+            "count": 702,
+            "bytes": 190075
+          },
+          {
+            "shard": "04",
+            "file": "fr/entries-04.json",
+            "count": 716,
+            "bytes": 195846
+          },
+          {
+            "shard": "05",
+            "file": "fr/entries-05.json",
+            "count": 739,
+            "bytes": 205121
+          },
+          {
+            "shard": "06",
+            "file": "fr/entries-06.json",
+            "count": 746,
+            "bytes": 204331
+          },
+          {
+            "shard": "07",
+            "file": "fr/entries-07.json",
+            "count": 722,
+            "bytes": 200432
+          },
+          {
+            "shard": "08",
+            "file": "fr/entries-08.json",
+            "count": 761,
+            "bytes": 205857
+          },
+          {
+            "shard": "09",
+            "file": "fr/entries-09.json",
+            "count": 747,
+            "bytes": 206348
+          },
+          {
+            "shard": "0a",
+            "file": "fr/entries-0a.json",
+            "count": 745,
+            "bytes": 200766
+          },
+          {
+            "shard": "0b",
+            "file": "fr/entries-0b.json",
+            "count": 736,
+            "bytes": 203005
+          },
+          {
+            "shard": "0c",
+            "file": "fr/entries-0c.json",
+            "count": 736,
+            "bytes": 196920
+          },
+          {
+            "shard": "0d",
+            "file": "fr/entries-0d.json",
+            "count": 711,
+            "bytes": 200153
+          },
+          {
+            "shard": "0e",
+            "file": "fr/entries-0e.json",
+            "count": 753,
+            "bytes": 204081
+          },
+          {
+            "shard": "0f",
+            "file": "fr/entries-0f.json",
+            "count": 744,
+            "bytes": 199382
+          },
+          {
+            "shard": "10",
+            "file": "fr/entries-10.json",
+            "count": 693,
+            "bytes": 191108
+          },
+          {
+            "shard": "11",
+            "file": "fr/entries-11.json",
+            "count": 746,
+            "bytes": 200723
+          },
+          {
+            "shard": "12",
+            "file": "fr/entries-12.json",
+            "count": 739,
+            "bytes": 198898
+          },
+          {
+            "shard": "13",
+            "file": "fr/entries-13.json",
+            "count": 691,
+            "bytes": 189488
+          },
+          {
+            "shard": "14",
+            "file": "fr/entries-14.json",
+            "count": 774,
+            "bytes": 211075
+          },
+          {
+            "shard": "15",
+            "file": "fr/entries-15.json",
+            "count": 789,
+            "bytes": 213144
+          },
+          {
+            "shard": "16",
+            "file": "fr/entries-16.json",
+            "count": 703,
+            "bytes": 195407
+          },
+          {
+            "shard": "17",
+            "file": "fr/entries-17.json",
+            "count": 740,
+            "bytes": 200069
+          },
+          {
+            "shard": "18",
+            "file": "fr/entries-18.json",
+            "count": 758,
+            "bytes": 204664
+          },
+          {
+            "shard": "19",
+            "file": "fr/entries-19.json",
+            "count": 720,
+            "bytes": 192613
+          },
+          {
+            "shard": "1a",
+            "file": "fr/entries-1a.json",
+            "count": 739,
+            "bytes": 202818
+          },
+          {
+            "shard": "1b",
+            "file": "fr/entries-1b.json",
+            "count": 753,
+            "bytes": 204176
+          },
+          {
+            "shard": "1c",
+            "file": "fr/entries-1c.json",
+            "count": 749,
+            "bytes": 202737
+          },
+          {
+            "shard": "1d",
+            "file": "fr/entries-1d.json",
+            "count": 700,
+            "bytes": 186372
+          },
+          {
+            "shard": "1e",
+            "file": "fr/entries-1e.json",
+            "count": 727,
+            "bytes": 192724
+          },
+          {
+            "shard": "1f",
+            "file": "fr/entries-1f.json",
+            "count": 788,
+            "bytes": 219980
+          },
+          {
+            "shard": "20",
+            "file": "fr/entries-20.json",
+            "count": 750,
+            "bytes": 205541
+          },
+          {
+            "shard": "21",
+            "file": "fr/entries-21.json",
+            "count": 749,
+            "bytes": 203692
+          },
+          {
+            "shard": "22",
+            "file": "fr/entries-22.json",
+            "count": 777,
+            "bytes": 212446
+          },
+          {
+            "shard": "23",
+            "file": "fr/entries-23.json",
+            "count": 723,
+            "bytes": 197153
+          },
+          {
+            "shard": "24",
+            "file": "fr/entries-24.json",
+            "count": 726,
+            "bytes": 196606
+          },
+          {
+            "shard": "25",
+            "file": "fr/entries-25.json",
+            "count": 728,
+            "bytes": 197801
+          },
+          {
+            "shard": "26",
+            "file": "fr/entries-26.json",
+            "count": 709,
+            "bytes": 189155
+          },
+          {
+            "shard": "27",
+            "file": "fr/entries-27.json",
+            "count": 731,
+            "bytes": 199135
+          },
+          {
+            "shard": "28",
+            "file": "fr/entries-28.json",
+            "count": 736,
+            "bytes": 197086
+          },
+          {
+            "shard": "29",
+            "file": "fr/entries-29.json",
+            "count": 752,
+            "bytes": 207436
+          },
+          {
+            "shard": "2a",
+            "file": "fr/entries-2a.json",
+            "count": 764,
+            "bytes": 211261
+          },
+          {
+            "shard": "2b",
+            "file": "fr/entries-2b.json",
+            "count": 760,
+            "bytes": 205246
+          },
+          {
+            "shard": "2c",
+            "file": "fr/entries-2c.json",
+            "count": 738,
+            "bytes": 200347
+          },
+          {
+            "shard": "2d",
+            "file": "fr/entries-2d.json",
+            "count": 735,
+            "bytes": 200259
+          },
+          {
+            "shard": "2e",
+            "file": "fr/entries-2e.json",
+            "count": 768,
+            "bytes": 207285
+          },
+          {
+            "shard": "2f",
+            "file": "fr/entries-2f.json",
+            "count": 755,
+            "bytes": 208325
+          },
+          {
+            "shard": "30",
+            "file": "fr/entries-30.json",
+            "count": 754,
+            "bytes": 213184
+          },
+          {
+            "shard": "31",
+            "file": "fr/entries-31.json",
+            "count": 741,
+            "bytes": 201360
+          },
+          {
+            "shard": "32",
+            "file": "fr/entries-32.json",
+            "count": 766,
+            "bytes": 210387
+          },
+          {
+            "shard": "33",
+            "file": "fr/entries-33.json",
+            "count": 746,
+            "bytes": 207680
+          },
+          {
+            "shard": "34",
+            "file": "fr/entries-34.json",
+            "count": 705,
+            "bytes": 193342
+          },
+          {
+            "shard": "35",
+            "file": "fr/entries-35.json",
+            "count": 721,
+            "bytes": 197939
+          },
+          {
+            "shard": "36",
+            "file": "fr/entries-36.json",
+            "count": 720,
+            "bytes": 191838
+          },
+          {
+            "shard": "37",
+            "file": "fr/entries-37.json",
+            "count": 741,
+            "bytes": 199372
+          },
+          {
+            "shard": "38",
+            "file": "fr/entries-38.json",
+            "count": 722,
+            "bytes": 196943
+          },
+          {
+            "shard": "39",
+            "file": "fr/entries-39.json",
+            "count": 750,
+            "bytes": 197816
+          },
+          {
+            "shard": "3a",
+            "file": "fr/entries-3a.json",
+            "count": 706,
+            "bytes": 193084
+          },
+          {
+            "shard": "3b",
+            "file": "fr/entries-3b.json",
+            "count": 696,
+            "bytes": 186989
+          },
+          {
+            "shard": "3c",
+            "file": "fr/entries-3c.json",
+            "count": 708,
+            "bytes": 195543
+          },
+          {
+            "shard": "3d",
+            "file": "fr/entries-3d.json",
+            "count": 751,
+            "bytes": 207724
+          },
+          {
+            "shard": "3e",
+            "file": "fr/entries-3e.json",
+            "count": 702,
+            "bytes": 187329
+          },
+          {
+            "shard": "3f",
+            "file": "fr/entries-3f.json",
+            "count": 728,
+            "bytes": 194230
+          },
+          {
+            "shard": "40",
+            "file": "fr/entries-40.json",
+            "count": 752,
+            "bytes": 207412
+          },
+          {
+            "shard": "41",
+            "file": "fr/entries-41.json",
+            "count": 775,
+            "bytes": 210780
+          },
+          {
+            "shard": "42",
+            "file": "fr/entries-42.json",
+            "count": 725,
+            "bytes": 203316
+          },
+          {
+            "shard": "43",
+            "file": "fr/entries-43.json",
+            "count": 740,
+            "bytes": 197735
+          },
+          {
+            "shard": "44",
+            "file": "fr/entries-44.json",
+            "count": 714,
+            "bytes": 192359
+          },
+          {
+            "shard": "45",
+            "file": "fr/entries-45.json",
+            "count": 752,
+            "bytes": 202029
+          },
+          {
+            "shard": "46",
+            "file": "fr/entries-46.json",
+            "count": 759,
+            "bytes": 208811
+          },
+          {
+            "shard": "47",
+            "file": "fr/entries-47.json",
+            "count": 780,
+            "bytes": 216368
+          },
+          {
+            "shard": "48",
+            "file": "fr/entries-48.json",
+            "count": 688,
+            "bytes": 183582
+          },
+          {
+            "shard": "49",
+            "file": "fr/entries-49.json",
+            "count": 769,
+            "bytes": 205184
+          },
+          {
+            "shard": "4a",
+            "file": "fr/entries-4a.json",
+            "count": 740,
+            "bytes": 197777
+          },
+          {
+            "shard": "4b",
+            "file": "fr/entries-4b.json",
+            "count": 713,
+            "bytes": 194072
+          },
+          {
+            "shard": "4c",
+            "file": "fr/entries-4c.json",
+            "count": 726,
+            "bytes": 200771
+          },
+          {
+            "shard": "4d",
+            "file": "fr/entries-4d.json",
+            "count": 713,
+            "bytes": 190486
+          },
+          {
+            "shard": "4e",
+            "file": "fr/entries-4e.json",
+            "count": 702,
+            "bytes": 189281
+          },
+          {
+            "shard": "4f",
+            "file": "fr/entries-4f.json",
+            "count": 740,
+            "bytes": 200780
+          },
+          {
+            "shard": "50",
+            "file": "fr/entries-50.json",
+            "count": 690,
+            "bytes": 188315
+          },
+          {
+            "shard": "51",
+            "file": "fr/entries-51.json",
+            "count": 709,
+            "bytes": 192690
+          },
+          {
+            "shard": "52",
+            "file": "fr/entries-52.json",
+            "count": 673,
+            "bytes": 177944
+          },
+          {
+            "shard": "53",
+            "file": "fr/entries-53.json",
+            "count": 737,
+            "bytes": 205682
+          },
+          {
+            "shard": "54",
+            "file": "fr/entries-54.json",
+            "count": 726,
+            "bytes": 191450
+          },
+          {
+            "shard": "55",
+            "file": "fr/entries-55.json",
+            "count": 735,
+            "bytes": 203350
+          },
+          {
+            "shard": "56",
+            "file": "fr/entries-56.json",
+            "count": 726,
+            "bytes": 196350
+          },
+          {
+            "shard": "57",
+            "file": "fr/entries-57.json",
+            "count": 703,
+            "bytes": 190419
+          },
+          {
+            "shard": "58",
+            "file": "fr/entries-58.json",
+            "count": 750,
+            "bytes": 203957
+          },
+          {
+            "shard": "59",
+            "file": "fr/entries-59.json",
+            "count": 738,
+            "bytes": 199195
+          },
+          {
+            "shard": "5a",
+            "file": "fr/entries-5a.json",
+            "count": 728,
+            "bytes": 203520
+          },
+          {
+            "shard": "5b",
+            "file": "fr/entries-5b.json",
+            "count": 741,
+            "bytes": 202814
+          },
+          {
+            "shard": "5c",
+            "file": "fr/entries-5c.json",
+            "count": 666,
+            "bytes": 181932
+          },
+          {
+            "shard": "5d",
+            "file": "fr/entries-5d.json",
+            "count": 735,
+            "bytes": 201875
+          },
+          {
+            "shard": "5e",
+            "file": "fr/entries-5e.json",
+            "count": 768,
+            "bytes": 208953
+          },
+          {
+            "shard": "5f",
+            "file": "fr/entries-5f.json",
+            "count": 719,
+            "bytes": 200595
+          },
+          {
+            "shard": "60",
+            "file": "fr/entries-60.json",
+            "count": 734,
+            "bytes": 201934
+          },
+          {
+            "shard": "61",
+            "file": "fr/entries-61.json",
+            "count": 682,
+            "bytes": 183847
+          },
+          {
+            "shard": "62",
+            "file": "fr/entries-62.json",
+            "count": 734,
+            "bytes": 200147
+          },
+          {
+            "shard": "63",
+            "file": "fr/entries-63.json",
+            "count": 737,
+            "bytes": 198004
+          },
+          {
+            "shard": "64",
+            "file": "fr/entries-64.json",
+            "count": 704,
+            "bytes": 187473
+          },
+          {
+            "shard": "65",
+            "file": "fr/entries-65.json",
+            "count": 724,
+            "bytes": 195698
+          },
+          {
+            "shard": "66",
+            "file": "fr/entries-66.json",
+            "count": 726,
+            "bytes": 201002
+          },
+          {
+            "shard": "67",
+            "file": "fr/entries-67.json",
+            "count": 756,
+            "bytes": 207484
+          },
+          {
+            "shard": "68",
+            "file": "fr/entries-68.json",
+            "count": 743,
+            "bytes": 202606
+          },
+          {
+            "shard": "69",
+            "file": "fr/entries-69.json",
+            "count": 725,
+            "bytes": 198078
+          },
+          {
+            "shard": "6a",
+            "file": "fr/entries-6a.json",
+            "count": 726,
+            "bytes": 200525
+          },
+          {
+            "shard": "6b",
+            "file": "fr/entries-6b.json",
+            "count": 750,
+            "bytes": 207057
+          },
+          {
+            "shard": "6c",
+            "file": "fr/entries-6c.json",
+            "count": 706,
+            "bytes": 192666
+          },
+          {
+            "shard": "6d",
+            "file": "fr/entries-6d.json",
+            "count": 709,
+            "bytes": 196425
+          },
+          {
+            "shard": "6e",
+            "file": "fr/entries-6e.json",
+            "count": 743,
+            "bytes": 194766
+          },
+          {
+            "shard": "6f",
+            "file": "fr/entries-6f.json",
+            "count": 761,
+            "bytes": 201341
+          },
+          {
+            "shard": "70",
+            "file": "fr/entries-70.json",
+            "count": 725,
+            "bytes": 194986
+          },
+          {
+            "shard": "71",
+            "file": "fr/entries-71.json",
+            "count": 717,
+            "bytes": 195370
+          },
+          {
+            "shard": "72",
+            "file": "fr/entries-72.json",
+            "count": 772,
+            "bytes": 205409
+          },
+          {
+            "shard": "73",
+            "file": "fr/entries-73.json",
+            "count": 750,
+            "bytes": 209043
+          },
+          {
+            "shard": "74",
+            "file": "fr/entries-74.json",
+            "count": 714,
+            "bytes": 193203
+          },
+          {
+            "shard": "75",
+            "file": "fr/entries-75.json",
+            "count": 766,
+            "bytes": 204041
+          },
+          {
+            "shard": "76",
+            "file": "fr/entries-76.json",
+            "count": 720,
+            "bytes": 200894
+          },
+          {
+            "shard": "77",
+            "file": "fr/entries-77.json",
+            "count": 741,
+            "bytes": 202079
+          },
+          {
+            "shard": "78",
+            "file": "fr/entries-78.json",
+            "count": 777,
+            "bytes": 208031
+          },
+          {
+            "shard": "79",
+            "file": "fr/entries-79.json",
+            "count": 741,
+            "bytes": 207396
+          },
+          {
+            "shard": "7a",
+            "file": "fr/entries-7a.json",
+            "count": 734,
+            "bytes": 196791
+          },
+          {
+            "shard": "7b",
+            "file": "fr/entries-7b.json",
+            "count": 713,
+            "bytes": 196089
+          },
+          {
+            "shard": "7c",
+            "file": "fr/entries-7c.json",
+            "count": 727,
+            "bytes": 198607
+          },
+          {
+            "shard": "7d",
+            "file": "fr/entries-7d.json",
+            "count": 733,
+            "bytes": 203283
+          },
+          {
+            "shard": "7e",
+            "file": "fr/entries-7e.json",
+            "count": 771,
+            "bytes": 216172
+          },
+          {
+            "shard": "7f",
+            "file": "fr/entries-7f.json",
+            "count": 714,
+            "bytes": 199769
+          }
+        ]
+      },
+      "forms": {
+        "count": 676238,
+        "files": [
+          {
+            "shard": "00",
+            "file": "fr/forms-00.json",
+            "count": 5289,
+            "bytes": 467963
+          },
+          {
+            "shard": "01",
+            "file": "fr/forms-01.json",
+            "count": 5223,
+            "bytes": 462031
+          },
+          {
+            "shard": "02",
+            "file": "fr/forms-02.json",
+            "count": 5334,
+            "bytes": 473523
+          },
+          {
+            "shard": "03",
+            "file": "fr/forms-03.json",
+            "count": 5337,
+            "bytes": 472476
+          },
+          {
+            "shard": "04",
+            "file": "fr/forms-04.json",
+            "count": 5202,
+            "bytes": 459646
+          },
+          {
+            "shard": "05",
+            "file": "fr/forms-05.json",
+            "count": 5273,
+            "bytes": 468420
+          },
+          {
+            "shard": "06",
+            "file": "fr/forms-06.json",
+            "count": 5326,
+            "bytes": 468661
+          },
+          {
+            "shard": "07",
+            "file": "fr/forms-07.json",
+            "count": 5170,
+            "bytes": 456670
+          },
+          {
+            "shard": "08",
+            "file": "fr/forms-08.json",
+            "count": 5195,
+            "bytes": 458893
+          },
+          {
+            "shard": "09",
+            "file": "fr/forms-09.json",
+            "count": 5195,
+            "bytes": 457325
+          },
+          {
+            "shard": "0a",
+            "file": "fr/forms-0a.json",
+            "count": 5309,
+            "bytes": 468328
+          },
+          {
+            "shard": "0b",
+            "file": "fr/forms-0b.json",
+            "count": 5429,
+            "bytes": 479757
+          },
+          {
+            "shard": "0c",
+            "file": "fr/forms-0c.json",
+            "count": 5339,
+            "bytes": 471209
+          },
+          {
+            "shard": "0d",
+            "file": "fr/forms-0d.json",
+            "count": 5252,
+            "bytes": 461968
+          },
+          {
+            "shard": "0e",
+            "file": "fr/forms-0e.json",
+            "count": 5332,
+            "bytes": 469367
+          },
+          {
+            "shard": "0f",
+            "file": "fr/forms-0f.json",
+            "count": 5253,
+            "bytes": 464487
+          },
+          {
+            "shard": "10",
+            "file": "fr/forms-10.json",
+            "count": 5304,
+            "bytes": 468161
+          },
+          {
+            "shard": "11",
+            "file": "fr/forms-11.json",
+            "count": 5355,
+            "bytes": 473103
+          },
+          {
+            "shard": "12",
+            "file": "fr/forms-12.json",
+            "count": 5376,
+            "bytes": 475766
+          },
+          {
+            "shard": "13",
+            "file": "fr/forms-13.json",
+            "count": 5423,
+            "bytes": 477430
+          },
+          {
+            "shard": "14",
+            "file": "fr/forms-14.json",
+            "count": 5183,
+            "bytes": 459665
+          },
+          {
+            "shard": "15",
+            "file": "fr/forms-15.json",
+            "count": 5388,
+            "bytes": 477037
+          },
+          {
+            "shard": "16",
+            "file": "fr/forms-16.json",
+            "count": 5387,
+            "bytes": 477908
+          },
+          {
+            "shard": "17",
+            "file": "fr/forms-17.json",
+            "count": 5272,
+            "bytes": 466434
+          },
+          {
+            "shard": "18",
+            "file": "fr/forms-18.json",
+            "count": 5350,
+            "bytes": 474076
+          },
+          {
+            "shard": "19",
+            "file": "fr/forms-19.json",
+            "count": 5262,
+            "bytes": 464782
+          },
+          {
+            "shard": "1a",
+            "file": "fr/forms-1a.json",
+            "count": 5264,
+            "bytes": 464380
+          },
+          {
+            "shard": "1b",
+            "file": "fr/forms-1b.json",
+            "count": 5345,
+            "bytes": 469809
+          },
+          {
+            "shard": "1c",
+            "file": "fr/forms-1c.json",
+            "count": 5125,
+            "bytes": 450314
+          },
+          {
+            "shard": "1d",
+            "file": "fr/forms-1d.json",
+            "count": 5332,
+            "bytes": 473096
+          },
+          {
+            "shard": "1e",
+            "file": "fr/forms-1e.json",
+            "count": 5428,
+            "bytes": 481483
+          },
+          {
+            "shard": "1f",
+            "file": "fr/forms-1f.json",
+            "count": 5325,
+            "bytes": 469185
+          },
+          {
+            "shard": "20",
+            "file": "fr/forms-20.json",
+            "count": 5386,
+            "bytes": 477529
+          },
+          {
+            "shard": "21",
+            "file": "fr/forms-21.json",
+            "count": 5388,
+            "bytes": 476589
+          },
+          {
+            "shard": "22",
+            "file": "fr/forms-22.json",
+            "count": 5197,
+            "bytes": 459826
+          },
+          {
+            "shard": "23",
+            "file": "fr/forms-23.json",
+            "count": 5300,
+            "bytes": 468789
+          },
+          {
+            "shard": "24",
+            "file": "fr/forms-24.json",
+            "count": 5296,
+            "bytes": 468930
+          },
+          {
+            "shard": "25",
+            "file": "fr/forms-25.json",
+            "count": 5336,
+            "bytes": 472073
+          },
+          {
+            "shard": "26",
+            "file": "fr/forms-26.json",
+            "count": 5280,
+            "bytes": 467419
+          },
+          {
+            "shard": "27",
+            "file": "fr/forms-27.json",
+            "count": 5293,
+            "bytes": 468600
+          },
+          {
+            "shard": "28",
+            "file": "fr/forms-28.json",
+            "count": 5284,
+            "bytes": 465027
+          },
+          {
+            "shard": "29",
+            "file": "fr/forms-29.json",
+            "count": 5279,
+            "bytes": 465077
+          },
+          {
+            "shard": "2a",
+            "file": "fr/forms-2a.json",
+            "count": 5318,
+            "bytes": 467903
+          },
+          {
+            "shard": "2b",
+            "file": "fr/forms-2b.json",
+            "count": 5443,
+            "bytes": 482759
+          },
+          {
+            "shard": "2c",
+            "file": "fr/forms-2c.json",
+            "count": 5265,
+            "bytes": 465642
+          },
+          {
+            "shard": "2d",
+            "file": "fr/forms-2d.json",
+            "count": 5315,
+            "bytes": 470004
+          },
+          {
+            "shard": "2e",
+            "file": "fr/forms-2e.json",
+            "count": 5409,
+            "bytes": 477124
+          },
+          {
+            "shard": "2f",
+            "file": "fr/forms-2f.json",
+            "count": 5310,
+            "bytes": 467828
+          },
+          {
+            "shard": "30",
+            "file": "fr/forms-30.json",
+            "count": 5333,
+            "bytes": 469618
+          },
+          {
+            "shard": "31",
+            "file": "fr/forms-31.json",
+            "count": 5206,
+            "bytes": 461669
+          },
+          {
+            "shard": "32",
+            "file": "fr/forms-32.json",
+            "count": 5203,
+            "bytes": 458237
+          },
+          {
+            "shard": "33",
+            "file": "fr/forms-33.json",
+            "count": 5387,
+            "bytes": 477551
+          },
+          {
+            "shard": "34",
+            "file": "fr/forms-34.json",
+            "count": 5444,
+            "bytes": 481049
+          },
+          {
+            "shard": "35",
+            "file": "fr/forms-35.json",
+            "count": 5360,
+            "bytes": 473531
+          },
+          {
+            "shard": "36",
+            "file": "fr/forms-36.json",
+            "count": 5213,
+            "bytes": 459841
+          },
+          {
+            "shard": "37",
+            "file": "fr/forms-37.json",
+            "count": 5239,
+            "bytes": 464270
+          },
+          {
+            "shard": "38",
+            "file": "fr/forms-38.json",
+            "count": 5367,
+            "bytes": 474043
+          },
+          {
+            "shard": "39",
+            "file": "fr/forms-39.json",
+            "count": 5286,
+            "bytes": 467804
+          },
+          {
+            "shard": "3a",
+            "file": "fr/forms-3a.json",
+            "count": 5325,
+            "bytes": 468285
+          },
+          {
+            "shard": "3b",
+            "file": "fr/forms-3b.json",
+            "count": 5320,
+            "bytes": 471570
+          },
+          {
+            "shard": "3c",
+            "file": "fr/forms-3c.json",
+            "count": 5387,
+            "bytes": 476131
+          },
+          {
+            "shard": "3d",
+            "file": "fr/forms-3d.json",
+            "count": 5098,
+            "bytes": 454153
+          },
+          {
+            "shard": "3e",
+            "file": "fr/forms-3e.json",
+            "count": 5257,
+            "bytes": 465900
+          },
+          {
+            "shard": "3f",
+            "file": "fr/forms-3f.json",
+            "count": 5260,
+            "bytes": 466260
+          },
+          {
+            "shard": "40",
+            "file": "fr/forms-40.json",
+            "count": 5304,
+            "bytes": 469204
+          },
+          {
+            "shard": "41",
+            "file": "fr/forms-41.json",
+            "count": 5355,
+            "bytes": 473177
+          },
+          {
+            "shard": "42",
+            "file": "fr/forms-42.json",
+            "count": 5180,
+            "bytes": 460414
+          },
+          {
+            "shard": "43",
+            "file": "fr/forms-43.json",
+            "count": 5361,
+            "bytes": 472677
+          },
+          {
+            "shard": "44",
+            "file": "fr/forms-44.json",
+            "count": 5314,
+            "bytes": 468326
+          },
+          {
+            "shard": "45",
+            "file": "fr/forms-45.json",
+            "count": 5368,
+            "bytes": 474113
+          },
+          {
+            "shard": "46",
+            "file": "fr/forms-46.json",
+            "count": 5347,
+            "bytes": 475077
+          },
+          {
+            "shard": "47",
+            "file": "fr/forms-47.json",
+            "count": 5277,
+            "bytes": 467119
+          },
+          {
+            "shard": "48",
+            "file": "fr/forms-48.json",
+            "count": 5294,
+            "bytes": 467664
+          },
+          {
+            "shard": "49",
+            "file": "fr/forms-49.json",
+            "count": 5348,
+            "bytes": 470669
+          },
+          {
+            "shard": "4a",
+            "file": "fr/forms-4a.json",
+            "count": 5252,
+            "bytes": 462310
+          },
+          {
+            "shard": "4b",
+            "file": "fr/forms-4b.json",
+            "count": 5241,
+            "bytes": 464987
+          },
+          {
+            "shard": "4c",
+            "file": "fr/forms-4c.json",
+            "count": 5185,
+            "bytes": 456535
+          },
+          {
+            "shard": "4d",
+            "file": "fr/forms-4d.json",
+            "count": 5359,
+            "bytes": 471225
+          },
+          {
+            "shard": "4e",
+            "file": "fr/forms-4e.json",
+            "count": 5289,
+            "bytes": 465809
+          },
+          {
+            "shard": "4f",
+            "file": "fr/forms-4f.json",
+            "count": 5212,
+            "bytes": 461165
+          },
+          {
+            "shard": "50",
+            "file": "fr/forms-50.json",
+            "count": 5315,
+            "bytes": 470006
+          },
+          {
+            "shard": "51",
+            "file": "fr/forms-51.json",
+            "count": 5250,
+            "bytes": 464597
+          },
+          {
+            "shard": "52",
+            "file": "fr/forms-52.json",
+            "count": 5264,
+            "bytes": 466045
+          },
+          {
+            "shard": "53",
+            "file": "fr/forms-53.json",
+            "count": 5318,
+            "bytes": 469037
+          },
+          {
+            "shard": "54",
+            "file": "fr/forms-54.json",
+            "count": 5231,
+            "bytes": 462199
+          },
+          {
+            "shard": "55",
+            "file": "fr/forms-55.json",
+            "count": 5300,
+            "bytes": 467712
+          },
+          {
+            "shard": "56",
+            "file": "fr/forms-56.json",
+            "count": 5270,
+            "bytes": 466553
+          },
+          {
+            "shard": "57",
+            "file": "fr/forms-57.json",
+            "count": 5259,
+            "bytes": 463784
+          },
+          {
+            "shard": "58",
+            "file": "fr/forms-58.json",
+            "count": 5316,
+            "bytes": 469640
+          },
+          {
+            "shard": "59",
+            "file": "fr/forms-59.json",
+            "count": 5260,
+            "bytes": 465219
+          },
+          {
+            "shard": "5a",
+            "file": "fr/forms-5a.json",
+            "count": 5104,
+            "bytes": 450714
+          },
+          {
+            "shard": "5b",
+            "file": "fr/forms-5b.json",
+            "count": 5336,
+            "bytes": 470694
+          },
+          {
+            "shard": "5c",
+            "file": "fr/forms-5c.json",
+            "count": 5378,
+            "bytes": 476024
+          },
+          {
+            "shard": "5d",
+            "file": "fr/forms-5d.json",
+            "count": 5321,
+            "bytes": 467733
+          },
+          {
+            "shard": "5e",
+            "file": "fr/forms-5e.json",
+            "count": 5280,
+            "bytes": 467848
+          },
+          {
+            "shard": "5f",
+            "file": "fr/forms-5f.json",
+            "count": 5180,
+            "bytes": 458745
+          },
+          {
+            "shard": "60",
+            "file": "fr/forms-60.json",
+            "count": 5275,
+            "bytes": 468195
+          },
+          {
+            "shard": "61",
+            "file": "fr/forms-61.json",
+            "count": 5205,
+            "bytes": 459073
+          },
+          {
+            "shard": "62",
+            "file": "fr/forms-62.json",
+            "count": 5270,
+            "bytes": 466501
+          },
+          {
+            "shard": "63",
+            "file": "fr/forms-63.json",
+            "count": 5250,
+            "bytes": 462952
+          },
+          {
+            "shard": "64",
+            "file": "fr/forms-64.json",
+            "count": 5265,
+            "bytes": 467213
+          },
+          {
+            "shard": "65",
+            "file": "fr/forms-65.json",
+            "count": 5191,
+            "bytes": 461154
+          },
+          {
+            "shard": "66",
+            "file": "fr/forms-66.json",
+            "count": 5235,
+            "bytes": 461402
+          },
+          {
+            "shard": "67",
+            "file": "fr/forms-67.json",
+            "count": 5147,
+            "bytes": 456780
+          },
+          {
+            "shard": "68",
+            "file": "fr/forms-68.json",
+            "count": 5325,
+            "bytes": 471731
+          },
+          {
+            "shard": "69",
+            "file": "fr/forms-69.json",
+            "count": 5333,
+            "bytes": 470559
+          },
+          {
+            "shard": "6a",
+            "file": "fr/forms-6a.json",
+            "count": 5181,
+            "bytes": 456574
+          },
+          {
+            "shard": "6b",
+            "file": "fr/forms-6b.json",
+            "count": 5295,
+            "bytes": 467586
+          },
+          {
+            "shard": "6c",
+            "file": "fr/forms-6c.json",
+            "count": 5212,
+            "bytes": 460903
+          },
+          {
+            "shard": "6d",
+            "file": "fr/forms-6d.json",
+            "count": 5166,
+            "bytes": 454976
+          },
+          {
+            "shard": "6e",
+            "file": "fr/forms-6e.json",
+            "count": 5281,
+            "bytes": 467853
+          },
+          {
+            "shard": "6f",
+            "file": "fr/forms-6f.json",
+            "count": 5156,
+            "bytes": 455632
+          },
+          {
+            "shard": "70",
+            "file": "fr/forms-70.json",
+            "count": 5237,
+            "bytes": 463293
+          },
+          {
+            "shard": "71",
+            "file": "fr/forms-71.json",
+            "count": 5165,
+            "bytes": 458649
+          },
+          {
+            "shard": "72",
+            "file": "fr/forms-72.json",
+            "count": 5233,
+            "bytes": 460840
+          },
+          {
+            "shard": "73",
+            "file": "fr/forms-73.json",
+            "count": 5305,
+            "bytes": 468248
+          },
+          {
+            "shard": "74",
+            "file": "fr/forms-74.json",
+            "count": 5229,
+            "bytes": 463408
+          },
+          {
+            "shard": "75",
+            "file": "fr/forms-75.json",
+            "count": 5185,
+            "bytes": 458030
+          },
+          {
+            "shard": "76",
+            "file": "fr/forms-76.json",
+            "count": 5197,
+            "bytes": 459076
+          },
+          {
+            "shard": "77",
+            "file": "fr/forms-77.json",
+            "count": 5276,
+            "bytes": 466835
+          },
+          {
+            "shard": "78",
+            "file": "fr/forms-78.json",
+            "count": 5356,
+            "bytes": 477106
+          },
+          {
+            "shard": "79",
+            "file": "fr/forms-79.json",
+            "count": 5281,
+            "bytes": 465315
+          },
+          {
+            "shard": "7a",
+            "file": "fr/forms-7a.json",
+            "count": 5234,
+            "bytes": 464577
+          },
+          {
+            "shard": "7b",
+            "file": "fr/forms-7b.json",
+            "count": 5264,
+            "bytes": 463467
+          },
+          {
+            "shard": "7c",
+            "file": "fr/forms-7c.json",
+            "count": 5229,
+            "bytes": 463431
+          },
+          {
+            "shard": "7d",
+            "file": "fr/forms-7d.json",
+            "count": 5330,
+            "bytes": 472196
+          },
+          {
+            "shard": "7e",
+            "file": "fr/forms-7e.json",
+            "count": 5338,
+            "bytes": 471833
+          },
+          {
+            "shard": "7f",
+            "file": "fr/forms-7f.json",
+            "count": 5163,
+            "bytes": 458616
+          }
+        ]
+      },
+      "aliases": {
+        "count": 30406,
+        "files": [
+          {
+            "shard": "00",
+            "file": "fr/aliases-00.json",
+            "count": 253,
+            "bytes": 7945
+          },
+          {
+            "shard": "01",
+            "file": "fr/aliases-01.json",
+            "count": 235,
+            "bytes": 7700
+          },
+          {
+            "shard": "02",
+            "file": "fr/aliases-02.json",
+            "count": 252,
+            "bytes": 8225
+          },
+          {
+            "shard": "03",
+            "file": "fr/aliases-03.json",
+            "count": 252,
+            "bytes": 8122
+          },
+          {
+            "shard": "04",
+            "file": "fr/aliases-04.json",
+            "count": 247,
+            "bytes": 7691
+          },
+          {
+            "shard": "05",
+            "file": "fr/aliases-05.json",
+            "count": 234,
+            "bytes": 7282
+          },
+          {
+            "shard": "06",
+            "file": "fr/aliases-06.json",
+            "count": 224,
+            "bytes": 7018
+          },
+          {
+            "shard": "07",
+            "file": "fr/aliases-07.json",
+            "count": 240,
+            "bytes": 7663
+          },
+          {
+            "shard": "08",
+            "file": "fr/aliases-08.json",
+            "count": 243,
+            "bytes": 8034
+          },
+          {
+            "shard": "09",
+            "file": "fr/aliases-09.json",
+            "count": 228,
+            "bytes": 7331
+          },
+          {
+            "shard": "0a",
+            "file": "fr/aliases-0a.json",
+            "count": 242,
+            "bytes": 7727
+          },
+          {
+            "shard": "0b",
+            "file": "fr/aliases-0b.json",
+            "count": 230,
+            "bytes": 7376
+          },
+          {
+            "shard": "0c",
+            "file": "fr/aliases-0c.json",
+            "count": 237,
+            "bytes": 7627
+          },
+          {
+            "shard": "0d",
+            "file": "fr/aliases-0d.json",
+            "count": 243,
+            "bytes": 8104
+          },
+          {
+            "shard": "0e",
+            "file": "fr/aliases-0e.json",
+            "count": 245,
+            "bytes": 7909
+          },
+          {
+            "shard": "0f",
+            "file": "fr/aliases-0f.json",
+            "count": 246,
+            "bytes": 7751
+          },
+          {
+            "shard": "10",
+            "file": "fr/aliases-10.json",
+            "count": 247,
+            "bytes": 8076
+          },
+          {
+            "shard": "11",
+            "file": "fr/aliases-11.json",
+            "count": 227,
+            "bytes": 7500
+          },
+          {
+            "shard": "12",
+            "file": "fr/aliases-12.json",
+            "count": 212,
+            "bytes": 6867
+          },
+          {
+            "shard": "13",
+            "file": "fr/aliases-13.json",
+            "count": 225,
+            "bytes": 7019
+          },
+          {
+            "shard": "14",
+            "file": "fr/aliases-14.json",
+            "count": 231,
+            "bytes": 7642
+          },
+          {
+            "shard": "15",
+            "file": "fr/aliases-15.json",
+            "count": 239,
+            "bytes": 7473
+          },
+          {
+            "shard": "16",
+            "file": "fr/aliases-16.json",
+            "count": 233,
+            "bytes": 7327
+          },
+          {
+            "shard": "17",
+            "file": "fr/aliases-17.json",
+            "count": 242,
+            "bytes": 7968
+          },
+          {
+            "shard": "18",
+            "file": "fr/aliases-18.json",
+            "count": 235,
+            "bytes": 7549
+          },
+          {
+            "shard": "19",
+            "file": "fr/aliases-19.json",
+            "count": 260,
+            "bytes": 8221
+          },
+          {
+            "shard": "1a",
+            "file": "fr/aliases-1a.json",
+            "count": 228,
+            "bytes": 7309
+          },
+          {
+            "shard": "1b",
+            "file": "fr/aliases-1b.json",
+            "count": 263,
+            "bytes": 8305
+          },
+          {
+            "shard": "1c",
+            "file": "fr/aliases-1c.json",
+            "count": 231,
+            "bytes": 7439
+          },
+          {
+            "shard": "1d",
+            "file": "fr/aliases-1d.json",
+            "count": 205,
+            "bytes": 6756
+          },
+          {
+            "shard": "1e",
+            "file": "fr/aliases-1e.json",
+            "count": 243,
+            "bytes": 7706
+          },
+          {
+            "shard": "1f",
+            "file": "fr/aliases-1f.json",
+            "count": 257,
+            "bytes": 8155
+          },
+          {
+            "shard": "20",
+            "file": "fr/aliases-20.json",
+            "count": 226,
+            "bytes": 7422
+          },
+          {
+            "shard": "21",
+            "file": "fr/aliases-21.json",
+            "count": 223,
+            "bytes": 7138
+          },
+          {
+            "shard": "22",
+            "file": "fr/aliases-22.json",
+            "count": 245,
+            "bytes": 7944
+          },
+          {
+            "shard": "23",
+            "file": "fr/aliases-23.json",
+            "count": 242,
+            "bytes": 7696
+          },
+          {
+            "shard": "24",
+            "file": "fr/aliases-24.json",
+            "count": 220,
+            "bytes": 6993
+          },
+          {
+            "shard": "25",
+            "file": "fr/aliases-25.json",
+            "count": 234,
+            "bytes": 7424
+          },
+          {
+            "shard": "26",
+            "file": "fr/aliases-26.json",
+            "count": 232,
+            "bytes": 7335
+          },
+          {
+            "shard": "27",
+            "file": "fr/aliases-27.json",
+            "count": 256,
+            "bytes": 8185
+          },
+          {
+            "shard": "28",
+            "file": "fr/aliases-28.json",
+            "count": 226,
+            "bytes": 7026
+          },
+          {
+            "shard": "29",
+            "file": "fr/aliases-29.json",
+            "count": 271,
+            "bytes": 8898
+          },
+          {
+            "shard": "2a",
+            "file": "fr/aliases-2a.json",
+            "count": 264,
+            "bytes": 8459
+          },
+          {
+            "shard": "2b",
+            "file": "fr/aliases-2b.json",
+            "count": 244,
+            "bytes": 7692
+          },
+          {
+            "shard": "2c",
+            "file": "fr/aliases-2c.json",
+            "count": 252,
+            "bytes": 8310
+          },
+          {
+            "shard": "2d",
+            "file": "fr/aliases-2d.json",
+            "count": 226,
+            "bytes": 7177
+          },
+          {
+            "shard": "2e",
+            "file": "fr/aliases-2e.json",
+            "count": 255,
+            "bytes": 8280
+          },
+          {
+            "shard": "2f",
+            "file": "fr/aliases-2f.json",
+            "count": 245,
+            "bytes": 7993
+          },
+          {
+            "shard": "30",
+            "file": "fr/aliases-30.json",
+            "count": 263,
+            "bytes": 8649
+          },
+          {
+            "shard": "31",
+            "file": "fr/aliases-31.json",
+            "count": 246,
+            "bytes": 7895
+          },
+          {
+            "shard": "32",
+            "file": "fr/aliases-32.json",
+            "count": 228,
+            "bytes": 7574
+          },
+          {
+            "shard": "33",
+            "file": "fr/aliases-33.json",
+            "count": 251,
+            "bytes": 8160
+          },
+          {
+            "shard": "34",
+            "file": "fr/aliases-34.json",
+            "count": 222,
+            "bytes": 7040
+          },
+          {
+            "shard": "35",
+            "file": "fr/aliases-35.json",
+            "count": 251,
+            "bytes": 8172
+          },
+          {
+            "shard": "36",
+            "file": "fr/aliases-36.json",
+            "count": 225,
+            "bytes": 7308
+          },
+          {
+            "shard": "37",
+            "file": "fr/aliases-37.json",
+            "count": 206,
+            "bytes": 6542
+          },
+          {
+            "shard": "38",
+            "file": "fr/aliases-38.json",
+            "count": 234,
+            "bytes": 7488
+          },
+          {
+            "shard": "39",
+            "file": "fr/aliases-39.json",
+            "count": 217,
+            "bytes": 7035
+          },
+          {
+            "shard": "3a",
+            "file": "fr/aliases-3a.json",
+            "count": 225,
+            "bytes": 7320
+          },
+          {
+            "shard": "3b",
+            "file": "fr/aliases-3b.json",
+            "count": 228,
+            "bytes": 7343
+          },
+          {
+            "shard": "3c",
+            "file": "fr/aliases-3c.json",
+            "count": 246,
+            "bytes": 7712
+          },
+          {
+            "shard": "3d",
+            "file": "fr/aliases-3d.json",
+            "count": 233,
+            "bytes": 7562
+          },
+          {
+            "shard": "3e",
+            "file": "fr/aliases-3e.json",
+            "count": 223,
+            "bytes": 7029
+          },
+          {
+            "shard": "3f",
+            "file": "fr/aliases-3f.json",
+            "count": 222,
+            "bytes": 7198
+          },
+          {
+            "shard": "40",
+            "file": "fr/aliases-40.json",
+            "count": 228,
+            "bytes": 7486
+          },
+          {
+            "shard": "41",
+            "file": "fr/aliases-41.json",
+            "count": 270,
+            "bytes": 8306
+          },
+          {
+            "shard": "42",
+            "file": "fr/aliases-42.json",
+            "count": 222,
+            "bytes": 6992
+          },
+          {
+            "shard": "43",
+            "file": "fr/aliases-43.json",
+            "count": 235,
+            "bytes": 7650
+          },
+          {
+            "shard": "44",
+            "file": "fr/aliases-44.json",
+            "count": 238,
+            "bytes": 7500
+          },
+          {
+            "shard": "45",
+            "file": "fr/aliases-45.json",
+            "count": 223,
+            "bytes": 7166
+          },
+          {
+            "shard": "46",
+            "file": "fr/aliases-46.json",
+            "count": 251,
+            "bytes": 8001
+          },
+          {
+            "shard": "47",
+            "file": "fr/aliases-47.json",
+            "count": 251,
+            "bytes": 8044
+          },
+          {
+            "shard": "48",
+            "file": "fr/aliases-48.json",
+            "count": 230,
+            "bytes": 7448
+          },
+          {
+            "shard": "49",
+            "file": "fr/aliases-49.json",
+            "count": 249,
+            "bytes": 7946
+          },
+          {
+            "shard": "4a",
+            "file": "fr/aliases-4a.json",
+            "count": 239,
+            "bytes": 7633
+          },
+          {
+            "shard": "4b",
+            "file": "fr/aliases-4b.json",
+            "count": 226,
+            "bytes": 7078
+          },
+          {
+            "shard": "4c",
+            "file": "fr/aliases-4c.json",
+            "count": 242,
+            "bytes": 7866
+          },
+          {
+            "shard": "4d",
+            "file": "fr/aliases-4d.json",
+            "count": 256,
+            "bytes": 8400
+          },
+          {
+            "shard": "4e",
+            "file": "fr/aliases-4e.json",
+            "count": 237,
+            "bytes": 7464
+          },
+          {
+            "shard": "4f",
+            "file": "fr/aliases-4f.json",
+            "count": 195,
+            "bytes": 6196
+          },
+          {
+            "shard": "50",
+            "file": "fr/aliases-50.json",
+            "count": 246,
+            "bytes": 7883
+          },
+          {
+            "shard": "51",
+            "file": "fr/aliases-51.json",
+            "count": 243,
+            "bytes": 7892
+          },
+          {
+            "shard": "52",
+            "file": "fr/aliases-52.json",
+            "count": 244,
+            "bytes": 7803
+          },
+          {
+            "shard": "53",
+            "file": "fr/aliases-53.json",
+            "count": 232,
+            "bytes": 7314
+          },
+          {
+            "shard": "54",
+            "file": "fr/aliases-54.json",
+            "count": 253,
+            "bytes": 8115
+          },
+          {
+            "shard": "55",
+            "file": "fr/aliases-55.json",
+            "count": 235,
+            "bytes": 7779
+          },
+          {
+            "shard": "56",
+            "file": "fr/aliases-56.json",
+            "count": 228,
+            "bytes": 7357
+          },
+          {
+            "shard": "57",
+            "file": "fr/aliases-57.json",
+            "count": 261,
+            "bytes": 8433
+          },
+          {
+            "shard": "58",
+            "file": "fr/aliases-58.json",
+            "count": 235,
+            "bytes": 7785
+          },
+          {
+            "shard": "59",
+            "file": "fr/aliases-59.json",
+            "count": 234,
+            "bytes": 7371
+          },
+          {
+            "shard": "5a",
+            "file": "fr/aliases-5a.json",
+            "count": 226,
+            "bytes": 7317
+          },
+          {
+            "shard": "5b",
+            "file": "fr/aliases-5b.json",
+            "count": 240,
+            "bytes": 7437
+          },
+          {
+            "shard": "5c",
+            "file": "fr/aliases-5c.json",
+            "count": 259,
+            "bytes": 8569
+          },
+          {
+            "shard": "5d",
+            "file": "fr/aliases-5d.json",
+            "count": 243,
+            "bytes": 8079
+          },
+          {
+            "shard": "5e",
+            "file": "fr/aliases-5e.json",
+            "count": 214,
+            "bytes": 7085
+          },
+          {
+            "shard": "5f",
+            "file": "fr/aliases-5f.json",
+            "count": 252,
+            "bytes": 7863
+          },
+          {
+            "shard": "60",
+            "file": "fr/aliases-60.json",
+            "count": 212,
+            "bytes": 6682
+          },
+          {
+            "shard": "61",
+            "file": "fr/aliases-61.json",
+            "count": 255,
+            "bytes": 8413
+          },
+          {
+            "shard": "62",
+            "file": "fr/aliases-62.json",
+            "count": 223,
+            "bytes": 7429
+          },
+          {
+            "shard": "63",
+            "file": "fr/aliases-63.json",
+            "count": 255,
+            "bytes": 8155
+          },
+          {
+            "shard": "64",
+            "file": "fr/aliases-64.json",
+            "count": 217,
+            "bytes": 7186
+          },
+          {
+            "shard": "65",
+            "file": "fr/aliases-65.json",
+            "count": 244,
+            "bytes": 7799
+          },
+          {
+            "shard": "66",
+            "file": "fr/aliases-66.json",
+            "count": 218,
+            "bytes": 7385
+          },
+          {
+            "shard": "67",
+            "file": "fr/aliases-67.json",
+            "count": 234,
+            "bytes": 7716
+          },
+          {
+            "shard": "68",
+            "file": "fr/aliases-68.json",
+            "count": 258,
+            "bytes": 8359
+          },
+          {
+            "shard": "69",
+            "file": "fr/aliases-69.json",
+            "count": 234,
+            "bytes": 7631
+          },
+          {
+            "shard": "6a",
+            "file": "fr/aliases-6a.json",
+            "count": 211,
+            "bytes": 6841
+          },
+          {
+            "shard": "6b",
+            "file": "fr/aliases-6b.json",
+            "count": 221,
+            "bytes": 7383
+          },
+          {
+            "shard": "6c",
+            "file": "fr/aliases-6c.json",
+            "count": 245,
+            "bytes": 7869
+          },
+          {
+            "shard": "6d",
+            "file": "fr/aliases-6d.json",
+            "count": 246,
+            "bytes": 7963
+          },
+          {
+            "shard": "6e",
+            "file": "fr/aliases-6e.json",
+            "count": 230,
+            "bytes": 7571
+          },
+          {
+            "shard": "6f",
+            "file": "fr/aliases-6f.json",
+            "count": 269,
+            "bytes": 8826
+          },
+          {
+            "shard": "70",
+            "file": "fr/aliases-70.json",
+            "count": 222,
+            "bytes": 7029
+          },
+          {
+            "shard": "71",
+            "file": "fr/aliases-71.json",
+            "count": 251,
+            "bytes": 8029
+          },
+          {
+            "shard": "72",
+            "file": "fr/aliases-72.json",
+            "count": 223,
+            "bytes": 7449
+          },
+          {
+            "shard": "73",
+            "file": "fr/aliases-73.json",
+            "count": 251,
+            "bytes": 8124
+          },
+          {
+            "shard": "74",
+            "file": "fr/aliases-74.json",
+            "count": 253,
+            "bytes": 7706
+          },
+          {
+            "shard": "75",
+            "file": "fr/aliases-75.json",
+            "count": 251,
+            "bytes": 8031
+          },
+          {
+            "shard": "76",
+            "file": "fr/aliases-76.json",
+            "count": 234,
+            "bytes": 7408
+          },
+          {
+            "shard": "77",
+            "file": "fr/aliases-77.json",
+            "count": 224,
+            "bytes": 7312
+          },
+          {
+            "shard": "78",
+            "file": "fr/aliases-78.json",
+            "count": 201,
+            "bytes": 6319
+          },
+          {
+            "shard": "79",
+            "file": "fr/aliases-79.json",
+            "count": 248,
+            "bytes": 7677
+          },
+          {
+            "shard": "7a",
+            "file": "fr/aliases-7a.json",
+            "count": 256,
+            "bytes": 8312
+          },
+          {
+            "shard": "7b",
+            "file": "fr/aliases-7b.json",
+            "count": 210,
+            "bytes": 6508
+          },
+          {
+            "shard": "7c",
+            "file": "fr/aliases-7c.json",
+            "count": 228,
+            "bytes": 7119
+          },
+          {
+            "shard": "7d",
+            "file": "fr/aliases-7d.json",
+            "count": 274,
+            "bytes": 8898
+          },
+          {
+            "shard": "7e",
+            "file": "fr/aliases-7e.json",
+            "count": 249,
+            "bytes": 7989
+          },
+          {
+            "shard": "7f",
+            "file": "fr/aliases-7f.json",
+            "count": 212,
+            "bytes": 6540
+          }
+        ]
+      },
+      "sources": [
+        "Kaikki/Wiktionary",
+        "Morphalou 3.1",
+        "FreeDict fra-zho",
+        "FreeDict eng-zho",
+        "ECDICT"
+      ]
+    }
+  }
+}

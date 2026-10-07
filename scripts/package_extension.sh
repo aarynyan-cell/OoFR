@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/release"
-OUT_FILE="$OUT_DIR/oofr-french-tape-extension.zip"
+OUT_FILE="$OUT_DIR/oofr-french-tape-extension-v1.0.0.zip"
 
 mkdir -p "$OUT_DIR"
 rm -f "$OUT_FILE"
@@ -14,7 +14,13 @@ zip -qr "$OUT_FILE" \
   extension-service-worker.js \
   index.html \
   reset.html \
+  version.js \
+  learning-package.js \
   styles.css \
+  desktop-ai.js \
+  ollama-client.js \
+  dictionary.js \
+  dictionary \
   app.js \
   lexicon.js \
   manifest.webmanifest \

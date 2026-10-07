@@ -1,0 +1,76 @@
+{
+  "type": "oofr.learning-package",
+  "schemaVersion": 1,
+  "appVersion": "1.0.0",
+  "exportedAt": "2026-10-07T00:00:00.000Z",
+  "material": {
+    "album": { "id": "album_fixture", "title": "测试磁带" },
+    "tape": { "id": "tape_fixture", "albumId": "album_fixture", "title": "离线学习包" },
+    "entry": {
+      "id": "entry_fixture",
+      "tapeId": "tape_fixture",
+      "title": "学习包验收",
+      "text": "Je marche un peu.",
+      "language": "fr",
+      "materialType": "文章"
+    }
+  },
+  "course": {
+    "id": "course_fixture",
+    "title": "学习包验收",
+    "language": "fr",
+    "explainLanguage": "zh",
+    "materialType": "文章",
+    "lexicalUnits": [
+      { "text": "un peu", "lemma": "un peu", "type": "expression", "meaning": "一点；稍微" }
+    ],
+    "practice": { "completed": 1, "correct": 1 },
+    "turns": [
+      {
+        "id": "turn_fixture_1",
+        "text": "Je marche un peu.",
+        "translation": "我走一小会儿。",
+        "speakerId": "narrator",
+        "speakerLabel": "旁白",
+        "recording": { "status": "none", "durationMs": 0, "mediaKey": "" },
+        "aiExplanation": {
+          "summary": "表示短时间或低程度地步行。",
+          "structure": "主语 + 动词 + 程度表达",
+          "grammarPoints": ["marche 是 marcher 的直陈式现在时第一人称单数。"],
+          "morphology": "marcher → je marche",
+          "pitfalls": [],
+          "examples": ["Je travaille un peu."],
+          "version": "2",
+          "language": "zh",
+          "cacheSource": "learning-package"
+        }
+      }
+    ],
+    "aiExplanations": [
+      {
+        "turnId": "turn_fixture_1",
+        "explanation": {
+          "summary": "表示短时间或低程度地步行。"
+        }
+      }
+    ]
+  },
+  "dictionaryEntries": {
+    "3:fr:marcher:verb": {
+      "lemma": "marcher",
+      "language": "fr",
+      "pos": "verb",
+      "ipa": "/maʁ.ʃe/",
+      "senses": ["走路；步行", "运转；运行"]
+    }
+  },
+  "phraseItems": [
+    {
+      "id": "phrase_fixture",
+      "text": "un peu",
+      "translation": "一点；稍微",
+      "sourceLessonId": "course_fixture",
+      "sourceTitle": "学习包验收"
+    }
+  ]
+}

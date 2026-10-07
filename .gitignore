@@ -9,10 +9,12 @@ Thumbs.db
 
 # Dependencies, build output, reports
 node_modules/
+.lexicon-cache/
 dist/
 build/
 coverage/
 release/
+outputs/
 *.log
 
 # Extension packaging artifacts
@@ -23,3 +25,9 @@ release/
 # User-exported learning data
 oofr-backup-*.json
 oofr-wordbook*.json
+*.oofr-learning.json
+
+# Desktop wrapper output
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/

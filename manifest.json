@@ -2,9 +2,13 @@
   "manifest_version": 3,
   "name": "OoFR 法语磁带",
   "short_name": "法语磁带",
-  "version": "0.19.3",
+  "version": "1.0.0",
   "description": "复古磁带风格的法语朗读、学习记录和单词本工具。",
   "permissions": ["storage"],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
   "action": {
     "default_title": "打开 OoFR 法语磁带",
     "default_icon": {

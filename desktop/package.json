@@ -1,0 +1,14 @@
+{
+  "name": "oofr-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "prepare": "node scripts/prepare-desktop.mjs",
+    "dev": "npm run prepare && tauri dev",
+    "build": "npm run prepare && tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.5"
+  }
+}

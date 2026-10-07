@@ -7,7 +7,7 @@
     <title>OoFR 法语磁带</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.19.3">
+    <link rel="stylesheet" href="./styles.css?v=1.0.0">
   </head>
   <body>
     <div id="startupLoader" class="startup-loader" role="status" aria-live="polite">
@@ -47,7 +47,7 @@
             </svg>
           </div>
           <div>
-            <p class="eyebrow">OoFR · v0.19.3</p>
+            <p class="eyebrow">OoFR · v1.0.0</p>
             <h1>法语磁带</h1>
           </div>
         </div>
@@ -158,6 +158,9 @@
                   <button id="courseNewBtn" class="command-button primary" type="button" data-icon="plus"><span>新建素材</span></button>
                   <button id="courseEditBtn" class="command-button" type="button" data-icon="edit"><span>编辑素材</span></button>
                   <button id="coursePracticeBtn" class="command-button primary" type="button" data-icon="book"><span>单词练习</span></button>
+                  <button id="courseExportLearningPackageBtn" class="command-button" type="button" data-icon="download"><span>导出学习包</span></button>
+                  <button id="courseImportLearningPackageBtn" class="command-button" type="button" data-icon="upload"><span>导入学习包</span></button>
+                  <input id="courseLearningPackageFile" class="visually-hidden" type="file" accept="application/json,.json,.oofr-learning.json">
                   <button id="courseExportRecordingsBtn" class="command-button" type="button" data-icon="download"><span>导出我的录音</span></button>
                 </div>
               </div>
@@ -238,6 +241,7 @@
               </div>
               <p id="coursePopoverMeaning" class="course-word-meaning"></p>
               <p id="coursePopoverForms" class="micro-copy"></p>
+              <p id="coursePopoverSource" class="course-word-source micro-copy"></p>
               <button id="coursePopoverLookupBtn" class="command-button" type="button">查看详情</button>
             </aside>
 
@@ -253,6 +257,21 @@
                 </header>
                 <div id="courseWordDetailBody" class="course-word-detail-body"></div>
                 <p id="courseWordDetailStatus" class="course-word-detail-status" aria-live="polite"></p>
+              </article>
+            </dialog>
+
+            <dialog id="courseSentenceDetailDialog" class="course-word-detail-dialog" aria-labelledby="courseSentenceDetailTitle">
+              <article>
+                <header class="course-word-detail-head">
+                  <div>
+                    <p class="eyebrow">Local AI · Sentence</p>
+                    <h3 id="courseSentenceDetailTitle">句子讲解</h3>
+                    <p id="courseSentenceDetailMeta" class="micro-copy"></p>
+                  </div>
+                  <button id="courseSentenceDetailCloseBtn" class="icon-button" type="button" title="关闭句子讲解" aria-label="关闭句子讲解" data-icon="close"></button>
+                </header>
+                <div id="courseSentenceDetailBody" class="course-word-detail-body"></div>
+                <p id="courseSentenceDetailStatus" class="course-word-detail-status" aria-live="polite"></p>
               </article>
             </dialog>
 
@@ -528,17 +547,17 @@
                 <p class="eyebrow">Cloud sync</p>
                 <h3 id="cloudSyncTitle">电脑与手机同步</h3>
               </div>
-              <span id="cloudSyncBadge" class="badge">本地模式</span>
+              <span id="cloudSyncBadge" class="badge is-unavailable">该功能暂未开放</span>
             </div>
-            <p id="cloudSyncStatus" class="micro-copy">未登录时，学习数据只保存在当前设备。</p>
+            <p id="cloudSyncStatus" class="micro-copy">1.0.0 暂不提供账号登录或自动同步，学习数据只保存在当前设备。</p>
             <div id="cloudSyncLoggedOut" class="cloud-sync-form">
               <label class="dialog-field">
                 <span class="field-label">邮箱</span>
-                <input id="cloudSyncEmail" class="text-input" type="email" autocomplete="email" placeholder="you@example.com">
+                <input id="cloudSyncEmail" class="text-input" type="email" autocomplete="email" placeholder="该功能暂未开放" disabled>
               </label>
               <div class="split-actions">
-                <button id="cloudSyncLoginBtn" class="command-button primary" type="button">发送登录链接</button>
-                <span id="cloudSyncLoginHint" class="micro-copy">登录链接会发到你的邮箱。</span>
+                <button id="cloudSyncLoginBtn" class="command-button primary" type="button" disabled>发送登录链接</button>
+                <span id="cloudSyncLoginHint" class="micro-copy">可先在课程页导出学习包，再在手机导入离线复习。</span>
               </div>
             </div>
             <div id="cloudSyncLoggedIn" class="cloud-sync-form" hidden>
@@ -548,7 +567,7 @@
                 <button id="cloudSyncSignOutBtn" class="command-button" type="button">退出登录</button>
               </div>
             </div>
-            <p class="micro-copy">课程、磁带、词句本和学习进度会同步；逐句录音暂时仍只保存在录音设备。</p>
+            <p class="micro-copy">学习包会携带电脑生成的译文、固定表达和语法讲解；录音仍只保存在录音设备。</p>
           </section>
 
           <div class="my-grid">
@@ -562,10 +581,10 @@
               </label>
               <div class="local-ai-settings">
                 <label class="dialog-field"><span class="field-label">本地 AI 地址</span><input id="localAiEndpointInput" class="text-input" type="url" value="http://127.0.0.1:11434"></label>
-                <label class="dialog-field"><span class="field-label">开源模型</span><input id="localAiModelInput" class="text-input" type="text" value="gemma3:4b"></label>
+                <label class="dialog-field"><span class="field-label">开源模型</span><input id="localAiModelInput" class="text-input" type="text" value="auto" list="localAiModelOptions"><datalist id="localAiModelOptions"></datalist></label>
               </div>
               <div class="split-actions"><button id="localAiTestBtn" class="command-button" type="button">检测本地 AI</button><span id="localAiStatus" class="micro-copy">未检测</span></div>
-              <p class="micro-copy">词典使用开放的 Wiktionary。深度分类、纠错和说话人识别可使用本机 Ollama，不按 token 收费。</p>
+              <p class="micro-copy">检测后会自动选择已安装模型。素材分析、课程翻译和句子语法在本机 Ollama 完成，不上传私人素材；词义固定使用本地开放词典。</p>
             </section>
 
             <section class="my-panel" aria-labelledby="backupTitle">
@@ -643,8 +662,56 @@
       </form>
     </dialog>
 
-    <script src="./supabase-config.js?v=0.19.3"></script>
-    <script src="./cloud-sync.js?v=0.19.3"></script>
-    <script src="./app.js?v=0.19.3"></script>
+    <dialog id="learningPackageDialog" class="app-dialog learning-package-dialog" aria-labelledby="learningPackageTitle">
+      <article>
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Learning package</p>
+            <h2 id="learningPackageTitle">导入学习包</h2>
+          </div>
+          <button id="learningPackageCloseBtn" class="icon-button" type="button" title="关闭" aria-label="关闭" data-icon="close"></button>
+        </div>
+        <div id="learningPackagePreview" class="dialog-body"></div>
+        <div class="dialog-actions learning-package-actions">
+          <button id="learningPackageCancelBtn" class="command-button" type="button">取消</button>
+          <button id="learningPackageCopyBtn" class="command-button" type="button">导入为副本</button>
+          <button id="learningPackageUpdateBtn" class="command-button primary" type="button">更新已有课程</button>
+        </div>
+      </article>
+    </dialog>
+
+    <dialog id="desktopAiSetupDialog" class="app-dialog desktop-ai-dialog" aria-labelledby="desktopAiSetupTitle">
+      <article>
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">OoFR Desktop</p>
+            <h2 id="desktopAiSetupTitle">准备本地 AI</h2>
+          </div>
+          <button id="desktopAiSetupCloseBtn" class="icon-button" type="button" title="稍后设置" aria-label="稍后设置" data-icon="close"></button>
+        </div>
+        <div class="dialog-body desktop-ai-setup-body">
+          <p id="desktopAiSetupStatus">正在检查 Ollama 与 gemma3:4b…</p>
+          <div class="desktop-ai-progress-track" role="progressbar" aria-label="本地 AI 安装进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="desktopAiSetupProgress"></span>
+          </div>
+          <p id="desktopAiSetupDetail" class="micro-copy">首次安装约需下载 3.5GB，之后可以一键启动。</p>
+          <label class="desktop-ai-consent">
+            <input id="desktopAiTermsCheck" type="checkbox">
+            <span>我同意从官方来源下载 Ollama，并了解 gemma3:4b 受 <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noreferrer">Gemma 使用条款</a>约束。</span>
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button id="desktopAiCancelBtn" class="command-button" type="button">取消下载</button>
+          <button id="desktopAiInstallBtn" class="command-button primary" type="button" disabled>安装并启动</button>
+        </div>
+      </article>
+    </dialog>
+
+    <script src="./version.js?v=1.0.0"></script>
+    <script src="./learning-package.js?v=1.0.0"></script>
+    <script src="./desktop-ai.js?v=1.0.0"></script>
+    <script src="./ollama-client.js?v=1.0.0"></script>
+    <script src="./dictionary.js?v=1.0.0"></script>
+    <script src="./app.js?v=1.0.0"></script>
   </body>
 </html>
