@@ -7,3 +7,13 @@ caches it through the service worker.
 
 Do not edit individual shard files by hand. Rebuild them from the documented
 open datasets instead.
+
+## curated.json
+
+`curated.json` is **not generated**: it holds hand-reviewed entries for very
+common French and English function words (pronouns, articles, prepositions,
+auxiliaries, English contractions). The generated shards contain look-alike
+English entries for several of these words (for example `ne` → "NE"), so the
+browser consults `curated.json` first and falls back to the shards for
+everything else. Edit the file directly; keep `pos` values in the English
+vocabulary used by the shards (`pronoun`, `verb`, `preposition`, ...).

@@ -112,3 +112,91 @@ test("keeps curated common-word meanings broad without AI invention", async () =
   assert.match(practice.zh, /价格/);
   assert.match(practice.source, /OoFR 校订/);
 });
+
+test("finds accented headwords from unaccented spelling when the match is unambiguous", async () => {
+  const dictionary = await loadDictionaryRuntime();
+  for (const [typed, headword] of [["ecole", "école"], ["francais", "français"], ["tres", "très"], ["deja", "déjà"], ["cafe", "café"]]) {
+    const entry = await dictionary.lookup(typed, "fr");
+    assert.equal(entry?.word, headword, typed);
+  }
+  // Collisions stay separate: "a" and "à" are different words.
+  assert.equal((await dictionary.lookup("a", "fr")).word, "a");
+  assert.equal((await dictionary.lookup("à", "fr")).word, "à");
+});
+
+test("very common function words come from the reviewed layer, not from look-alike English entries", async () => {
+  const dictionary = await loadDictionaryRuntime();
+  for (const word of ["il", "ne", "se", "ce", "au", "du", "on", "y", "en", "que", "je", "nous"]) {
+    const entry = await dictionary.lookup(word, "fr");
+    assert.equal(entry.curated, true, word);
+    assert.doesNotMatch(entry.zh, /缩写|信息论|害病|\[计\]/, word);
+    assert.match(entry.source, /校订/);
+  }
+  const il = await dictionary.lookup("il", "fr");
+  assert.equal(il.word, "il");
+  assert.equal(il.pos, "pronoun");
+  assert.match((await dictionary.lookup("au", "fr")).zh, /à \+ le/);
+});
+
+test("English function words and contractions are present and never become acronyms", async () => {
+  const dictionary = await loadDictionaryRuntime();
+  for (const word of ["the", "to", "and", "you", "of", "is", "was", "his", "its", "has", "does", "don't", "it's", "I'm", "they're"]) {
+    const entry = await dictionary.lookup(word, "en");
+    assert.ok(entry, word);
+    assert.doesNotMatch(entry.word, /^(I|hi|IT|HA|DO)$/, `${word} resolved to ${entry.word}`);
+  }
+  assert.equal((await dictionary.lookup("is", "en")).word, "is");
+  assert.equal((await dictionary.lookup("his", "en")).word, "his");
+  // Generic stripping must not land on a two-letter stem or an acronym.
+  const gas = await dictionary.lookup("gas", "en");
+  assert.notEqual(gas?.word, "GA");
+});
+
+test("the learner's context decides noun or verb for each occurrence of a homograph", async () => {
+  const dictionary = await loadDictionaryRuntime();
+  const kind = (entry) => (entry.isInflected && entry.form?.pos === "verb" ? "verb" : "noun");
+  const sentence = "La marche est longue mais mon téléphone marche bien.";
+  assert.equal(kind(await dictionary.lookup("marche", "fr", { context: sentence, occurrence: 0 })), "noun");
+  assert.equal(kind(await dictionary.lookup("marche", "fr", { context: sentence, occurrence: 1 })), "verb");
+  for (const [word, context, expected] of [
+    ["marche", "Une longue marche.", "noun"],
+    ["visite", "Sa dernière visite était courte.", "noun"],
+    ["coupe", "Cette belle coupe est chère.", "noun"],
+    ["visite", "Je la visite.", "verb"],
+    ["coupe", "Je le coupe.", "verb"],
+    ["voyages", "Les voyages forment la jeunesse.", "noun"],
+    ["portes", "Les portes sont fermées.", "noun"]
+  ]) {
+    assert.equal(kind(await dictionary.lookup(word, "fr", { context })), expected, `${word}: ${context}`);
+  }
+});
+
+test("a failed shard download is retried on the next lookup instead of being remembered", async () => {
+  const root = path.resolve(__dirname, "..");
+  let failShards = true;
+  const window = {};
+  const context = vm.createContext({
+    window,
+    console,
+    fetch: async (url) => {
+      if (failShards && /\/entries-|\/forms-|\/aliases-/.test(String(url))) throw new TypeError("network down");
+      const filePath = path.resolve(root, String(url).replace(/^\.\//, "").replace(/\?.*$/, ""));
+      try {
+        return { ok: true, status: 200, json: async () => JSON.parse(await fs.readFile(filePath, "utf8")) };
+      } catch {
+        return { ok: false, status: 404, json: async () => ({}) };
+      }
+    }
+  });
+  vm.runInContext(await fs.readFile(path.join(root, "dictionary.js"), "utf8"), context, { filename: "dictionary.js" });
+  const dictionary = window.OOFR_DICTIONARY;
+  assert.equal(await dictionary.lookup("maison", "fr"), null, "offline: not found");
+  failShards = false;
+  assert.equal((await dictionary.lookup("maison", "fr"))?.word, "maison", "online again: found");
+});
+
+test("only the debris of a decoded no-break space is removed, real capital Â is kept", async () => {
+  const dictionary = await loadDictionaryRuntime();
+  assert.equal(dictionary.cleanText("Âge d'or"), "Âge d'or");
+  assert.equal(dictionary.cleanText("prix\u00c2\u00a0: 5"), "prix\u00a0: 5");
+});

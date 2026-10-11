@@ -1,0 +1,1640 @@
+{
+ "type": "oofr.dictionary.curated",
+ "version": 1,
+ "note": "Hand-reviewed entries for very common function words. They win over the generated shards for the same headword. Edit this file directly; it is not generated.",
+ "fr": {
+  "il": {
+   "word": "il",
+   "pos": "pronoun",
+   "ipa": "/il/",
+   "zh": "他；它；（非人称句主语）如 il pleut（下雨）",
+   "en": "he; it; impersonal subject (il pleut)"
+  },
+  "elle": {
+   "word": "elle",
+   "pos": "pronoun",
+   "ipa": "/ɛl/",
+   "zh": "她；它",
+   "en": "she; it (feminine)"
+  },
+  "ils": {
+   "word": "ils",
+   "pos": "pronoun",
+   "ipa": "/il/",
+   "zh": "他们；它们（阳性或混合）",
+   "en": "they (masculine or mixed)"
+  },
+  "elles": {
+   "word": "elles",
+   "pos": "pronoun",
+   "ipa": "/ɛl/",
+   "zh": "她们；它们（阴性）",
+   "en": "they (feminine)"
+  },
+  "on": {
+   "word": "on",
+   "pos": "pronoun",
+   "ipa": "/ɔ̃/",
+   "zh": "人们；有人；我们（口语）",
+   "en": "one; people; we (informal)"
+  },
+  "ne": {
+   "word": "ne",
+   "pos": "adverb",
+   "ipa": "/nə/",
+   "zh": "不（否定词，常与 pas、jamais、rien、plus 等连用）",
+   "en": "not (negation, used with pas, jamais, rien, plus)"
+  },
+  "se": {
+   "word": "se",
+   "pos": "pronoun",
+   "ipa": "/sə/",
+   "zh": "自己（反身代词，用于代词式动词，如 se lever）",
+   "en": "oneself; himself; herself (reflexive pronoun)"
+  },
+  "ce": {
+   "word": "ce",
+   "pos": "pronoun",
+   "ipa": "/sə/",
+   "zh": "这；那；这个（如 ce qui、c'est；作限定词时 ce livre = 这本书）",
+   "en": "this; that; it (c'est, ce qui); this/that before a noun"
+  },
+  "cet": {
+   "word": "cet",
+   "pos": "determiner",
+   "ipa": "/sɛt/",
+   "zh": "这个；那个（阳性，用于元音或哑音 h 开头的名词前）",
+   "en": "this; that (masculine, before a vowel)"
+  },
+  "cette": {
+   "word": "cette",
+   "pos": "determiner",
+   "ipa": "/sɛt/",
+   "zh": "这个；那个（阴性）",
+   "en": "this; that (feminine)"
+  },
+  "ces": {
+   "word": "ces",
+   "pos": "determiner",
+   "ipa": "/se/",
+   "zh": "这些；那些",
+   "en": "these; those"
+  },
+  "au": {
+   "word": "au",
+   "pos": "preposition",
+   "ipa": "/o/",
+   "zh": "在……；到……（à + le 的缩合，阳性单数）",
+   "en": "to the; at the; in the (à + le)"
+  },
+  "aux": {
+   "word": "aux",
+   "pos": "preposition",
+   "ipa": "/o/",
+   "zh": "在……；到……；给……（à + les 的缩合，复数）",
+   "en": "to the; at the (à + les)"
+  },
+  "du": {
+   "word": "du",
+   "pos": "article",
+   "ipa": "/dy/",
+   "zh": "……的；一些（de + le 的缩合，也是部分冠词）",
+   "en": "of the; some (de + le; partitive article)"
+  },
+  "y": {
+   "word": "y",
+   "pos": "pronoun",
+   "ipa": "/i/",
+   "zh": "那里；在那儿；它（代替 à + 事物或地点）",
+   "en": "there; to it (replaces à + thing or place)"
+  },
+  "en": {
+   "word": "en",
+   "pos": "preposition",
+   "ipa": "/ɑ̃/",
+   "zh": "在；于；以……方式（用于国家、月份、季节、语言等）；其中的一部分（代词）",
+   "en": "in; into; as; some of it (pronoun)"
+  },
+  "que": {
+   "word": "que",
+   "pos": "conjunction",
+   "ipa": "/kə/",
+   "zh": "那（引导从句）；什么；比（比较）；只有（ne… que）",
+   "en": "that (conjunction); what; than; only (ne… que)"
+  },
+  "qui": {
+   "word": "qui",
+   "pos": "pronoun",
+   "ipa": "/ki/",
+   "zh": "谁；……的人或事物（主语关系代词）",
+   "en": "who; whom; which (subject relative pronoun)"
+  },
+  "quoi": {
+   "word": "quoi",
+   "pos": "pronoun",
+   "ipa": "/kwa/",
+   "zh": "什么（重读形式，常在介词后）",
+   "en": "what (stressed form, after prepositions)"
+  },
+  "dont": {
+   "word": "dont",
+   "pos": "pronoun",
+   "ipa": "/dɔ̃/",
+   "zh": "其中；……的（de 的关系代词）",
+   "en": "of which; whose; about which"
+  },
+  "je": {
+   "word": "je",
+   "pos": "pronoun",
+   "ipa": "/ʒə/",
+   "zh": "我",
+   "en": "I"
+  },
+  "tu": {
+   "word": "tu",
+   "pos": "pronoun",
+   "ipa": "/ty/",
+   "zh": "你（对熟人，单数）",
+   "en": "you (informal, singular)"
+  },
+  "nous": {
+   "word": "nous",
+   "pos": "pronoun",
+   "ipa": "/nu/",
+   "zh": "我们",
+   "en": "we; us"
+  },
+  "vous": {
+   "word": "vous",
+   "pos": "pronoun",
+   "ipa": "/vu/",
+   "zh": "您；你们",
+   "en": "you (formal or plural)"
+  },
+  "me": {
+   "word": "me",
+   "pos": "pronoun",
+   "ipa": "/mə/",
+   "zh": "我（宾语代词）：对我，把我",
+   "en": "me; to me"
+  },
+  "te": {
+   "word": "te",
+   "pos": "pronoun",
+   "ipa": "/tə/",
+   "zh": "你（宾语代词）：对你，把你",
+   "en": "you; to you (informal)"
+  },
+  "lui": {
+   "word": "lui",
+   "pos": "pronoun",
+   "ipa": "/lɥi/",
+   "zh": "他；对他；对她（间接宾语或重读代词）",
+   "en": "him; to him; to her"
+  },
+  "moi": {
+   "word": "moi",
+   "pos": "pronoun",
+   "ipa": "/mwa/",
+   "zh": "我（重读形式）",
+   "en": "me (stressed form)"
+  },
+  "toi": {
+   "word": "toi",
+   "pos": "pronoun",
+   "ipa": "/twa/",
+   "zh": "你（重读形式）",
+   "en": "you (stressed form)"
+  },
+  "mon": {
+   "word": "mon",
+   "pos": "determiner",
+   "ipa": "/mɔ̃/",
+   "zh": "我的（阳性）",
+   "en": "my (masculine)"
+  },
+  "ma": {
+   "word": "ma",
+   "pos": "determiner",
+   "ipa": "/ma/",
+   "zh": "我的（阴性）",
+   "en": "my (feminine)"
+  },
+  "mes": {
+   "word": "mes",
+   "pos": "determiner",
+   "ipa": "/me/",
+   "zh": "我的（复数）",
+   "en": "my (plural)"
+  },
+  "ton": {
+   "word": "ton",
+   "pos": "determiner",
+   "ipa": "/tɔ̃/",
+   "zh": "你的（阳性）",
+   "en": "your (masculine, informal)"
+  },
+  "ta": {
+   "word": "ta",
+   "pos": "determiner",
+   "ipa": "/ta/",
+   "zh": "你的（阴性）",
+   "en": "your (feminine, informal)"
+  },
+  "tes": {
+   "word": "tes",
+   "pos": "determiner",
+   "ipa": "/te/",
+   "zh": "你的（复数）",
+   "en": "your (plural, informal)"
+  },
+  "son": {
+   "word": "son",
+   "pos": "determiner",
+   "ipa": "/sɔ̃/",
+   "zh": "他的；她的；它的（阳性）",
+   "en": "his; her; its (masculine)"
+  },
+  "sa": {
+   "word": "sa",
+   "pos": "determiner",
+   "ipa": "/sa/",
+   "zh": "他的；她的；它的（阴性）",
+   "en": "his; her; its (feminine)"
+  },
+  "ses": {
+   "word": "ses",
+   "pos": "determiner",
+   "ipa": "/se/",
+   "zh": "他的；她的；它的（复数）",
+   "en": "his; her; its (plural)"
+  },
+  "notre": {
+   "word": "notre",
+   "pos": "determiner",
+   "ipa": "/nɔtʁ/",
+   "zh": "我们的（单数）",
+   "en": "our (singular)"
+  },
+  "nos": {
+   "word": "nos",
+   "pos": "determiner",
+   "ipa": "/no/",
+   "zh": "我们的（复数）",
+   "en": "our (plural)"
+  },
+  "votre": {
+   "word": "votre",
+   "pos": "determiner",
+   "ipa": "/vɔtʁ/",
+   "zh": "您的；你们的（单数）",
+   "en": "your (singular, formal or plural)"
+  },
+  "vos": {
+   "word": "vos",
+   "pos": "determiner",
+   "ipa": "/vo/",
+   "zh": "您的；你们的（复数）",
+   "en": "your (plural)"
+  },
+  "leur": {
+   "word": "leur",
+   "pos": "determiner",
+   "ipa": "/lœʁ/",
+   "zh": "他们的；她们的（单数）；对他们（代词）",
+   "en": "their (singular); to them (pronoun)"
+  },
+  "leurs": {
+   "word": "leurs",
+   "pos": "determiner",
+   "ipa": "/lœʁ/",
+   "zh": "他们的；她们的（复数）",
+   "en": "their (plural)"
+  },
+  "pas": {
+   "word": "pas",
+   "pos": "adverb",
+   "ipa": "/pa/",
+   "zh": "不（与 ne 连用）；步；脚步",
+   "en": "not (with ne); step"
+  },
+  "plus": {
+   "word": "plus",
+   "pos": "adverb",
+   "ipa": "/ply/",
+   "zh": "更；更多；不再（ne… plus）；加",
+   "en": "more; no longer (ne… plus); plus"
+  },
+  "jamais": {
+   "word": "jamais",
+   "pos": "adverb",
+   "ipa": "/ʒa.mɛ/",
+   "zh": "从不；永不；曾经",
+   "en": "never; ever"
+  },
+  "rien": {
+   "word": "rien",
+   "pos": "pronoun",
+   "ipa": "/ʁjɛ̃/",
+   "zh": "什么也没有；没什么（ne… rien）",
+   "en": "nothing; anything"
+  },
+  "très": {
+   "word": "très",
+   "pos": "adverb",
+   "ipa": "/tʁɛ/",
+   "zh": "很；非常",
+   "en": "very"
+  },
+  "trop": {
+   "word": "trop",
+   "pos": "adverb",
+   "ipa": "/tʁo/",
+   "zh": "太；过多",
+   "en": "too; too much"
+  },
+  "bien": {
+   "word": "bien",
+   "pos": "adverb",
+   "ipa": "/bjɛ̃/",
+   "zh": "好；很；确实；良好地",
+   "en": "well; very; indeed"
+  },
+  "dans": {
+   "word": "dans",
+   "pos": "preposition",
+   "ipa": "/dɑ̃/",
+   "zh": "在……里；在……之内；……之后（时间）",
+   "en": "in; inside; within (time)"
+  },
+  "avec": {
+   "word": "avec",
+   "pos": "preposition",
+   "ipa": "/a.vɛk/",
+   "zh": "和；用；带着",
+   "en": "with"
+  },
+  "sans": {
+   "word": "sans",
+   "pos": "preposition",
+   "ipa": "/sɑ̃/",
+   "zh": "没有；不带",
+   "en": "without"
+  },
+  "pour": {
+   "word": "pour",
+   "pos": "preposition",
+   "ipa": "/puʁ/",
+   "zh": "为了；给；对于；为",
+   "en": "for; in order to"
+  },
+  "par": {
+   "word": "par",
+   "pos": "preposition",
+   "ipa": "/paʁ/",
+   "zh": "经由；通过；被（被动句施动者）；每",
+   "en": "by; through; per"
+  },
+  "sur": {
+   "word": "sur",
+   "pos": "preposition",
+   "ipa": "/syʁ/",
+   "zh": "在……上；关于",
+   "en": "on; about"
+  },
+  "sous": {
+   "word": "sous",
+   "pos": "preposition",
+   "ipa": "/su/",
+   "zh": "在……下面",
+   "en": "under"
+  },
+  "chez": {
+   "word": "chez",
+   "pos": "preposition",
+   "ipa": "/ʃe/",
+   "zh": "在……家；在……那里；在……处",
+   "en": "at the home of; with; among"
+  },
+  "comme": {
+   "word": "comme",
+   "pos": "conjunction",
+   "ipa": "/kɔm/",
+   "zh": "像；如同；作为；因为",
+   "en": "like; as; since"
+  },
+  "si": {
+   "word": "si",
+   "pos": "conjunction",
+   "ipa": "/si/",
+   "zh": "如果；是的（回答否定问句）；这么",
+   "en": "if; yes (answering a negative question); so"
+  },
+  "quand": {
+   "word": "quand",
+   "pos": "conjunction",
+   "ipa": "/kɑ̃/",
+   "zh": "当……的时候；什么时候",
+   "en": "when"
+  },
+  "être": {
+   "word": "être",
+   "pos": "verb",
+   "ipa": "/ɛtʁ/",
+   "zh": "是；在；存在（也是复合时态的助动词）",
+   "en": "to be; to exist (also an auxiliary verb)"
+  },
+  "avoir": {
+   "word": "avoir",
+   "pos": "verb",
+   "ipa": "/a.vwaʁ/",
+   "zh": "有；拥有（也是复合时态的助动词）",
+   "en": "to have (also an auxiliary verb)"
+  },
+  "aller": {
+   "word": "aller",
+   "pos": "verb",
+   "ipa": "/a.le/",
+   "zh": "去；走；（近将来 aller + 动词原形）将要；身体状况如何",
+   "en": "to go; to be going to (aller + infinitive); to feel (health)"
+  },
+  "faire": {
+   "word": "faire",
+   "pos": "verb",
+   "ipa": "/fɛʁ/",
+   "zh": "做；制作；使得；（天气）如 il fait beau",
+   "en": "to do; to make; to cause; (weather) il fait beau"
+  },
+  "pouvoir": {
+   "word": "pouvoir",
+   "pos": "verb",
+   "ipa": "/pu.vwaʁ/",
+   "zh": "能；可以；可能",
+   "en": "to be able to; can; may"
+  },
+  "vouloir": {
+   "word": "vouloir",
+   "pos": "verb",
+   "ipa": "/vu.lwaʁ/",
+   "zh": "想要；愿意；要",
+   "en": "to want; to be willing"
+  },
+  "devoir": {
+   "word": "devoir",
+   "pos": "verb",
+   "ipa": "/də.vwaʁ/",
+   "zh": "必须；应该；欠（钱）",
+   "en": "to have to; must; to owe"
+  },
+  "savoir": {
+   "word": "savoir",
+   "pos": "verb",
+   "ipa": "/sa.vwaʁ/",
+   "zh": "知道；会（掌握某种技能）",
+   "en": "to know; to know how to"
+  },
+  "voir": {
+   "word": "voir",
+   "pos": "verb",
+   "ipa": "/vwaʁ/",
+   "zh": "看见；看；明白",
+   "en": "to see; to understand"
+  },
+  "dire": {
+   "word": "dire",
+   "pos": "verb",
+   "ipa": "/diʁ/",
+   "zh": "说；告诉",
+   "en": "to say; to tell"
+  },
+  "venir": {
+   "word": "venir",
+   "pos": "verb",
+   "ipa": "/və.niʁ/",
+   "zh": "来；（venir de + 动词原形）刚刚",
+   "en": "to come; venir de + infinitive = to have just"
+  },
+  "prendre": {
+   "word": "prendre",
+   "pos": "verb",
+   "ipa": "/pʁɑ̃dʁ/",
+   "zh": "拿；乘（交通工具）；吃或喝；采取",
+   "en": "to take; to catch (transport); to have (food or drink)"
+  },
+  "est-ce que": {
+   "word": "est-ce que",
+   "pos": "phrase",
+   "ipa": "/ɛs.kə/",
+   "zh": "（疑问句引导语，把陈述句变成一般疑问句）",
+   "en": "question marker turning a statement into a yes/no question"
+  },
+  "c'est": {
+   "word": "c'est",
+   "pos": "phrase",
+   "ipa": "/sɛ/",
+   "zh": "这是；那是；是（ce + est）",
+   "en": "it is; this is; that is"
+  },
+  "il y a": {
+   "word": "il y a",
+   "pos": "phrase",
+   "ipa": "/il.j‿a/",
+   "zh": "有；存在；……以前（时间）",
+   "en": "there is; there are; ago"
+  },
+  "s'il vous plaît": {
+   "word": "s'il vous plaît",
+   "pos": "phrase",
+   "ipa": "/sil.vu.plɛ/",
+   "zh": "请（正式或对多人）",
+   "en": "please (formal or plural)"
+  },
+  "s'il te plaît": {
+   "word": "s'il te plaît",
+   "pos": "phrase",
+   "ipa": "/sil.tə.plɛ/",
+   "zh": "请（对熟人）",
+   "en": "please (informal)"
+  },
+  "merci": {
+   "word": "merci",
+   "pos": "interjection",
+   "ipa": "/mɛʁ.si/",
+   "zh": "谢谢；感谢",
+   "en": "thank you; thanks"
+  },
+  "oui": {
+   "word": "oui",
+   "pos": "adverb",
+   "ipa": "/wi/",
+   "zh": "是；对；好",
+   "en": "yes"
+  },
+  "non": {
+   "word": "non",
+   "pos": "adverb",
+   "ipa": "/nɔ̃/",
+   "zh": "不；不是；没有",
+   "en": "no; not"
+  },
+  "aussi": {
+   "word": "aussi",
+   "pos": "adverb",
+   "ipa": "/o.si/",
+   "zh": "也；同样；这么；所以",
+   "en": "also; too; as; so"
+  },
+  "encore": {
+   "word": "encore",
+   "pos": "adverb",
+   "ipa": "/ɑ̃.kɔʁ/",
+   "zh": "还；仍然；再；又",
+   "en": "still; yet; again; more"
+  },
+  "déjà": {
+   "word": "déjà",
+   "pos": "adverb",
+   "ipa": "/de.ʒa/",
+   "zh": "已经；曾经",
+   "en": "already; before"
+  },
+  "toujours": {
+   "word": "toujours",
+   "pos": "adverb",
+   "ipa": "/tu.ʒuʁ/",
+   "zh": "总是；一直；仍然",
+   "en": "always; still"
+  },
+  "alors": {
+   "word": "alors",
+   "pos": "adverb",
+   "ipa": "/a.lɔʁ/",
+   "zh": "那么；于是；当时",
+   "en": "then; so; at that time"
+  },
+  "puis": {
+   "word": "puis",
+   "pos": "adverb",
+   "ipa": "/pɥi/",
+   "zh": "然后；接着",
+   "en": "then; next"
+  },
+  "après": {
+   "word": "après",
+   "pos": "preposition",
+   "ipa": "/a.pʁɛ/",
+   "zh": "在……之后；以后",
+   "en": "after; afterwards"
+  },
+  "avant": {
+   "word": "avant",
+   "pos": "preposition",
+   "ipa": "/a.vɑ̃/",
+   "zh": "在……之前；以前",
+   "en": "before; beforehand"
+  },
+  "depuis": {
+   "word": "depuis",
+   "pos": "preposition",
+   "ipa": "/də.pɥi/",
+   "zh": "自从；从……起",
+   "en": "since; for (duration up to now)"
+  },
+  "pendant": {
+   "word": "pendant",
+   "pos": "preposition",
+   "ipa": "/pɑ̃.dɑ̃/",
+   "zh": "在……期间；当……的时候",
+   "en": "during; for"
+  },
+  "vers": {
+   "word": "vers",
+   "pos": "preposition",
+   "ipa": "/vɛʁ/",
+   "zh": "朝向；大约（时间）",
+   "en": "towards; around (time)"
+  },
+  "entre": {
+   "word": "entre",
+   "pos": "preposition",
+   "ipa": "/ɑ̃tʁ/",
+   "zh": "在……之间",
+   "en": "between; among"
+  }
+ },
+ "en": {
+  "the": {
+   "word": "the",
+   "pos": "article",
+   "ipa": "/ðə/",
+   "zh": "这个；那个；这些；那些（定冠词）",
+   "en": "definite article"
+  },
+  "a": {
+   "word": "a",
+   "pos": "article",
+   "ipa": "/ə/",
+   "zh": "一个；某一（不定冠词）",
+   "en": "indefinite article: one; any"
+  },
+  "an": {
+   "word": "an",
+   "pos": "article",
+   "ipa": "/ən/",
+   "zh": "一个（不定冠词，用于元音音素前）",
+   "en": "indefinite article before a vowel sound"
+  },
+  "and": {
+   "word": "and",
+   "pos": "conjunction",
+   "ipa": "/ænd/",
+   "zh": "和；并且；然后",
+   "en": "and"
+  },
+  "or": {
+   "word": "or",
+   "pos": "conjunction",
+   "ipa": "/ɔːr/",
+   "zh": "或者；还是",
+   "en": "or"
+  },
+  "but": {
+   "word": "but",
+   "pos": "conjunction",
+   "ipa": "/bʌt/",
+   "zh": "但是；可是；除了",
+   "en": "but; except"
+  },
+  "if": {
+   "word": "if",
+   "pos": "conjunction",
+   "ipa": "/ɪf/",
+   "zh": "如果；是否",
+   "en": "if; whether"
+  },
+  "of": {
+   "word": "of",
+   "pos": "preposition",
+   "ipa": "/əv/",
+   "zh": "……的；属于；由……组成",
+   "en": "of; belonging to"
+  },
+  "to": {
+   "word": "to",
+   "pos": "preposition",
+   "ipa": "/tuː/",
+   "zh": "到；向；（不定式标记）",
+   "en": "to; infinitive marker"
+  },
+  "in": {
+   "word": "in",
+   "pos": "preposition",
+   "ipa": "/ɪn/",
+   "zh": "在……里；在……期间",
+   "en": "in; inside; during"
+  },
+  "on": {
+   "word": "on",
+   "pos": "preposition",
+   "ipa": "/ɑːn/",
+   "zh": "在……上；关于；在（某日）",
+   "en": "on; about"
+  },
+  "at": {
+   "word": "at",
+   "pos": "preposition",
+   "ipa": "/æt/",
+   "zh": "在（某地、某时刻）",
+   "en": "at (a place or time)"
+  },
+  "by": {
+   "word": "by",
+   "pos": "preposition",
+   "ipa": "/baɪ/",
+   "zh": "被；由；通过；在……旁边；不迟于",
+   "en": "by; beside; no later than"
+  },
+  "for": {
+   "word": "for",
+   "pos": "preposition",
+   "ipa": "/fɔːr/",
+   "zh": "为了；给；对于；持续（一段时间）",
+   "en": "for; in order to; during"
+  },
+  "with": {
+   "word": "with",
+   "pos": "preposition",
+   "ipa": "/wɪð/",
+   "zh": "和；用；带有",
+   "en": "with"
+  },
+  "from": {
+   "word": "from",
+   "pos": "preposition",
+   "ipa": "/frʌm/",
+   "zh": "从；来自",
+   "en": "from"
+  },
+  "as": {
+   "word": "as",
+   "pos": "conjunction",
+   "ipa": "/æz/",
+   "zh": "作为；像……一样；当……时；因为",
+   "en": "as; while; because; like"
+  },
+  "about": {
+   "word": "about",
+   "pos": "preposition",
+   "ipa": "/əˈbaʊt/",
+   "zh": "关于；大约",
+   "en": "about; approximately"
+  },
+  "into": {
+   "word": "into",
+   "pos": "preposition",
+   "ipa": "/ˈɪntuː/",
+   "zh": "进入；变成",
+   "en": "into"
+  },
+  "over": {
+   "word": "over",
+   "pos": "preposition",
+   "ipa": "/ˈoʊvər/",
+   "zh": "在……上方；越过；结束；超过",
+   "en": "over; above; finished"
+  },
+  "after": {
+   "word": "after",
+   "pos": "preposition",
+   "ipa": "/ˈæftər/",
+   "zh": "在……之后",
+   "en": "after"
+  },
+  "before": {
+   "word": "before",
+   "pos": "preposition",
+   "ipa": "/bɪˈfɔːr/",
+   "zh": "在……之前",
+   "en": "before"
+  },
+  "again": {
+   "word": "again",
+   "pos": "adverb",
+   "ipa": "/əˈɡɛn/",
+   "zh": "再一次；又",
+   "en": "again"
+  },
+  "up": {
+   "word": "up",
+   "pos": "adverb",
+   "ipa": "/ʌp/",
+   "zh": "向上；起来",
+   "en": "up"
+  },
+  "down": {
+   "word": "down",
+   "pos": "adverb",
+   "ipa": "/daʊn/",
+   "zh": "向下；下来",
+   "en": "down"
+  },
+  "out": {
+   "word": "out",
+   "pos": "adverb",
+   "ipa": "/aʊt/",
+   "zh": "在外；出去；出来",
+   "en": "out"
+  },
+  "off": {
+   "word": "off",
+   "pos": "adverb",
+   "ipa": "/ɔːf/",
+   "zh": "离开；关闭；脱掉",
+   "en": "off; away"
+  },
+  "is": {
+   "word": "is",
+   "pos": "verb",
+   "ipa": "/ɪz/",
+   "zh": "是；在（be 的第三人称单数现在时）",
+   "en": "is: third person singular of be"
+  },
+  "are": {
+   "word": "are",
+   "pos": "verb",
+   "ipa": "/ɑːr/",
+   "zh": "是；在（be 的复数及第二人称现在时）",
+   "en": "are: present of be (you/we/they)"
+  },
+  "was": {
+   "word": "was",
+   "pos": "verb",
+   "ipa": "/wʌz/",
+   "zh": "是；在（be 的第一、三人称单数过去式）",
+   "en": "was: past of be (I/he/she/it)"
+  },
+  "were": {
+   "word": "were",
+   "pos": "verb",
+   "ipa": "/wɜːr/",
+   "zh": "是；在（be 的复数及第二人称过去式）",
+   "en": "were: past of be (you/we/they)"
+  },
+  "be": {
+   "word": "be",
+   "pos": "verb",
+   "ipa": "/biː/",
+   "zh": "是；在；存在",
+   "en": "to be"
+  },
+  "been": {
+   "word": "been",
+   "pos": "verb",
+   "ipa": "/bɪn/",
+   "zh": "be 的过去分词",
+   "en": "past participle of be"
+  },
+  "am": {
+   "word": "am",
+   "pos": "verb",
+   "ipa": "/æm/",
+   "zh": "是（be 的第一人称单数现在时，与 I 连用）",
+   "en": "am: first person singular of be"
+  },
+  "do": {
+   "word": "do",
+   "pos": "verb",
+   "ipa": "/duː/",
+   "zh": "做；（助动词，构成疑问句和否定句）",
+   "en": "to do; auxiliary for questions and negatives"
+  },
+  "does": {
+   "word": "does",
+   "pos": "verb",
+   "ipa": "/dʌz/",
+   "zh": "做；（助动词）do 的第三人称单数",
+   "en": "does: third person singular of do"
+  },
+  "did": {
+   "word": "did",
+   "pos": "verb",
+   "ipa": "/dɪd/",
+   "zh": "做；（助动词）do 的过去式",
+   "en": "did: past of do"
+  },
+  "have": {
+   "word": "have",
+   "pos": "verb",
+   "ipa": "/hæv/",
+   "zh": "有；吃；（助动词，构成完成时）",
+   "en": "to have; auxiliary for perfect tenses"
+  },
+  "has": {
+   "word": "has",
+   "pos": "verb",
+   "ipa": "/hæz/",
+   "zh": "有；have 的第三人称单数",
+   "en": "has: third person singular of have"
+  },
+  "had": {
+   "word": "had",
+   "pos": "verb",
+   "ipa": "/hæd/",
+   "zh": "有；have 的过去式和过去分词",
+   "en": "had: past of have"
+  },
+  "will": {
+   "word": "will",
+   "pos": "verb",
+   "ipa": "/wɪl/",
+   "zh": "将；会；愿意（情态动词）",
+   "en": "will: future or willingness (modal)"
+  },
+  "would": {
+   "word": "would",
+   "pos": "verb",
+   "ipa": "/wʊd/",
+   "zh": "会；愿意；将（will 的过去式，情态动词）",
+   "en": "would (modal): conditional, polite requests"
+  },
+  "can": {
+   "word": "can",
+   "pos": "verb",
+   "ipa": "/kæn/",
+   "zh": "能；会；可以（情态动词）",
+   "en": "can (modal): ability, permission"
+  },
+  "could": {
+   "word": "could",
+   "pos": "verb",
+   "ipa": "/kʊd/",
+   "zh": "能；可以；可能（can 的过去式，情态动词）",
+   "en": "could (modal)"
+  },
+  "should": {
+   "word": "should",
+   "pos": "verb",
+   "ipa": "/ʃʊd/",
+   "zh": "应该；应当（情态动词）",
+   "en": "should (modal): advice, obligation"
+  },
+  "may": {
+   "word": "may",
+   "pos": "verb",
+   "ipa": "/meɪ/",
+   "zh": "可能；可以（情态动词）",
+   "en": "may (modal): possibility, permission"
+  },
+  "might": {
+   "word": "might",
+   "pos": "verb",
+   "ipa": "/maɪt/",
+   "zh": "可能；也许（情态动词）",
+   "en": "might (modal): weaker possibility"
+  },
+  "must": {
+   "word": "must",
+   "pos": "verb",
+   "ipa": "/mʌst/",
+   "zh": "必须；一定（情态动词）",
+   "en": "must (modal): obligation, strong deduction"
+  },
+  "i": {
+   "word": "i",
+   "pos": "pronoun",
+   "ipa": "/aɪ/",
+   "zh": "我",
+   "en": "I"
+  },
+  "you": {
+   "word": "you",
+   "pos": "pronoun",
+   "ipa": "/juː/",
+   "zh": "你；你们；您",
+   "en": "you"
+  },
+  "he": {
+   "word": "he",
+   "pos": "pronoun",
+   "ipa": "/hiː/",
+   "zh": "他",
+   "en": "he"
+  },
+  "she": {
+   "word": "she",
+   "pos": "pronoun",
+   "ipa": "/ʃiː/",
+   "zh": "她",
+   "en": "she"
+  },
+  "it": {
+   "word": "it",
+   "pos": "pronoun",
+   "ipa": "/ɪt/",
+   "zh": "它；这；那",
+   "en": "it"
+  },
+  "we": {
+   "word": "we",
+   "pos": "pronoun",
+   "ipa": "/wiː/",
+   "zh": "我们",
+   "en": "we"
+  },
+  "they": {
+   "word": "they",
+   "pos": "pronoun",
+   "ipa": "/ðeɪ/",
+   "zh": "他们；她们；它们",
+   "en": "they"
+  },
+  "me": {
+   "word": "me",
+   "pos": "pronoun",
+   "ipa": "/miː/",
+   "zh": "我（宾格）",
+   "en": "me"
+  },
+  "him": {
+   "word": "him",
+   "pos": "pronoun",
+   "ipa": "/hɪm/",
+   "zh": "他（宾格）",
+   "en": "him"
+  },
+  "her": {
+   "word": "her",
+   "pos": "pronoun",
+   "ipa": "/hɜːr/",
+   "zh": "她（宾格）；她的",
+   "en": "her: object of she; possessive"
+  },
+  "us": {
+   "word": "us",
+   "pos": "pronoun",
+   "ipa": "/ʌs/",
+   "zh": "我们（宾格）",
+   "en": "us"
+  },
+  "them": {
+   "word": "them",
+   "pos": "pronoun",
+   "ipa": "/ðɛm/",
+   "zh": "他们；她们；它们（宾格）",
+   "en": "them"
+  },
+  "my": {
+   "word": "my",
+   "pos": "determiner",
+   "ipa": "/maɪ/",
+   "zh": "我的",
+   "en": "my"
+  },
+  "your": {
+   "word": "your",
+   "pos": "determiner",
+   "ipa": "/jɔːr/",
+   "zh": "你的；你们的",
+   "en": "your"
+  },
+  "his": {
+   "word": "his",
+   "pos": "determiner",
+   "ipa": "/hɪz/",
+   "zh": "他的",
+   "en": "his"
+  },
+  "its": {
+   "word": "its",
+   "pos": "determiner",
+   "ipa": "/ɪts/",
+   "zh": "它的",
+   "en": "its"
+  },
+  "our": {
+   "word": "our",
+   "pos": "determiner",
+   "ipa": "/ˈaʊər/",
+   "zh": "我们的",
+   "en": "our"
+  },
+  "their": {
+   "word": "their",
+   "pos": "determiner",
+   "ipa": "/ðɛr/",
+   "zh": "他们的；她们的；它们的",
+   "en": "their"
+  },
+  "this": {
+   "word": "this",
+   "pos": "determiner",
+   "ipa": "/ðɪs/",
+   "zh": "这；这个",
+   "en": "this"
+  },
+  "that": {
+   "word": "that",
+   "pos": "determiner",
+   "ipa": "/ðæt/",
+   "zh": "那；那个；（引导从句）",
+   "en": "that"
+  },
+  "these": {
+   "word": "these",
+   "pos": "determiner",
+   "ipa": "/ðiːz/",
+   "zh": "这些",
+   "en": "these"
+  },
+  "those": {
+   "word": "those",
+   "pos": "determiner",
+   "ipa": "/ðoʊz/",
+   "zh": "那些",
+   "en": "those"
+  },
+  "what": {
+   "word": "what",
+   "pos": "pronoun",
+   "ipa": "/wʌt/",
+   "zh": "什么；多么",
+   "en": "what"
+  },
+  "who": {
+   "word": "who",
+   "pos": "pronoun",
+   "ipa": "/huː/",
+   "zh": "谁；……的人",
+   "en": "who"
+  },
+  "whom": {
+   "word": "whom",
+   "pos": "pronoun",
+   "ipa": "/huːm/",
+   "zh": "谁（宾格）",
+   "en": "whom"
+  },
+  "which": {
+   "word": "which",
+   "pos": "pronoun",
+   "ipa": "/wɪtʃ/",
+   "zh": "哪一个；……的那个",
+   "en": "which"
+  },
+  "when": {
+   "word": "when",
+   "pos": "adverb",
+   "ipa": "/wɛn/",
+   "zh": "什么时候；当……时",
+   "en": "when"
+  },
+  "where": {
+   "word": "where",
+   "pos": "adverb",
+   "ipa": "/wɛr/",
+   "zh": "在哪里；……的地方",
+   "en": "where"
+  },
+  "why": {
+   "word": "why",
+   "pos": "adverb",
+   "ipa": "/waɪ/",
+   "zh": "为什么",
+   "en": "why"
+  },
+  "how": {
+   "word": "how",
+   "pos": "adverb",
+   "ipa": "/haʊ/",
+   "zh": "怎样；多么；多少",
+   "en": "how"
+  },
+  "not": {
+   "word": "not",
+   "pos": "adverb",
+   "ipa": "/nɑːt/",
+   "zh": "不；没有",
+   "en": "not"
+  },
+  "no": {
+   "word": "no",
+   "pos": "determiner",
+   "ipa": "/noʊ/",
+   "zh": "不；没有；无",
+   "en": "no"
+  },
+  "yes": {
+   "word": "yes",
+   "pos": "adverb",
+   "ipa": "/jɛs/",
+   "zh": "是；对；好",
+   "en": "yes"
+  },
+  "there": {
+   "word": "there",
+   "pos": "adverb",
+   "ipa": "/ðɛr/",
+   "zh": "那里；（there is/are）有",
+   "en": "there"
+  },
+  "here": {
+   "word": "here",
+   "pos": "adverb",
+   "ipa": "/hɪr/",
+   "zh": "这里；在这儿",
+   "en": "here"
+  },
+  "very": {
+   "word": "very",
+   "pos": "adverb",
+   "ipa": "/ˈvɛri/",
+   "zh": "很；非常",
+   "en": "very"
+  },
+  "too": {
+   "word": "too",
+   "pos": "adverb",
+   "ipa": "/tuː/",
+   "zh": "也；太；过于",
+   "en": "too; also; excessively"
+  },
+  "also": {
+   "word": "also",
+   "pos": "adverb",
+   "ipa": "/ˈɔːlsoʊ/",
+   "zh": "也；还",
+   "en": "also"
+  },
+  "just": {
+   "word": "just",
+   "pos": "adverb",
+   "ipa": "/dʒʌst/",
+   "zh": "刚刚；只是；正好；公正的",
+   "en": "just; only; exactly"
+  },
+  "only": {
+   "word": "only",
+   "pos": "adverb",
+   "ipa": "/ˈoʊnli/",
+   "zh": "只；仅仅；唯一的",
+   "en": "only"
+  },
+  "more": {
+   "word": "more",
+   "pos": "adverb",
+   "ipa": "/mɔːr/",
+   "zh": "更多；更；再",
+   "en": "more"
+  },
+  "most": {
+   "word": "most",
+   "pos": "adverb",
+   "ipa": "/moʊst/",
+   "zh": "最；大多数",
+   "en": "most"
+  },
+  "some": {
+   "word": "some",
+   "pos": "determiner",
+   "ipa": "/sʌm/",
+   "zh": "一些；某个",
+   "en": "some"
+  },
+  "any": {
+   "word": "any",
+   "pos": "determiner",
+   "ipa": "/ˈɛni/",
+   "zh": "任何；一些（用于疑问和否定句）",
+   "en": "any"
+  },
+  "all": {
+   "word": "all",
+   "pos": "determiner",
+   "ipa": "/ɔːl/",
+   "zh": "所有；全部",
+   "en": "all"
+  },
+  "each": {
+   "word": "each",
+   "pos": "determiner",
+   "ipa": "/iːtʃ/",
+   "zh": "每个；各自",
+   "en": "each"
+  },
+  "every": {
+   "word": "every",
+   "pos": "determiner",
+   "ipa": "/ˈɛvri/",
+   "zh": "每个；所有的",
+   "en": "every"
+  },
+  "other": {
+   "word": "other",
+   "pos": "determiner",
+   "ipa": "/ˈʌðər/",
+   "zh": "其他的；另外的",
+   "en": "other"
+  },
+  "another": {
+   "word": "another",
+   "pos": "determiner",
+   "ipa": "/əˈnʌðər/",
+   "zh": "另一个；再一个",
+   "en": "another"
+  },
+  "such": {
+   "word": "such",
+   "pos": "determiner",
+   "ipa": "/sʌtʃ/",
+   "zh": "这样的；如此的",
+   "en": "such"
+  },
+  "than": {
+   "word": "than",
+   "pos": "conjunction",
+   "ipa": "/ðæn/",
+   "zh": "比（用于比较）",
+   "en": "than"
+  },
+  "then": {
+   "word": "then",
+   "pos": "adverb",
+   "ipa": "/ðɛn/",
+   "zh": "然后；那时；那么",
+   "en": "then"
+  },
+  "so": {
+   "word": "so",
+   "pos": "adverb",
+   "ipa": "/soʊ/",
+   "zh": "所以；这么；如此",
+   "en": "so"
+  },
+  "because": {
+   "word": "because",
+   "pos": "conjunction",
+   "ipa": "/bɪˈkɔːz/",
+   "zh": "因为",
+   "en": "because"
+  },
+  "don't": {
+   "word": "don't",
+   "pos": "verb",
+   "ipa": "/doʊnt/",
+   "zh": "不（do not 的缩写，用于否定句）",
+   "en": "do not"
+  },
+  "doesn't": {
+   "word": "doesn't",
+   "pos": "verb",
+   "ipa": "/ˈdʌzənt/",
+   "zh": "不（does not 的缩写）",
+   "en": "does not"
+  },
+  "didn't": {
+   "word": "didn't",
+   "pos": "verb",
+   "ipa": "/ˈdɪdnt/",
+   "zh": "没有（did not 的缩写）",
+   "en": "did not"
+  },
+  "can't": {
+   "word": "can't",
+   "pos": "verb",
+   "ipa": "/kænt/",
+   "zh": "不能（cannot 的缩写）",
+   "en": "cannot"
+  },
+  "won't": {
+   "word": "won't",
+   "pos": "verb",
+   "ipa": "/woʊnt/",
+   "zh": "将不会（will not 的缩写）",
+   "en": "will not"
+  },
+  "isn't": {
+   "word": "isn't",
+   "pos": "verb",
+   "ipa": "/ˈɪznt/",
+   "zh": "不是（is not 的缩写）",
+   "en": "is not"
+  },
+  "aren't": {
+   "word": "aren't",
+   "pos": "verb",
+   "ipa": "/ɑːrnt/",
+   "zh": "不是（are not 的缩写）",
+   "en": "are not"
+  },
+  "wasn't": {
+   "word": "wasn't",
+   "pos": "verb",
+   "ipa": "/ˈwʌznt/",
+   "zh": "不是（was not 的缩写）",
+   "en": "was not"
+  },
+  "weren't": {
+   "word": "weren't",
+   "pos": "verb",
+   "ipa": "/wɜːrnt/",
+   "zh": "不是（were not 的缩写）",
+   "en": "were not"
+  },
+  "haven't": {
+   "word": "haven't",
+   "pos": "verb",
+   "ipa": "/ˈhævnt/",
+   "zh": "没有（have not 的缩写）",
+   "en": "have not"
+  },
+  "hasn't": {
+   "word": "hasn't",
+   "pos": "verb",
+   "ipa": "/ˈhæznt/",
+   "zh": "没有（has not 的缩写）",
+   "en": "has not"
+  },
+  "hadn't": {
+   "word": "hadn't",
+   "pos": "verb",
+   "ipa": "/ˈhædnt/",
+   "zh": "没有（had not 的缩写）",
+   "en": "had not"
+  },
+  "wouldn't": {
+   "word": "wouldn't",
+   "pos": "verb",
+   "ipa": "/ˈwʊdnt/",
+   "zh": "不会（would not 的缩写）",
+   "en": "would not"
+  },
+  "couldn't": {
+   "word": "couldn't",
+   "pos": "verb",
+   "ipa": "/ˈkʊdnt/",
+   "zh": "不能（could not 的缩写）",
+   "en": "could not"
+  },
+  "shouldn't": {
+   "word": "shouldn't",
+   "pos": "verb",
+   "ipa": "/ˈʃʊdnt/",
+   "zh": "不应该（should not 的缩写）",
+   "en": "should not"
+  },
+  "i'm": {
+   "word": "i'm",
+   "pos": "phrase",
+   "ipa": "/aɪm/",
+   "zh": "我是（I am 的缩写）",
+   "en": "I am"
+  },
+  "i'll": {
+   "word": "i'll",
+   "pos": "phrase",
+   "ipa": "/aɪl/",
+   "zh": "我将（I will 的缩写）",
+   "en": "I will"
+  },
+  "i've": {
+   "word": "i've",
+   "pos": "phrase",
+   "ipa": "/aɪv/",
+   "zh": "我已经（I have 的缩写）",
+   "en": "I have"
+  },
+  "i'd": {
+   "word": "i'd",
+   "pos": "phrase",
+   "ipa": "/aɪd/",
+   "zh": "我会；我曾（I would / I had 的缩写）",
+   "en": "I would; I had"
+  },
+  "you're": {
+   "word": "you're",
+   "pos": "phrase",
+   "ipa": "/jʊr/",
+   "zh": "你是；你们是（you are 的缩写）",
+   "en": "you are"
+  },
+  "you'll": {
+   "word": "you'll",
+   "pos": "phrase",
+   "ipa": "/juːl/",
+   "zh": "你将（you will 的缩写）",
+   "en": "you will"
+  },
+  "you've": {
+   "word": "you've",
+   "pos": "phrase",
+   "ipa": "/juːv/",
+   "zh": "你已经（you have 的缩写）",
+   "en": "you have"
+  },
+  "we're": {
+   "word": "we're",
+   "pos": "phrase",
+   "ipa": "/wɪr/",
+   "zh": "我们是（we are 的缩写）",
+   "en": "we are"
+  },
+  "we'll": {
+   "word": "we'll",
+   "pos": "phrase",
+   "ipa": "/wiːl/",
+   "zh": "我们将（we will 的缩写）",
+   "en": "we will"
+  },
+  "we've": {
+   "word": "we've",
+   "pos": "phrase",
+   "ipa": "/wiːv/",
+   "zh": "我们已经（we have 的缩写）",
+   "en": "we have"
+  },
+  "they're": {
+   "word": "they're",
+   "pos": "phrase",
+   "ipa": "/ðɛr/",
+   "zh": "他们是（they are 的缩写）",
+   "en": "they are"
+  },
+  "they'll": {
+   "word": "they'll",
+   "pos": "phrase",
+   "ipa": "/ðeɪl/",
+   "zh": "他们将（they will 的缩写）",
+   "en": "they will"
+  },
+  "they've": {
+   "word": "they've",
+   "pos": "phrase",
+   "ipa": "/ðeɪv/",
+   "zh": "他们已经（they have 的缩写）",
+   "en": "they have"
+  },
+  "he's": {
+   "word": "he's",
+   "pos": "phrase",
+   "ipa": "/hiːz/",
+   "zh": "他是；他已经（he is / he has 的缩写）",
+   "en": "he is; he has"
+  },
+  "she's": {
+   "word": "she's",
+   "pos": "phrase",
+   "ipa": "/ʃiːz/",
+   "zh": "她是；她已经（she is / she has 的缩写）",
+   "en": "she is; she has"
+  },
+  "it's": {
+   "word": "it's",
+   "pos": "phrase",
+   "ipa": "/ɪts/",
+   "zh": "它是；它已经（it is / it has 的缩写）",
+   "en": "it is; it has"
+  },
+  "that's": {
+   "word": "that's",
+   "pos": "phrase",
+   "ipa": "/ðæts/",
+   "zh": "那是（that is 的缩写）",
+   "en": "that is"
+  },
+  "there's": {
+   "word": "there's",
+   "pos": "phrase",
+   "ipa": "/ðɛrz/",
+   "zh": "有（there is 的缩写）",
+   "en": "there is"
+  },
+  "here's": {
+   "word": "here's",
+   "pos": "phrase",
+   "ipa": "/hɪrz/",
+   "zh": "这是；给你（here is 的缩写）",
+   "en": "here is"
+  },
+  "let's": {
+   "word": "let's",
+   "pos": "phrase",
+   "ipa": "/lɛts/",
+   "zh": "让我们（let us 的缩写）",
+   "en": "let us"
+  },
+  "what's": {
+   "word": "what's",
+   "pos": "phrase",
+   "ipa": "/wʌts/",
+   "zh": "什么是（what is 的缩写）",
+   "en": "what is"
+  },
+  "who's": {
+   "word": "who's",
+   "pos": "phrase",
+   "ipa": "/huːz/",
+   "zh": "谁是（who is 的缩写）",
+   "en": "who is"
+  }
+ }
+}

@@ -12,6 +12,7 @@ const APP_ASSETS = [
   "./ollama-client.js?v=1.0.0",
   "./dictionary.js?v=1.0.0",
   "./dictionary/manifest.json",
+  "./dictionary/curated.json",
   "./app.js?v=1.0.0",
   "./manifest.webmanifest",
   "./icons/icon-192.png",

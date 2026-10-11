@@ -8,6 +8,26 @@
     if (!response.ok) throw new Error(`Dictionary manifest ${response.status}`);
     return response.json();
   });
+  // Lookups do not need the manifest itself; a failed fetch must neither break
+  // them nor surface as an unhandled rejection.
+  manifestPromise.catch(() => {});
+  // Hand-reviewed entries for very common words; they win over the shards.
+  // Cached only on success, so a failed fetch is retried on the next lookup.
+  let curatedPromise = null;
+  function loadCurated() {
+    if (!curatedPromise) {
+      curatedPromise = fetch(`${BASE_URL}/curated.json?v=${PACK_VERSION}`, { cache: "no-cache" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Curated dictionary ${response.status}`);
+          return response.json();
+        })
+        .catch(() => {
+          curatedPromise = null;
+          return {};
+        });
+    }
+    return curatedPromise;
+  }
   const shardCache = new Map();
 
   const POS_ALIASES = {
@@ -52,7 +72,7 @@
     ["â€™", "’"], ["â€˜", "‘"], ["â€œ", "“"], ["â€", "”"], ["â€“", "–"], ["â€”", "—"],
     ["Å“", "œ"], ["Å’", "Œ"], ["Ã§", "ç"], ["Ã©", "é"], ["Ã¨", "è"], ["Ãª", "ê"],
     ["Ã«", "ë"], ["Ã ", "à"], ["Ã¢", "â"], ["Ã´", "ô"], ["Ã¹", "ù"], ["Ã»", "û"],
-    ["Ã®", "î"], ["Ã¯", "ï"], ["Â", ""]
+    ["Ã®", "î"], ["Ã¯", "ï"]
   ]);
 
   function cleanText(value) {
@@ -67,6 +87,9 @@
       .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
       .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
     MOJIBAKE_REPLACEMENTS.forEach((replacement, broken) => { output = output.replaceAll(broken, replacement); });
+    // A stray "Â" before a space or quote mark is the debris of a decoded no-break
+    // space; a real capital Â (Âge, Âme) is left alone.
+    output = output.replace(/Â(?=[\s\u00a0\u00ab\u00bb\u00b0])/g, "");
     return output
       .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFD]/g, "")
       .replace(/[ \t]+/g, " ")
@@ -186,7 +209,12 @@
           if (!response.ok) throw new Error(`Dictionary shard ${response.status}`);
           return response.json();
         })
-        .catch(() => ({}));
+        .catch(() => {
+          // A failed fetch must not make every word of this shard "unknown"
+          // for the rest of the session: forget it so the next lookup retries.
+          shardCache.delete(cacheKey);
+          return {};
+        });
       shardCache.set(cacheKey, promise);
     }
     return shardCache.get(cacheKey);
@@ -231,7 +259,45 @@
       .match(/[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?/gu) || [];
   }
 
-  function shouldPreferFrenchForm(surface, direct, form, context) {
+  // Object pronouns that can stand between a subject and a verb ("Je la visite").
+  const FRENCH_OBJECT_CLITICS = new Set(["le", "la", "les", "l'", "me", "m'", "te", "t'", "lui", "leur", "nous", "vous", "se", "s'", "en", "y"]);
+
+  // Index of the clicked word among the tokens. `occurrence` says which of
+  // several identical words it is (0 = first), so the second "marche" of a
+  // sentence is judged by its own neighbours.
+  function indexInContext(tokens, key, occurrence = 0) {
+    const matches = [];
+    tokens.forEach((token, position) => { if (normalize(token) === key) matches.push(position); });
+    if (!matches.length) return -1;
+    return matches[Math.min(Math.max(0, Number(occurrence) || 0), matches.length - 1)];
+  }
+
+  // Part-of-speech list of the word right before the clicked one, so that
+  // "une longue marche" (adjective) and "mon téléphone marche" (noun) differ.
+  async function previousWordPos(tokens, index) {
+    const previous = index > 0 ? normalize(tokens[index - 1]) : "";
+    if (!previous) return [];
+    try {
+      const entry = await exactEntry(previous, "fr");
+      // An inflected form ("belle", "longue", "dernière") knows its own part of
+      // speech even when the spelling is also a headword of another kind.
+      const form = await formInfo(previous, "fr");
+      return [...(entry?.posList || []), ...(form?.pos ? [form.pos] : [])];
+    } catch {
+      return [];
+    }
+  }
+
+  function contextSuggestsNoun(tokens, index, previousPos = []) {
+    const previous = tokens[index - 1] || "";
+    const twoBack = tokens[index - 2] || "";
+    if (FRENCH_OBJECT_CLITICS.has(previous) && FRENCH_SUBJECT_MARKERS.has(twoBack)) return false;
+    if (FRENCH_NOUN_MARKERS.has(previous) || (previous === "de" && twoBack === "pas")) return true;
+    // determiner + adjective + noun ("Une longue marche", "Ce long voyage")
+    return FRENCH_NOUN_MARKERS.has(twoBack) && previousPos.includes("adjective");
+  }
+
+  async function shouldPreferFrenchForm(surface, direct, form, context, occurrence = 0) {
     if (!form?.lemma || form.pos !== "verb" || !context) return false;
     const directParts = new Set(String(direct?.pos || "").split(/[；;,]/).map((item) => item.trim()));
     if (directParts.has("verb") || [...directParts].some((item) => ["pronoun", "preposition", "conjunction", "determiner", "article"].includes(item))) {
@@ -240,14 +306,23 @@
     if (![...directParts].some((item) => ["noun", "proper noun", "adjective"].includes(item))) return false;
     const key = normalize(surface);
     const tokens = contextTokens(context);
-    const index = tokens.findIndex((token) => normalize(token) === key);
+    const index = indexInContext(tokens, key, occurrence);
     if (index < 0) return false;
     const previous = tokens[index - 1] || "";
-    if (FRENCH_NOUN_MARKERS.has(previous) || (previous === "de" && tokens[index - 2] === "pas")) return false;
+    const twoBack = tokens[index - 2] || "";
+    if (FRENCH_OBJECT_CLITICS.has(previous) && FRENCH_SUBJECT_MARKERS.has(twoBack)) return true;
+    if (contextSuggestsNoun(tokens, index, await previousWordPos(tokens, index))) return false;
     if (FRENCH_SUBJECT_MARKERS.has(previous)) return true;
     // A lower-case noun/verb homograph without a determiner is much more often
     // the finite verb in running text (e.g. “mon téléphone marche bien”).
     return String(surface).trim() === String(surface).trim().toLocaleLowerCase();
+  }
+
+  async function curatedEntry(key, language) {
+    const table = (await loadCurated())[language];
+    const row = table && Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null;
+    if (!row) return null;
+    return unpackEntry([row.word || key, row.ipa, row.zh, row.en, row.pos, "", "OoFR 校订"], key, language);
   }
 
   async function exactEntry(key, language) {
@@ -288,22 +363,25 @@
     }
     if (key.endsWith("es")) add(key.slice(0, -2));
     if (key.endsWith("s")) add(key.slice(0, -1));
-    return candidates;
+    // "is → I", "his → hi", "has → ha": too-short stems are other words, not the base form.
+    return candidates.filter((candidate) => candidate.length >= 3);
   }
 
   async function lookup(surface, language = "fr", options = {}) {
-    await manifestPromise;
+    await manifestPromise.catch(() => null);
     const originalKey = normalize(surface);
     if (!originalKey) return null;
     const core = language === "fr" ? frenchElision(originalKey) : "";
     const candidates = [originalKey, core].filter(Boolean);
 
     for (const key of candidates) {
+      const curated = await curatedEntry(key, language);
+      if (curated) return { ...curated, surface: String(surface), lemma: curated.word, isInflected: false, lookupKey: key, curated: true };
       const direct = await exactEntry(key, language);
       if (!direct) continue;
       if (language === "fr") {
         const form = await formInfo(key, language);
-        if (shouldPreferFrenchForm(surface, direct, form, options.context)) {
+        if (await shouldPreferFrenchForm(surface, direct, form, options.context, options.occurrence)) {
           const lemmaEntry = await exactEntry(form.lemma, language);
           if (lemmaEntry) {
             return {
@@ -326,6 +404,27 @@
     for (const key of candidates) {
       const form = await formInfo(key, language);
       if (!form?.lemma) continue;
+      if (language === "fr" && form.pos === "verb" && options.context) {
+        // "Les voyages" is the plural noun, not a form of voyager.
+        const tokens = contextTokens(options.context);
+        const index = indexInContext(tokens, key, options.occurrence);
+        const singular = key.replace(/[sx]$/, "");
+        if (index >= 0 && singular !== key && contextSuggestsNoun(tokens, index, await previousWordPos(tokens, index))) {
+          const nounEntry = await exactEntry(singular, language);
+          if (nounEntry && nounEntry.posList.includes("noun")) {
+            return {
+              ...nounEntry,
+              surface: String(surface),
+              lemma: nounEntry.word,
+              form: { lemma: nounEntry.word, pos: "noun", features: "plural", ipa: "" },
+              formIpa: nounEntry.ipa,
+              isInflected: true,
+              lookupKey: key,
+              contextualSelection: true
+            };
+          }
+        }
+      }
       const lemmaEntry = await exactEntry(form.lemma, language);
       if (lemmaEntry) {
         return {
@@ -343,12 +442,16 @@
     if (language === "en") {
       for (const candidate of englishCandidates(originalKey)) {
         const entry = await exactEntry(candidate, language);
+        // "its → IT", "does → DO": an all-capitals entry is an acronym, not the base form.
+        if (entry && /^[A-Z0-9.]{1,4}$/.test(entry.word) && !/^[A-Z0-9.]{1,4}$/.test(String(surface).trim())) continue;
         if (entry) return { ...entry, surface: String(surface), lemma: entry.word, isInflected: true, lookupKey: candidate };
       }
     }
 
+    // Unaccented spelling ("ecole", "francais") finds its accented headword when
+    // exactly one candidate exists; the exact lookups above already failed.
     const folded = fold(originalKey);
-    if (folded && folded !== originalKey) {
+    if (folded) {
       const aliases = await loadShard(language, "aliases", folded);
       const exactKeys = aliases[folded] || [];
       // Never guess between collisions such as a/à or ca/ça.

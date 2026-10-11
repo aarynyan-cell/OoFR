@@ -2697,6 +2697,7 @@ function renderCourseTurnPlayButtons() {
 
 function appendCourseWords(container, sentence, lesson) {
   const pattern = courseLexicalUnitPattern(lesson);
+  const seenCounts = new Map();
   let lastIndex = 0;
   let match = pattern.exec(sentence);
   while (match) {
@@ -2705,6 +2706,10 @@ function appendCourseWords(container, sentence, lesson) {
     const word = el("button", "course-word-button", rawWord);
     word.type = "button";
     word.dataset.courseWord = rawWord;
+    // Which of several identical words this is, so the dictionary can judge it by its own neighbours.
+    const seenKey = normalizeLexicalUnit(rawWord);
+    word.dataset.occurrence = String(seenCounts.get(seenKey) || 0);
+    seenCounts.set(seenKey, (seenCounts.get(seenKey) || 0) + 1);
     word.addEventListener("click", () => showCourseWordInfo(rawWord, lesson, word));
     container.append(word);
     lastIndex = pattern.lastIndex;
@@ -2714,13 +2719,21 @@ function appendCourseWords(container, sentence, lesson) {
 }
 
 function renderCourseWordList(lesson) {
-  const words = Array.from(new Set(lesson.turns.flatMap((turn) => courseTokenize(turn.text)))).slice(0, 12);
+  const firstTurnOfWord = new Map();
+  for (const turn of lesson.turns) {
+    for (const token of courseTokenize(turn.text)) {
+      if (!firstTurnOfWord.has(token)) firstTurnOfWord.set(token, turn.id);
+    }
+    if (firstTurnOfWord.size >= 12) break;
+  }
+  const words = [...firstTurnOfWord.keys()].slice(0, 12);
   elements.courseWordCount.textContent = `${words.length} 词`;
   elements.courseWordList.replaceChildren();
   words.forEach((word) => {
     const info = getDemoWordInfo(word, lesson);
     const item = el("button", "course-word-list-item");
     item.type = "button";
+    item.dataset.turnId = firstTurnOfWord.get(word);
     item.append(el("strong", "", info.displayWord || info.lemma), el("span", "", info.pos));
     item.addEventListener("click", () => showCourseWordInfo(word, lesson, item));
     elements.courseWordList.append(item);
@@ -3161,9 +3174,15 @@ function selectedCourseWordSentence(selection) {
 }
 
 function selectedCourseWordTurn(selection) {
-  const turnId = selection.anchor?.closest?.(".course-turn-row")?.dataset?.turnId;
-  return selection.lesson.turns.find((item) => item.id === turnId)
-    || selection.lesson.turns.find((item) => normalizeLexicalUnit(item.text).includes(normalizeLexicalUnit(selection.word)));
+  const turnId = selection.anchor?.closest?.("[data-turn-id]")?.dataset?.turnId;
+  const byAnchor = selection.lesson.turns.find((item) => item.id === turnId);
+  if (byAnchor) return byAnchor;
+  // Whole words only: "est" must not match inside "restaurant".
+  const wanted = normalizeLexicalUnit(selection.word);
+  if (!wanted) return undefined;
+  const escaped = wanted.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?:^|[^\\p{L}\\p{M}])${escaped}(?:$|[^\\p{L}\\p{M}])`, "u");
+  return selection.lesson.turns.find((item) => pattern.test(normalizeLexicalUnit(item.text)));
 }
 
 function courseWordGrammarExplanation(surface, info) {
@@ -3401,10 +3420,14 @@ function speakCourseWord(word, lesson) {
 
 async function loadExternalWordInfo(word, lesson, anchor = null) {
   const context = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
-  const key = `${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(context)}`;
+  const occurrence = Number(anchor?.dataset?.occurrence || 0);
+  // Results are applied only if the learner is still looking at this very word:
+  // the same word in another sentence has its own request.
+  const selection = selectedCourseWord;
+  const key = `${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(context)}:${occurrence}`;
   if (dictionaryCache.has(key)) {
     const info = { ...getDemoWordInfo(word, lesson), ...dictionaryCache.get(key) };
-    if (selectedCourseWord?.word === word) {
+    if (selectedCourseWord === selection) {
       selectedCourseWord.info = info;
       renderCourseWordPopover(info);
     }
@@ -3413,7 +3436,7 @@ async function loadExternalWordInfo(word, lesson, anchor = null) {
   const base = getDemoWordInfo(word, lesson);
   if (window.OOFR_DICTIONARY?.lookup) {
     try {
-      const local = await window.OOFR_DICTIONARY.lookup(word, lesson.language, { context });
+      const local = await window.OOFR_DICTIONARY.lookup(word, lesson.language, { context, occurrence });
       if (local) {
         const knownUnit = Object.keys(KNOWN_LEXICAL_UNITS).some((unit) => normalizeLexicalUnit(unit) === normalizeLexicalUnit(word));
         const lemma = knownUnit ? base.lemma : (local.lemma || local.word || base.lemma);
@@ -3439,7 +3462,7 @@ async function loadExternalWordInfo(word, lesson, anchor = null) {
           partOfSpeech: pos
         };
         dictionaryCache.set(key, info);
-        if (selectedCourseWord?.word === word) {
+        if (selectedCourseWord === selection) {
           selectedCourseWord.info = info;
           renderCourseWordPopover(info);
         }
@@ -3455,7 +3478,15 @@ async function loadExternalWordInfo(word, lesson, anchor = null) {
     const wikiOrder = Array.from(new Set([preferredWiki, lesson.language, "en", "fr"]));
     let lookup = null;
     for (const wikiLanguage of wikiOrder) {
-      lookup = await fetchWiktionaryExtract(title, wikiLanguage);
+      try {
+        lookup = await fetchWiktionaryExtract(title, wikiLanguage, lesson.language);
+        // Page titles are case-sensitive; sentence-initial words are capitalised.
+        if (!lookup?.extract && title !== title.toLocaleLowerCase()) {
+          lookup = await fetchWiktionaryExtract(title.toLocaleLowerCase(), wikiLanguage, lesson.language);
+        }
+      } catch {
+        lookup = null; // this wiki is unreachable: try the next one
+      }
       if (lookup?.extract) break;
     }
     if (!lookup?.extract) throw new Error("Wiktionary entry unavailable");
@@ -3468,17 +3499,42 @@ async function loadExternalWordInfo(word, lesson, anchor = null) {
       info[lookup.language] = formattedExtract;
     }
     dictionaryCache.set(key, info);
-    if (selectedCourseWord?.word === word) {
+    if (selectedCourseWord === selection) {
       selectedCourseWord.info = info;
       renderCourseWordPopover(selectedCourseWord.info);
     }
     return info;
   } catch {
+    // Neither the local dictionary nor Wiktionary has it: say so instead of
+    // leaving "looking up…" on screen.
+    if (selectedCourseWord === selection && selectedCourseWord) {
+      const notFound = { ...base, zh: "没有找到这个词的释义", en: "No entry found", fr: "Aucune entrée trouvée", source: "未找到" };
+      selectedCourseWord.info = notFound;
+      renderCourseWordPopover(notFound);
+    }
     return null;
   }
 }
 
-async function fetchWiktionaryExtract(title, language) {
+// Heading names of the learner's language in each Wiktionary edition. A page can
+// open with another language's section (en.wiktionary "pain" starts with English).
+const WIKTIONARY_LANGUAGE_HEADINGS = {
+  en: { fr: ["French"], en: ["English"] },
+  fr: { fr: ["Français"], en: ["Anglais"] },
+  zh: { fr: ["法语", "法語"], en: ["英语", "英語"] }
+};
+const wiktionaryInflight = new Map();
+
+function fetchWiktionaryExtract(title, language, lessonLanguage = "fr") {
+  const key = `${language}:${lessonLanguage}:${title}`;
+  if (!wiktionaryInflight.has(key)) {
+    const request = fetchWiktionaryExtractUncached(title, language, lessonLanguage).finally(() => wiktionaryInflight.delete(key));
+    wiktionaryInflight.set(key, request);
+  }
+  return wiktionaryInflight.get(key);
+}
+
+async function fetchWiktionaryExtractUncached(title, language, lessonLanguage) {
   const wikiLanguage = ["zh", "en", "fr"].includes(language) ? language : "en";
   const params = new URLSearchParams({
     action: "query",
@@ -3495,7 +3551,11 @@ async function fetchWiktionaryExtract(title, language) {
   if (!response.ok) throw new Error(`Wiktionary ${response.status}`);
   const payload = await response.json();
   const page = Object.values(payload?.query?.pages || {}).find((item) => !item.missing);
-  const extract = cleanWiktionaryExtract(page?.extract);
+  const rawExtract = String(page?.extract || "");
+  const headings = [...rawExtract.matchAll(/^=+\s*(.+?)\s*=+\s*$/gm)].map((match) => match[1]);
+  const wanted = WIKTIONARY_LANGUAGE_HEADINGS[wikiLanguage]?.[lessonLanguage] || [];
+  if (headings.length && wanted.length && !headings.some((heading) => wanted.some((name) => heading.includes(name)))) return null;
+  const extract = cleanWiktionaryExtract(rawExtract);
   if (!extract) return null;
   return { extract, language: wikiLanguage, wikiName: wikiLanguage === "fr" ? "Wiktionnaire" : wikiLanguage === "zh" ? "维基词典" : "Wiktionary" };
 }
@@ -6325,8 +6385,10 @@ function buildVocabularyItem(rawWord, courseInfo = null) {
     lemma: presentation.lemma,
     normalized: presentation.identity,
     partOfSpeech: presentation.pos,
-    ipa: courseInfo?.ipa || hint?.ipa || "",
-    zh: courseInfo?.zh || hint?.zh || "",
+    // "音标待补充" and similar are display placeholders, not data: store them
+    // as empty so the word shows up in the DIY wordbook until it is filled in.
+    ipa: [courseInfo?.ipa, hint?.ipa].find(hasMeaningfulText) || "",
+    zh: [courseInfo?.zh, hint?.zh].find(hasMeaningfulText) || "",
     en: courseInfo?.en || "",
     status: "new",
     wordbookIds: selectedCustomWordbookId() ? [selectedCustomWordbookId()] : [],
@@ -6460,7 +6522,7 @@ function wordbooksForScope(scopeValue, vocabulary, sourceWordbooks = state.wordb
 }
 
 function isDiyVocabulary(item) {
-  return !String(item.ipa || "").trim() || !String(item.zh || "").trim();
+  return !hasMeaningfulText(item.ipa) || !hasMeaningfulText(item.zh);
 }
 
 function wordbookNamesText(item) {
