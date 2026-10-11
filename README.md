@@ -27,6 +27,9 @@ OoFR 法语磁带是一个本地优先的法语/英语学习 PWA，也可以作�
 - 支持 Chrome / Edge Manifest V3 插件：点击插件图标打开完整练习页面。
 - 课程可以导出 `.oofr-learning.json` 学习包；手机导入后可离线使用电脑端已生成的译文、固定表达、逐句讲解与相关词典缓存。
 - macOS 测试版会检测并复用现有 Ollama；缺少运行时或 `gemma3:4b` 时可在应用内下载、启动和预热，无需手动输入终端命令。
+- 播放模式菜单里除了全文、单句循环、选段循环、对话练习，还可以设置每句重复次数和重复之间的间隔；操作结果（导入、保存失败、AI 提示等）会以短提示显示。
+- 数据安全：本地数据无法读取时会保留原始副本并提示，不会直接覆盖；保存失败会常驻提示并可一键导出备份；完整导入前会暂存当前数据，可一键恢复。
+- 常用功能词（il、ne、au、the、to、don't 等）使用人工校订的释义，不再被同形英语词条污染；用不带重音的写法（ecole、francais）也能查到。
 
 ## 本地使用
 
@@ -90,6 +93,34 @@ http://localhost:4173/
 生成文件位于 `release/oofr-french-tape-extension-v1.0.0.zip`。商店上传 zip 包，不是直接上传整个 GitHub 仓库。更多发布准备见 `PUBLISHING.md`。
 
 插件版使用 `chrome.storage.local` 保存完整个人数据，并用 `chrome.storage.sync` 同步少量播放设置。完整专辑、磁带、朗读记录和单词本建议用“导出 / 导入”迁移。
+
+## 项目结构与测试
+
+没有构建步骤：页面按 `index.html` 里的顺序加载几个普通脚本，它们共享同一个全局作用域。
+
+| 文件 | 内容 |
+|---|---|
+| `app.js` | 页面元素注册、启动、事件绑定，以及磁带库、词句本、对话框等界面代码 |
+| `app-state.js` | 数据结构、迁移、保存，以及存储（IndexedDB / localStorage / `chrome.storage`） |
+| `app-speech.js` | 朗读播放引擎（队列、暂停/继续/停止、高亮） |
+| `app-course-player.js` | 课程播放器：进度、定位、逐句录音、录音导出 |
+| `app-local-ai.js` | 本机 AI：连接、翻译与逐句讲解的后台任务 |
+| `app-words.js` | 点词查词：词典浮层、详情、句子讲解、Wiktionary 回退 |
+| `dictionary.js`、`dictionary/` | 分片离线词典；`dictionary/curated.json` 是人工校订的常用词层 |
+| `ollama-client.js`、`desktop-ai.js` | Ollama 客户端、macOS 桌面桥接 |
+| `sw.js`、`extension-service-worker.js` | PWA 离线缓存、插件后台脚本 |
+| `desktop/` | Tauri 桌面版（Rust） |
+
+新增脚本时，需要同时加进 `index.html`、`sw.js`、`scripts/package_extension.sh` 和 `desktop/scripts/prepare-desktop.mjs`；`tests/release.test.js` 会检查是否漏了。
+
+发布前运行：
+
+```sh
+node --test tests/*.test.js
+(cd desktop/src-tauri && cargo test)
+```
+
+Node 测试用一个简化的页面环境（`tests/helpers/load-app.js`）按页面顺序加载脚本，覆盖数据保存与迁移、导入导出、课程编辑与删除、播放与录音、本机 AI 任务、词典和 Service Worker；Rust 测试覆盖桌面端的输入校验和安装流程。
 
 ## 版本
 

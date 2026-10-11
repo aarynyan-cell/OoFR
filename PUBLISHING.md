@@ -78,15 +78,12 @@ OoFR-1.0.0-macOS-x64.dmg
 ## 发布前检查
 
 ```sh
-node --check app.js
-node --check ollama-client.js
 node --test tests/*.test.js
-node --check lexicon.js
-node --check extension-service-worker.js
-node --check sw.js
+for f in app.js app-*.js ollama-client.js lexicon.js extension-service-worker.js sw.js; do node --check "$f"; done
 python3 -m json.tool manifest.json >/dev/null
 python3 -m json.tool manifest.webmanifest >/dev/null
 bash -n scripts/package_extension.sh
+(cd desktop/src-tauri && cargo test)
 ./scripts/package_extension.sh
 cd desktop && npm run build
 git status --short
