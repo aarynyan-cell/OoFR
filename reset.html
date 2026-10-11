@@ -37,13 +37,17 @@
       (async function resetOoFRCache() {
         try {
           if ("serviceWorker" in navigator) {
+            // Only this app's worker: the origin may host other projects too.
+            const ownScope = new URL("./", window.location.href).href;
             const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map((registration) => registration.unregister()));
+            await Promise.all(registrations
+              .filter((registration) => registration.scope === ownScope)
+              .map((registration) => registration.unregister()));
           }
 
           if ("caches" in window) {
             const keys = await caches.keys();
-            await Promise.all(keys.map((key) => caches.delete(key)));
+            await Promise.all(keys.filter((key) => key.startsWith("oofr-")).map((key) => caches.delete(key)));
           }
         } catch (error) {
           console.warn("OoFR cache reset skipped:", error);

@@ -4,7 +4,7 @@
   "short_name": "法语磁带",
   "version": "1.0.0",
   "description": "复古磁带风格的法语朗读、学习记录和单词本工具。",
-  "permissions": ["storage"],
+  "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": [
     "http://127.0.0.1/*",
     "http://localhost/*"

@@ -35,7 +35,8 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      // Other apps on the same origin (e.g. other GitHub Pages projects) keep their caches.
+      keys.filter((key) => key.startsWith("oofr-") && key !== CACHE_NAME).map((key) => caches.delete(key))
     ))
   );
   self.clients.claim();
@@ -43,6 +44,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // Only our own files are cached. Cross-origin GETs (the local Ollama server,
+  // Wiktionary) must reach the network untouched; answering them from cache
+  // would report a stopped Ollama as still running.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   const acceptsHtml = event.request.headers.get("accept")?.includes("text/html");
   if (event.request.mode === "navigate" || acceptsHtml) {
@@ -68,7 +73,8 @@ self.addEventListener("fetch", (event) => {
 });
 
 function cacheOkResponse(request, response) {
-  if (!response?.ok) return;
+  // Partial (206) responses cannot be cached.
+  if (!response?.ok || response.status !== 200) return;
   const copy = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
 }

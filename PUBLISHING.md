@@ -73,7 +73,7 @@ OoFR-1.0.0-macOS-x64.dmg
 - 图标、宣传截图或截图。
 - 隐私政策页面，可以使用 GitHub Pages 发布 `PRIVACY.md` 对应页面，或在仓库中公开该文件链接。
 - 支持/反馈邮箱：`aaaaaaryn@outlook.com`
-- 权限说明：插件申请 `storage`，用于保存用户自己的学习数据和播放设置；申请访问 `127.0.0.1` 和 `localhost`，仅用于连接用户主动配置的本机 Ollama。
+- 权限说明：插件申请 `storage` 和 `unlimitedStorage`，用于保存用户自己的学习数据和播放设置（课程、AI 缓存较多时不会被 chrome.storage 的默认容量上限挡住）；申请访问 `127.0.0.1` 和 `localhost`，仅用于连接用户主动配置的本机 Ollama。
 
 ## 发布前检查
 

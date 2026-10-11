@@ -4,6 +4,9 @@ Est-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.`;
 
 const APP_STORAGE_KEY = "oofr.app.v1";
 const SYNC_STORAGE_KEY = "oofr.sync.v1";
+// Side copies written by the safety nets below; never read back as live data.
+const CORRUPT_STORAGE_KEY = `${APP_STORAGE_KEY}.corrupt`;
+const BACKUP_STORAGE_KEY = `${APP_STORAGE_KEY}.backup`;
 const CLOUD_LOCAL_META_KEY = "oofr.cloud.local-meta.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const APP_VERSION = globalThis.OOFR_VERSION || "1.0.0";
@@ -166,6 +169,7 @@ const elements = {
   exportBtn: document.querySelector("#exportBtn"),
   importBtn: document.querySelector("#importBtn"),
   importFile: document.querySelector("#importFile"),
+  restoreBackupBtn: document.querySelector("#restoreBackupBtn"),
   learningPackageDialog: document.querySelector("#learningPackageDialog"),
   learningPackageTitle: document.querySelector("#learningPackageTitle"),
   learningPackagePreview: document.querySelector("#learningPackagePreview"),
@@ -322,6 +326,12 @@ let runToken = 0;
 let playback = { status: "idle", key: "", label: "", token: 0 };
 let renderTimer = 0;
 let dialogSubmitHandler = null;
+let dialogRequiredFields = [];
+// Banner shown when stored data is unreadable or cannot be saved (see showStorageNotice).
+let storageNotice = null;
+let storageNoticeElement = null;
+// True while an unreadable original could not be set aside; blocks overwriting it.
+let persistLocked = false;
 let syncSettingsTimer = 0;
 let cloudSyncTimer = 0;
 let cloudSyncState = { session: null, busy: false, lastSyncAt: null, configured: false };
@@ -376,7 +386,58 @@ let courseAnalysisTimer = 0;
 let courseAnalysisRunId = 0;
 let lastLocalAiError = null;
 
-initApp();
+initApp().catch(handleStartupFailure);
+
+// If startup throws, replace the endless loading card with a way out.
+function handleStartupFailure(error) {
+  console.error("OoFR failed to start", error);
+  const loader = elements.startupLoader;
+  const card = loader?.querySelector?.(".startup-card");
+  if (!loader || !card || loader.classList.contains("is-hidden")) {
+    setStatus("部分功能没有加载成功，可以刷新页面重试");
+    return;
+  }
+  const actions = el("div", "storage-notice-actions");
+  actions.append(
+    button("下载原始数据", "command-button", () => void downloadStoredState(), "download"),
+    button("刷新页面", "command-button primary", () => window.location.reload(), "refresh")
+  );
+  card.replaceChildren(
+    el("p", "eyebrow", "OoFR"),
+    el("h2", "", "启动时出了问题"),
+    el("p", "startup-stage", "你的学习数据没有被改动。建议先下载一份原始数据留底，再刷新页面重试。"),
+    actions
+  );
+}
+
+async function downloadStoredState() {
+  let text = "";
+  try {
+    text = window.localStorage.getItem(APP_STORAGE_KEY) || "";
+  } catch {
+    // Storage may be blocked; fall through to the active driver.
+  }
+  if (!text) {
+    try {
+      const value = await storageDriver.getLocal(APP_STORAGE_KEY);
+      if (value) text = JSON.stringify(value);
+    } catch (error) {
+      text = typeof error?.rawValue === "string" ? error.rawValue : "";
+    }
+  }
+  if (text) downloadText(text, `oofr-raw-data-${dateStamp()}.json`);
+  else setStatus("没有找到可下载的本地数据");
+}
+
+// Asks the browser not to evict our data under storage pressure (matters on
+// iOS Safari, which can clear idle sites). Safe to ignore if refused.
+function requestPersistentStorage() {
+  try {
+    void navigator.storage?.persist?.()?.catch(() => {});
+  } catch {
+    // Not supported in this context.
+  }
+}
 
 async function initApp() {
   hydrateIcons();
@@ -397,6 +458,7 @@ async function initApp() {
   updateStartupProgress("ready", "基础界面已就绪", 100);
   hideStartupLoader();
   registerServiceWorker();
+  requestPersistentStorage();
   loadLexiconInBackground();
   void hydrateVocabularyFromStructuredDictionary();
   void initializeRuntimeAi();
@@ -687,11 +749,26 @@ function hydrateVocabularyFromLexicon() {
   renderMy();
 }
 
+const PLACEHOLDER_TEXT_PATTERN = /待补充|暂无|正在查询|稍后自动补全|词库加载中/;
+
+function hasMeaningfulText(value) {
+  const text = String(value || "").trim();
+  return Boolean(text) && !PLACEHOLDER_TEXT_PATTERN.test(text);
+}
+
+// Only words that still lack a meaning, IPA or part of speech need the
+// dictionary; complete words are left exactly as the user last saw them.
+function vocabularyNeedsDictionaryFill(item) {
+  return !hasMeaningfulText(item.zh) || !hasMeaningfulText(item.ipa) || !String(item.partOfSpeech || "").trim();
+}
+
 async function hydrateVocabularyFromStructuredDictionary() {
   if (!state || !window.OOFR_DICTIONARY?.lookup || !state.vocabulary.length) return;
+  const incomplete = state.vocabulary.filter(vocabularyNeedsDictionaryFill);
+  if (!incomplete.length) return;
   try {
     await window.OOFR_DICTIONARY.ready();
-    const updates = await Promise.all(state.vocabulary.map(async (item) => {
+    const updates = await Promise.all(incomplete.map(async (item) => {
       const surface = preferredVocabularySurface(item);
       const language = item.language === "en" ? "en" : "fr";
       const local = await window.OOFR_DICTIONARY.lookup(surface, language);
@@ -713,10 +790,11 @@ async function hydrateVocabularyFromStructuredDictionary() {
         language
       };
       Object.entries(next).forEach(([key, value]) => {
-        if (value && item[key] !== value) {
-          item[key] = value;
-          changed = true;
-        }
+        if (!value || item[key] === value) return;
+        // Meaning and IPA are editable by the user: only ever fill them in.
+        if ((key === "zh" || key === "ipa") && hasMeaningfulText(item[key])) return;
+        item[key] = value;
+        changed = true;
       });
     });
     if (!changed) return;
@@ -841,6 +919,10 @@ function bindEvents() {
   elements.exportBtn.addEventListener("click", exportData);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", importData);
+  elements.restoreBackupBtn?.addEventListener("click", () => {
+    if (window.confirm("用导入前暂存的数据替换当前数据？当前数据会被暂存，可以再点一次切换回来。")) void restoreStateBackup();
+  });
+  void refreshRestoreButton();
   elements.learningPackageCloseBtn?.addEventListener("click", closeLearningPackagePreview);
   elements.learningPackageCancelBtn?.addEventListener("click", closeLearningPackagePreview);
   elements.learningPackageUpdateBtn?.addEventListener("click", () => importPendingLearningPackage("update"));
@@ -933,8 +1015,13 @@ function bindEvents() {
   elements.dialogForm.addEventListener("submit", (event) => {
     event.preventDefault();
     if (dialogSubmitHandler) {
-      const values = collectDialogValues();
-      const shouldClose = dialogSubmitHandler(values);
+      const checked = validateRequiredDialogValues(collectDialogValues(), dialogRequiredFields);
+      if (!checked.ok) {
+        elements.dialogForm.elements?.[checked.field]?.focus?.();
+        setStatus("请填写必填项");
+        return;
+      }
+      const shouldClose = dialogSubmitHandler(checked.values);
       if (shouldClose !== false) closeDialog();
     }
   });
@@ -2745,7 +2832,7 @@ async function openCourseSentenceDetail(lesson, turnIndex) {
 
 function courseExplanationCacheLabel(explanation) {
   const model = String(explanation?.model || "").trim();
-  if (explanation?.cacheSource === "learning-package" || HOSTED_ONLINE_RUNTIME) {
+  if (explanation?.cacheSource === "learning-package" || isHostedOnlineRuntime()) {
     return `学习包中的 AI 缓存${model ? ` · ${model}` : ""} · 可离线查看`;
   }
   return `本机开源 AI（${model || state.settings.localAiModel}）· 已缓存到当前课程`;
@@ -5400,6 +5487,7 @@ function openDialog({ title, submitText, fields, onSubmit }) {
   elements.dialogSubmitBtn.textContent = submitText;
   elements.dialogBody.replaceChildren();
   dialogSubmitHandler = onSubmit;
+  dialogRequiredFields = fields.filter((field) => field.required).map((field) => field.name);
 
   fields.forEach((field) => {
     if (field.type === "static") {
@@ -5468,8 +5556,20 @@ function collectDialogValues() {
   return Object.fromEntries(formData.entries());
 }
 
+// The native `required` attribute accepts "   "; trim required fields and
+// reject the ones that are blank so they are not silently dropped on reload.
+function validateRequiredDialogValues(values, requiredNames) {
+  const next = { ...values };
+  for (const name of requiredNames) {
+    next[name] = String(next[name] ?? "").trim();
+    if (!next[name]) return { ok: false, field: name, values: next };
+  }
+  return { ok: true, values: next };
+}
+
 function closeDialog() {
   dialogSubmitHandler = null;
+  dialogRequiredFields = [];
   if (typeof elements.dialog.close === "function") {
     elements.dialog.close();
   } else {
@@ -6105,14 +6205,24 @@ function loadVoices() {
   const currentValue = state.settings.voice || "";
   populateVoiceSelect(elements.voiceSelect, frenchVoices, currentValue);
 
+  if (!allVoices.length) {
+    // Chrome/Edge fill the list asynchronously (voiceschanged). Until then we
+    // know nothing about the user's locked voice, so leave the setting alone.
+    syncCourseVoiceSelect();
+    return;
+  }
+
   if (state.settings.voiceLocked && frenchVoices.some((voice) => voiceOptionValue(voice) === currentValue || voice.name === currentValue)) {
     elements.voiceSelect.value = currentValue;
   } else {
     const preferred = preferredDefaultVoice();
-    elements.voiceSelect.value = preferred ? voiceOptionValue(preferred) : "";
-    state.settings.voice = elements.voiceSelect.value;
-    state.settings.voiceLocked = false;
-    persist();
+    const nextVoice = preferred ? voiceOptionValue(preferred) : "";
+    elements.voiceSelect.value = nextVoice;
+    if (state.settings.voice !== nextVoice || state.settings.voiceLocked) {
+      state.settings.voice = nextVoice;
+      state.settings.voiceLocked = false;
+      persist();
+    }
   }
 
   syncCourseVoiceSelect();
@@ -6598,8 +6708,11 @@ function buildWordbookExportPayload(scopeValue) {
 }
 
 function downloadJson(data, filename) {
-  const payload = JSON.stringify(data, null, 2);
-  const blob = new Blob([payload], { type: "application/json" });
+  downloadText(JSON.stringify(data, null, 2), filename);
+}
+
+function downloadText(text, filename, type = "application/json") {
+  const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -6607,7 +6720,8 @@ function downloadJson(data, filename) {
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  // Revoking immediately can cancel the download on Safari.
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 function importData(event) {
@@ -6615,33 +6729,104 @@ function importData(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.addEventListener("load", () => {
+  reader.addEventListener("load", async () => {
     try {
-      const imported = JSON.parse(String(reader.result || "{}"));
-      const nextState = ensureStateShape(imported);
-      const message = [
-        "完整数据导入会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置。",
-        `文件包含 ${nextState.albums.length} 专辑、${nextState.tapes.length} 磁带、${nextState.entries.length} 段落、${nextState.vocabulary.length} 词。`,
-        "继续前请确认已经备份当前数据。"
-      ].join("\n");
-      if (!window.confirm(message)) {
-        setStatus("已取消完整数据导入");
-        return;
-      }
-
-      state = nextState;
-      selectedWord = null;
-      syncSettingsControls();
-      persist();
-      renderAll();
-      setStatus("完整数据导入完成");
-    } catch {
+      await importBackupText(String(reader.result || ""));
+    } catch (error) {
+      console.error("OoFR import failed", error);
       setStatus("导入失败");
     } finally {
       elements.importFile.value = "";
     }
   });
+  reader.addEventListener("error", () => {
+    setStatus("文件读取失败");
+    elements.importFile.value = "";
+  });
   reader.readAsText(file);
+}
+
+// Replaces ALL local data with a backup file. Returns { imported, reason }.
+async function importBackupText(text) {
+  let imported;
+  try {
+    imported = JSON.parse(text);
+  } catch {
+    setStatus("导入失败：文件不是有效的备份");
+    return { imported: false, reason: "invalid-json" };
+  }
+  if (!looksLikeOoFRState(imported)) {
+    setStatus(imported?.type === LEARNING_PACKAGE_TYPE ? "这是学习包，请在课程页导入" : "这不是 OoFR 完整数据备份");
+    return { imported: false, reason: "not-a-backup" };
+  }
+  const nextState = ensureStateShape(imported);
+  const message = [
+    "完整数据导入会覆盖当前设备上的专辑、磁带、段落、单词本和播放设置。",
+    `文件包含 ${nextState.albums.length} 专辑、${nextState.tapes.length} 磁带、${nextState.entries.length} 段落、${nextState.vocabulary.length} 词。`,
+    "导入前的数据会先暂存一份，之后可在「我的」页点「恢复导入前数据」撤销。"
+  ].join("\n");
+  if (!window.confirm(message)) {
+    setStatus("已取消完整数据导入");
+    return { imported: false, reason: "cancelled" };
+  }
+  const stashed = await stashStateBackup(state);
+  if (!stashed && !window.confirm("设备空间不足，无法暂存导入前的数据。仍然导入吗？\n建议先取消，用「导出」备份当前数据。")) {
+    setStatus("已取消完整数据导入");
+    return { imported: false, reason: "no-backup-space" };
+  }
+
+  state = nextState;
+  selectedWord = null;
+  syncSettingsControls();
+  persist();
+  renderAll();
+  void refreshRestoreButton();
+  setStatus("完整数据导入完成");
+  return { imported: true };
+}
+
+async function stashStateBackup(snapshot) {
+  try {
+    await storageDriver.setLocal(BACKUP_STORAGE_KEY, snapshot);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Swaps the stored pre-import copy with the current data, so restoring can
+// itself be undone by pressing the button again.
+async function restoreStateBackup() {
+  let backup = null;
+  try {
+    backup = await storageDriver.getLocal(BACKUP_STORAGE_KEY);
+  } catch {
+    backup = null;
+  }
+  if (!looksLikeOoFRState(backup)) {
+    setStatus("没有可恢复的导入前数据");
+    return false;
+  }
+  await stashStateBackup(state);
+  state = ensureStateShape(backup);
+  selectedWord = null;
+  syncSettingsControls();
+  persist();
+  renderAll();
+  void refreshRestoreButton();
+  setStatus("已恢复导入前的数据");
+  return true;
+}
+
+async function refreshRestoreButton() {
+  if (!elements.restoreBackupBtn) return;
+  let exists = false;
+  try {
+    exists = await storageDriver.hasLocal(BACKUP_STORAGE_KEY);
+  } catch {
+    exists = false;
+  }
+  elements.restoreBackupBtn.hidden = !exists;
 }
 
 function importWordbooks(event) {
@@ -6839,13 +7024,47 @@ function cloneJson(value) {
 }
 
 async function loadAppState() {
-  const saved = await readJson(APP_STORAGE_KEY);
+  let saved = null;
+  try {
+    saved = await storageDriver.getLocal(APP_STORAGE_KEY);
+  } catch (error) {
+    return recoverFromUnreadableStorage(error);
+  }
   if (saved) {
     return ensureStateShape(saved);
   }
 
   const legacy = await readJson(LEGACY_STORAGE_KEY);
   return createStarterState(legacy || {});
+}
+
+// The stored state exists but cannot be read (damaged JSON, blocked storage).
+// Show the starter lessons so the app still opens, but keep the original
+// somewhere safe and tell the user, instead of overwriting it on the next save.
+function recoverFromUnreadableStorage(error) {
+  console.error("OoFR stored state is unreadable", error);
+  const raw = typeof error?.rawValue === "string" ? error.rawValue : "";
+  let setAside = false;
+  if (raw) {
+    try {
+      window.localStorage.setItem(CORRUPT_STORAGE_KEY, raw);
+      setAside = true;
+    } catch {
+      // Out of space: keep the original untouched by blocking saves instead.
+      persistLocked = true;
+    }
+  }
+  showStorageNotice({
+    kind: "unreadable",
+    message: setAside
+      ? "本地学习数据无法读取，已先保留一份原始副本。当前显示的是示例课程；可以先下载原始数据再决定怎么处理。"
+      : "本地学习数据无法读取。为避免覆盖，暂时不会保存新的修改；请先下载原始数据。",
+    actions: [
+      ...(raw ? [{ label: "下载原始数据", onClick: () => downloadText(raw, `oofr-unreadable-${dateStamp()}.json`) }] : []),
+      ...(persistLocked ? [{ label: "放弃原数据，继续使用", onClick: () => { persistLocked = false; hideStorageNotice(); persist(); } }] : [])
+    ]
+  });
+  return createStarterState({});
 }
 
 async function applySyncedSettings() {
@@ -6857,9 +7076,33 @@ async function applySyncedSettings() {
   };
 }
 
+// A real OoFR state always carries an `albums` array (possibly empty after the
+// user deleted every tape category). Anything else is not our data.
+function looksLikeOoFRState(raw) {
+  return Boolean(raw) && typeof raw === "object" && !Array.isArray(raw)
+    && raw.type !== LEARNING_PACKAGE_TYPE && Array.isArray(raw.albums);
+}
+
+// Keeps only settings of the expected primitive type so a hand-edited or
+// foreign backup cannot inject objects or NaN into playback/AI settings.
+function sanitizeSettings(rawSettings, fallbackSettings) {
+  const source = rawSettings && typeof rawSettings === "object" && !Array.isArray(rawSettings) ? rawSettings : {};
+  const settings = { ...fallbackSettings };
+  Object.keys(fallbackSettings).forEach((key) => {
+    const value = source[key];
+    const expected = typeof fallbackSettings[key];
+    if (expected === "boolean" && typeof value === "boolean") settings[key] = value;
+    if (expected === "string" && (typeof value === "string" || (typeof value === "number" && Number.isFinite(value)))) {
+      settings[key] = String(value);
+    }
+  });
+  return settings;
+}
+
 function ensureStateShape(raw) {
   const fallback = createStarterState({});
-  const stateLike = raw && typeof raw === "object" ? raw : {};
+  if (!looksLikeOoFRState(raw)) return fallback;
+  const stateLike = raw;
   const next = {
     version: 1,
     currentText: String(stateLike.currentText || fallback.currentText),
@@ -6870,11 +7113,8 @@ function ensureStateShape(raw) {
       selectedTapeId: stateLike.ui?.selectedTapeId || null,
       selectedWordbookId: stateLike.ui?.selectedWordbookId || ALL_WORDBOOK_ID
     },
-    settings: {
-      ...fallback.settings,
-      ...(stateLike.settings || {})
-    },
-    albums: Array.isArray(stateLike.albums) ? stateLike.albums.map(normalizeAlbum).filter(Boolean) : [],
+    settings: sanitizeSettings(stateLike.settings, fallback.settings),
+    albums: stateLike.albums.map(normalizeAlbum).filter(Boolean),
     tapes: Array.isArray(stateLike.tapes) ? stateLike.tapes.map(normalizeTape).filter(Boolean) : [],
     entries: Array.isArray(stateLike.entries) ? stateLike.entries.map(normalizeEntry).filter(Boolean) : [],
     wordbooks: Array.isArray(stateLike.wordbooks) ? normalizeWordbookList(stateLike.wordbooks) : [],
@@ -6895,10 +7135,6 @@ function ensureStateShape(raw) {
   next.settings.localAiModel = String(next.settings.localAiModel || "auto").trim() || "auto";
 
   next.phraseItems = next.phraseItems.filter((item) => item.id !== "demo_phrase_3" && item.text !== "I would like to practise for ten minutes.");
-
-  if (next.albums.length === 0) {
-    return fallback;
-  }
 
   next.tapes = next.tapes.filter((tape) => next.albums.some((album) => album.id === tape.albumId));
   next.entries = next.entries.filter((entry) => next.tapes.some((tape) => tape.id === entry.tapeId));
@@ -7228,15 +7464,68 @@ async function readJson(key) {
 
 function persist({ skipCloud = false } = {}) {
   if (!state) return;
-  renderMy();
-  storageDriver.setLocal(APP_STORAGE_KEY, state).catch(() => {
-    setStatus("保存失败");
-  });
+  // Save before any rendering so a UI error can never cost the user a save.
+  if (persistLocked) {
+    setStatus("原数据尚未处理，修改暂未保存");
+  } else {
+    let pending;
+    try {
+      pending = storageDriver.setLocal(APP_STORAGE_KEY, state);
+    } catch (error) {
+      pending = Promise.reject(error);
+    }
+    pending.then(clearSaveFailureNotice, handleSaveFailure);
+  }
+  try {
+    renderMy();
+  } catch (error) {
+    console.error("OoFR could not refresh the profile page", error);
+  }
   queueSyncedSettings();
   if (CLOUD_SYNC_ENABLED && !skipCloud) {
     writeCloudLocalMeta({ lastLocalChangeAt: new Date().toISOString() });
     queueCloudSync();
   }
+}
+
+function handleSaveFailure(error) {
+  console.error("OoFR could not save", error);
+  setStatus("保存失败");
+  const full = error?.name === "QuotaExceededError" || /quota/i.test(String(error?.message || ""));
+  showStorageNotice({
+    kind: "save-failed",
+    message: full
+      ? "设备存储空间不足，最近的修改没有保存。请先导出完整数据备份，再清理一些素材或录音。"
+      : "最近的修改没有保存成功。请先导出完整数据备份，避免关闭页面后丢失。",
+    actions: [{ label: "导出备份", onClick: exportData }]
+  });
+}
+
+function clearSaveFailureNotice() {
+  if (storageNotice?.kind === "save-failed") hideStorageNotice();
+}
+
+// A lasting banner (unlike the one-line status text, nothing overwrites it).
+function showStorageNotice({ kind, message, actions = [] }) {
+  storageNotice = { kind, message };
+  if (typeof document.createElement !== "function" || !document.body) return;
+  if (!storageNoticeElement) {
+    storageNoticeElement = el("div", "storage-notice");
+    storageNoticeElement.setAttribute("role", "alert");
+    document.body.append(storageNoticeElement);
+  }
+  const buttons = actions.map((action) => miniButton(action.label, action.onClick));
+  // While saving is blocked the notice must stay until the user decides.
+  if (!persistLocked) buttons.push(miniButton("知道了", hideStorageNotice));
+  const actionRow = el("div", "storage-notice-actions");
+  actionRow.append(...buttons);
+  storageNoticeElement.replaceChildren(el("p", "", message), actionRow);
+  storageNoticeElement.hidden = false;
+}
+
+function hideStorageNotice() {
+  storageNotice = null;
+  if (storageNoticeElement) storageNoticeElement.hidden = true;
 }
 
 function queueSyncedSettings() {
@@ -7273,6 +7562,11 @@ function createStorageDriver() {
           chromeApi.storage.local.get(key, (result) => resolve(result?.[key] || null));
         });
       },
+      async hasLocal(key) {
+        return new Promise((resolve) => {
+          chromeApi.storage.local.get(key, (result) => resolve(Boolean(result?.[key])));
+        });
+      },
       async setLocal(key, value) {
         return new Promise((resolve, reject) => {
           chromeApi.storage.local.set({ [key]: value }, () => {
@@ -7305,7 +7599,16 @@ function createStorageDriver() {
     canSync: false,
     async getLocal(key) {
       const raw = window.localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch (error) {
+        error.rawValue = raw;
+        throw error;
+      }
+    },
+    async hasLocal(key) {
+      return window.localStorage.getItem(key) !== null;
     },
     async setLocal(key, value) {
       window.localStorage.setItem(key, JSON.stringify(value));
