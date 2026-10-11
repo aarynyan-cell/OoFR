@@ -2932,7 +2932,7 @@ function phraseItemsForWordbook(wordbookId) {
 
 function phraseItemMatchesWordbook(item, wordbookId) {
   if (!wordbookId || wordbookId === ALL_WORDBOOK_ID) return true;
-  if (wordbookId === NEW_WORDBOOK_ID) return item.status === "new";
+  if (wordbookId === NEW_WORDBOOK_ID) return item.status !== "got";
   if (wordbookId === GOT_WORDBOOK_ID) return item.status === "got";
   if (wordbookId === DIY_WORDBOOK_ID) return !item.translation;
   return Array.isArray(item.wordbookIds) && item.wordbookIds.includes(wordbookId);
@@ -2942,6 +2942,7 @@ function phrasebookItemsForSelected() {
   const words = state.vocabulary
     .filter((item) => vocabularyMatchesWordbook(item, state.ui.selectedWordbookId))
     .map((item) => ({
+      origin: "vocabulary",
       kind: "word",
       id: item.id,
       text: item.word,
@@ -2954,6 +2955,7 @@ function phrasebookItemsForSelected() {
       raw: item
     }));
   const phrases = phraseItemsForWordbook(state.ui.selectedWordbookId).map((item) => ({
+    origin: "phrase",
     kind: item.type,
     id: item.id,
     text: item.text,
@@ -3020,7 +3022,8 @@ function playPhrasebookItem(item, playButton = null) {
 }
 
 function togglePhrasebookItemStatus(item) {
-  if (item.kind === "word") {
+  // A saved word card (kind "word") lives in the phrase list; only entries of the vocabulary list use the vocabulary actions.
+  if (item.origin === "vocabulary") {
     toggleVocabularyStatus(item.id);
     return;
   }
@@ -3034,10 +3037,11 @@ function togglePhrasebookItemStatus(item) {
 }
 
 function deletePhrasebookItem(item) {
-  if (item.kind === "word") {
+  if (item.origin === "vocabulary") {
     deleteVocabulary(item.id);
     return;
   }
+  if (!window.confirm(`删除${item.kind === "word" ? "单词" : "句子"}「${item.text}」？`)) return;
   state.phraseItems = state.phraseItems.filter((entry) => entry.id !== item.id);
   persist();
   renderWordbooks();
@@ -3374,10 +3378,22 @@ function openVocabDialog(vocabId) {
         lemma: info.lexicon?.word || info.lemma,
         pos: item?.partOfSpeech || ""
       }, item?.language === "en" ? "en" : "fr");
-      const wordbookIds = values.wordbookId ? [values.wordbookId] : [];
+      // The dialog edits one wordbook (the first); any others the word belongs to stay.
+      const otherWordbooks = (item?.wordbookIds || []).slice(1).filter((id) => id !== values.wordbookId);
+      const wordbookIds = [...(values.wordbookId ? [values.wordbookId] : []), ...otherWordbooks];
 
       const existing = state.vocabulary.find((word) => word.normalized === presentation.identity && word.id !== item?.id);
-      if (existing) {
+      if (existing && item) {
+        // Renaming this word onto another existing word: merge them, keep both histories.
+        existing.ipa = values.ipa.trim() || existing.ipa;
+        existing.zh = values.zh.trim() || existing.zh;
+        existing.status = values.status === "got" || existing.status === "got" ? "got" : "new";
+        existing.wordbookIds = mergeWordbookIds(existing.wordbookIds, [...wordbookIds, ...item.wordbookIds]);
+        existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
+        trackSeenForm(existing, values.word);
+        existing.updatedAt = nowIso();
+        state.vocabulary = state.vocabulary.filter((word) => word.id !== item.id);
+      } else if (existing) {
         existing.word = presentation.displayWord;
         existing.surface = presentation.surface;
         existing.lemma = presentation.lemma;
@@ -4394,7 +4410,8 @@ function activeLearningPackageMaterial(lesson) {
   const entry = state.entries.find((item) => item.courseLessonId === lesson.id) || null;
   const tape = entry ? getTape(entry.tapeId) : null;
   const album = tape ? getAlbum(tape.albumId) : state.albums.find((item) => item.courseLessonId === lesson.id) || null;
-  return { album, tape, entry };
+  // The package carries the lesson, not the learner's private notes or practice history.
+  return { album, tape, entry: entry ? { ...entry, notes: "", practiceCount: 0, lastPracticedAt: null } : null };
 }
 
 function dictionaryEntriesForLesson(lesson) {
@@ -4855,7 +4872,7 @@ function applyWordbookImport(bundle, values) {
     return;
   }
 
-  const wordbookSummary = mergeImportedWordbooks(incomingWordbooks);
+  const wordbookSummary = mergeImportedWordbooks(incomingWordbooks, conflictStrategy);
   const vocabularySummary = mergeImportedVocabulary(incomingVocabulary, conflictStrategy);
 
   state.vocabulary.forEach((item) => {
@@ -4871,13 +4888,14 @@ function applyWordbookImport(bundle, values) {
   setStatus(`单词本导入完成：新增 ${vocabularySummary.added} 词，合并 ${vocabularySummary.merged} 词；词本新增 ${wordbookSummary.added}，更新 ${wordbookSummary.updated}`);
 }
 
-function mergeImportedWordbooks(incomingWordbooks) {
+function mergeImportedWordbooks(incomingWordbooks, conflictStrategy = WORDBOOK_CONFLICT_KEEP_LOCAL) {
   const summary = { added: 0, updated: 0 };
   incomingWordbooks.forEach((wordbook) => {
     const existing = state.wordbooks.find((item) => item.id === wordbook.id);
     if (existing) {
-      existing.title = wordbook.title;
-      existing.description = wordbook.description;
+      // "Keep local" must also keep a title or description the learner changed here.
+      existing.title = mergeImportedText(existing.title, wordbook.title, conflictStrategy);
+      existing.description = mergeImportedText(existing.description, wordbook.description, conflictStrategy);
       existing.updatedAt = nowIso();
       summary.updated += 1;
       return;
@@ -4915,7 +4933,7 @@ function mergeImportedVocabulary(incomingVocabulary, conflictStrategy) {
       existing.status = item.status === "got" ? "got" : "new";
     }
     existing.wordbookIds = mergeWordbookIds(existing.wordbookIds, item.wordbookIds);
-    existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms);
+    existing.seenForms = mergeSeenForms(existing.seenForms, item.seenForms, { combine: "max" });
     existing.updatedAt = nowIso();
     summary.merged += 1;
   });

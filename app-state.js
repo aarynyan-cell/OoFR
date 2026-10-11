@@ -414,14 +414,17 @@ function normalizeSeenForm(entry) {
   };
 }
 
-function mergeSeenForms(left = [], right = []) {
+// `combine: "sum"` adds up how often a form was met (merging two entries of the
+// same word); `"max"` is for imports, so importing the same file again changes nothing.
+function mergeSeenForms(left = [], right = [], { combine = "sum" } = {}) {
   const merged = new Map();
   [...left, ...right].forEach((entry) => {
     const normalized = normalizeWord(entry.normalized || entry.form);
     if (!normalized) return;
     const current = merged.get(normalized);
     if (current) {
-      current.count += Math.max(1, Number(entry.count || 1));
+      const seen = Math.max(1, Number(entry.count || 1));
+      current.count = combine === "max" ? Math.max(current.count, seen) : current.count + seen;
       current.form = entry.form || current.form;
     } else {
       merged.set(normalized, {
