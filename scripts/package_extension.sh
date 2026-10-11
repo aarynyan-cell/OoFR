@@ -13,7 +13,6 @@ zip -qr "$OUT_FILE" \
   manifest.json \
   extension-service-worker.js \
   index.html \
-  reset.html \
   version.js \
   learning-package.js \
   styles.css \

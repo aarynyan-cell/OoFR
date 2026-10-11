@@ -11,11 +11,14 @@
   --teal: #168f88;
   --teal-deep: #0a5f59;
   --orange: #d86b2a;
+  /* The brand orange is only ~3.4:1 on paper; this darker one is for text and for backgrounds under paper-coloured text. */
+  --orange-text: #b4521a;
   --orange-soft: #fff0df;
   --green: #237c4a;
   --green-soft: #e8f4e8;
   --red: #b84533;
   --yellow: #f2c84b;
+  --yellow-soft: #fbf1cd;
   --blue: #356aa0;
   --shadow: 0 18px 44px rgba(31, 33, 29, 0.13);
 }
@@ -353,7 +356,7 @@ h3 {
 
 .eyebrow {
   margin-bottom: 5px;
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0;
@@ -569,7 +572,8 @@ textarea:focus,
 select:focus,
 input[type="range"]:focus-visible,
 button:focus-visible {
-  outline: 3px solid rgba(22, 143, 136, 0.22);
+  /* A solid, high-contrast ring: the old 22% teal was ~1.3:1 on paper. */
+  outline: 3px solid var(--teal-deep);
   outline-offset: 2px;
 }
 
@@ -683,7 +687,7 @@ input[type="range"] {
 
 .segmented-control button[aria-pressed="true"] {
   color: var(--paper);
-  background: var(--orange);
+  background: var(--orange-text);
 }
 
 .sentence-list {
@@ -1089,7 +1093,7 @@ input[type="range"] {
 }
 
 .material-language-badge.is-english {
-  background: var(--orange);
+  background: var(--orange-text);
 }
 
 .material-card-artwork {
@@ -2131,7 +2135,7 @@ input[type="range"] {
 }
 
 .course-card-kicker {
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -3254,6 +3258,7 @@ input[type="range"] {
   z-index: 20;
   width: min(292px, calc(100vw - 20px));
   max-height: min(500px, calc(100vh - 20px));
+  max-height: min(500px, calc(100dvh - 20px));
   overflow: auto;
   display: grid;
   gap: 8px;
@@ -3337,6 +3342,7 @@ input[type="range"] {
 .course-word-detail-dialog {
   width: min(620px, calc(100vw - 28px));
   max-height: min(760px, calc(100vh - 28px));
+  max-height: min(760px, calc(100dvh - 28px));
   padding: 0;
   overflow: hidden;
   border: 2px solid var(--dark);
@@ -3353,6 +3359,7 @@ input[type="range"] {
 
 .course-word-detail-dialog > article {
   max-height: min(756px, calc(100vh - 32px));
+  max-height: min(756px, calc(100dvh - 32px));
   overflow: auto;
   padding: 20px;
 }
@@ -3387,7 +3394,7 @@ input[type="range"] {
 
 .course-word-detail-section h4 {
   margin: 0 0 6px;
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 0.78rem;
 }
 
@@ -3604,4 +3611,121 @@ input[type="range"] {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* ---- Touch, iPhone Safari and keyboard fixes (kept together on purpose) ---- */
+
+/* The player is stuck to the top of the page, so its menus open downwards:
+   opening upwards put them above the viewport once the page was scrolled. */
+.course-bottom-player .course-custom-options,
+.course-bottom-player .course-voice-options {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+/* Stepping through sentences scrolls them into view; keep them clear of the sticky player. */
+.course-turn-row {
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 24px;
+}
+
+.wordbook-card-select {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wordbook-card-select:focus-visible {
+  outline: 3px solid var(--teal-deep);
+  outline-offset: 3px;
+}
+
+button,
+.command-button,
+.icon-button,
+.nav-button {
+  touch-action: manipulation;
+}
+
+/* A tap on a touch screen has no hover; without this the lifted state sticks after tapping. */
+@media (hover: none) {
+  .command-button:hover,
+  .icon-button:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.course-rate-button {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .mini-button {
+    min-height: 40px;
+  }
+
+  /* The compact player had no room for a labelled speed menu (its settings
+     overlapped the transport buttons at 375px). A small cycling button takes
+     its place; the select stays in the page as the single source of the value. */
+  .course-bottom-select {
+    display: none;
+  }
+
+  .course-rate-button {
+    display: inline-grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 30px;
+    padding: 0 7px;
+    border: 1px solid rgba(18, 21, 20, 0.3);
+    border-radius: 6px;
+    color: var(--ink);
+    background: var(--paper);
+    font-size: 0.72rem;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .course-bottom-actions {
+    grid-template-columns: auto auto auto;
+    justify-content: space-between;
+  }
+
+  .course-voice-button {
+    max-width: 56px;
+  }
+
+  .course-bottom-custom-menu .course-custom-button {
+    max-width: 78px;
+  }
+}
+
+
+/* iOS Safari zooms the whole page when a field with text under 16px gets focus,
+   and does not zoom back. Only iOS WebKit supports this feature query. */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea,
+  .course-bottom-select select {
+    font-size: 16px;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-progress-track::after {
+    animation: none;
+  }
+}
+
+/* "导入" style buttons are labels over a visually hidden file input: show its focus on the label. */
+label.command-button:focus-within {
+  outline: 3px solid var(--teal-deep);
+  outline-offset: 2px;
 }

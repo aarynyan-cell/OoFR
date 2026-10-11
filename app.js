@@ -169,6 +169,7 @@ const elements = {
   exportBtn: document.querySelector("#exportBtn"),
   importBtn: document.querySelector("#importBtn"),
   importFile: document.querySelector("#importFile"),
+  desktopAiTermsCopyBtn: document.querySelector("#desktopAiTermsCopyBtn"),
   restoreBackupBtn: document.querySelector("#restoreBackupBtn"),
   learningPackageDialog: document.querySelector("#learningPackageDialog"),
   learningPackageTitle: document.querySelector("#learningPackageTitle"),
@@ -260,6 +261,7 @@ const elements = {
   coursePlayBtn: document.querySelector("#coursePlayBtn"),
   courseNextBtn: document.querySelector("#courseNextBtn"),
   courseRateSelect: document.querySelector("#courseRateSelect"),
+  courseRateButton: document.querySelector("#courseRateButton"),
   courseTranslationToggle: document.querySelector("#courseTranslationToggle"),
   courseBottomTitle: document.querySelector("#courseBottomTitle"),
   courseBottomHint: document.querySelector("#courseBottomHint"),
@@ -942,6 +944,15 @@ function bindEvents() {
   elements.exportBtn.addEventListener("click", exportData);
   elements.importBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", importData);
+  elements.desktopAiTermsCopyBtn?.addEventListener("click", async () => {
+    const url = "https://ai.google.dev/gemma/terms";
+    try {
+      await navigator.clipboard.writeText(url);
+      elements.desktopAiTermsCopyBtn.textContent = "已复制";
+    } catch {
+      elements.desktopAiTermsCopyBtn.textContent = url;
+    }
+  });
   elements.restoreBackupBtn?.addEventListener("click", () => {
     if (window.confirm("用导入前暂存的数据替换当前数据？当前数据会被暂存，可以再点一次切换回来。")) void restoreStateBackup();
   });
@@ -1056,8 +1067,20 @@ function bindEvents() {
   window.addEventListener("resize", positionCourseWordPopover);
   window.addEventListener("scroll", positionCourseWordPopover, { passive: true });
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && selectedWord) {
-      closeWordPanel();
+    if (event.key !== "Escape") return;
+    if (selectedWord) closeWordPanel();
+    if (elements.courseWordPopover && !elements.courseWordPopover.hidden) {
+      const anchor = selectedCourseWord?.anchor;
+      closeCourseWordPopover();
+      if (anchor?.isConnected) anchor.focus?.();
+    }
+    if (elements.courseVoiceOptions && !elements.courseVoiceOptions.hidden) {
+      closeCompactVoiceMenu();
+      elements.courseVoiceButton.focus?.();
+    }
+    if (elements.courseCustomOptions && !elements.courseCustomOptions.hidden) {
+      closeCourseCustomMenu();
+      elements.courseCustomButton.focus?.();
     }
   });
 }
@@ -1103,6 +1126,14 @@ function bindCourseEvents() {
   elements.courseRateSelect.addEventListener("change", () => {
     state.settings.rate = elements.courseRateSelect.value;
     persist();
+    syncCourseRateButton();
+  });
+  // Narrow screens show a button instead of the menu: each tap picks the next speed.
+  elements.courseRateButton?.addEventListener("click", () => {
+    const options = Array.from(elements.courseRateSelect.options);
+    const next = options[(elements.courseRateSelect.selectedIndex + 1) % options.length];
+    elements.courseRateSelect.value = next.value;
+    elements.courseRateSelect.dispatchEvent(new Event("change"));
   });
   elements.courseVoiceSelect.addEventListener("change", () => {
     state.settings.voice = elements.courseVoiceSelect.value;
@@ -1151,7 +1182,7 @@ function bindCourseEvents() {
     courseScrubbing = false;
     courseScrubWasPlaying = false;
     renderCoursePlayer();
-    findCourseTurnRow(courseCurrentTurnIndex)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    findCourseTurnRow(courseCurrentTurnIndex)?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
     setStatus(`已定位到第 ${courseCurrentTurnIndex + 1} 句`);
     if (resume) playCourseSelection({ startFromCurrent: true });
   });
@@ -2628,6 +2659,7 @@ function renderCourseTranscript(lesson) {
     const top = el("div", "course-turn-top");
     top.append(el("span", "course-turn-number", String(originalIndex + 1).padStart(2, "0")), el("span", "speaker-chip", turn.speakerLabel));
     const text = el("p", "course-turn-text");
+    text.lang = lesson.language === "en" ? "en" : "fr";
     appendCourseWords(text, turn.text, lesson);
     const translationPending = courseTranslationPendingIds.has(turn.id);
     const translationFailed = courseTranslationErrorIds.has(turn.id);
@@ -2638,6 +2670,7 @@ function renderCourseTranscript(lesson) {
         : (lesson.explainLanguage === "en" ? "Translation pending" : "译文待补充"));
     const translation = el("p", `course-turn-translation${translationPending ? " is-pending" : ""}${translationFailed ? " is-error" : ""}`, translationText);
     translation.hidden = !elements.courseTranslationToggle.checked;
+    translation.lang = lesson.explainLanguage === "zh" ? "zh-CN" : lesson.explainLanguage;
     const actions = el("div", "course-turn-actions");
     const playButton = button("", "mini-button sentence-play-button", () => playCourseTurn(lesson, originalIndex), "play");
     playButton.dataset.courseTurnIndex = String(originalIndex);
@@ -3740,6 +3773,14 @@ function renderCourseProgress(lesson) {
   const availableRates = Array.from(elements.courseRateSelect.options).map((option) => option.value);
   const preferredRate = String(state.settings.rate || "0.9");
   elements.courseRateSelect.value = availableRates.includes(preferredRate) ? preferredRate : "0.9";
+  syncCourseRateButton();
+}
+
+function syncCourseRateButton() {
+  if (!elements.courseRateButton) return;
+  const label = `${elements.courseRateSelect.value}x`;
+  elements.courseRateButton.textContent = label;
+  elements.courseRateButton.setAttribute("aria-label", `语速 ${label}，点按切换`);
 }
 
 function renderCoursePlaybackButtons(lesson = getActiveCourseLesson()) {
@@ -3833,7 +3874,7 @@ function moveCourseTurn(delta) {
   courseRunFinished = false;
   courseProgressRatio = courseCurrentTurnIndex / Math.max(1, lesson.turns.length);
   renderCoursePlayer();
-  document.querySelector(turnRowSelector(lesson.turns[courseCurrentTurnIndex]?.id))?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  document.querySelector(turnRowSelector(lesson.turns[courseCurrentTurnIndex]?.id))?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
 }
 
 function seekCourseBy(delta) {
@@ -5196,30 +5237,28 @@ function renderWordbooks() {
 function createWordbookCard(book) {
   const count = vocabularyForWordbook(book.id).length + phraseItemsForWordbook(book.id).length;
   const card = el("article", `wordbook-card${isSystemWordbook(book.id) ? " is-system" : ""}`);
-  card.classList.toggle("is-selected", state.ui.selectedWordbookId === book.id);
-  card.tabIndex = 0;
-  card.setAttribute("role", "button");
-  card.setAttribute("aria-label", `选择词句本 ${book.title}`);
+  const selected = state.ui.selectedWordbookId === book.id;
+  card.classList.toggle("is-selected", selected);
 
-  const select = () => {
+  const select = (keepFocus) => {
     state.ui.selectedWordbookId = book.id;
     persist();
     renderWordbooks();
     renderVocab();
+    // The cards are rebuilt; give keyboard users their place back.
+    if (keepFocus) elements.wordbookShelf.querySelector(".wordbook-card.is-selected .wordbook-card-select")?.focus({ preventScroll: true });
   };
   card.addEventListener("click", (event) => {
     if (event.target.closest(".row-actions")) return;
-    select();
+    select(event.detail === 0); // detail 0: a keyboard "click"
   });
-  card.addEventListener("keydown", (event) => {
-    if (event.target.closest(".row-actions")) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      select();
-    }
-  });
-
-  const title = el("h3", "", book.title);
+  // The title is the keyboard-reachable select button; edit / delete stay separate buttons.
+  const title = el("h3");
+  const selectButton = el("button", "wordbook-card-select", book.title);
+  selectButton.type = "button";
+  selectButton.setAttribute("aria-pressed", String(selected));
+  selectButton.setAttribute("aria-label", `选择词句本 ${book.title}`);
+  title.append(selectButton);
   const description = el("p", "", book.description || " ");
   const meta = el("span", "badge", `${count} 词句`);
   card.append(title, description, meta);
@@ -5813,7 +5852,11 @@ function markActive(element) {
     row.classList.add("is-active");
   }
 
-  row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  row?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+}
+
+function scrollBehavior() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
 }
 
 function findCourseTurnRow(turnIndex) {
@@ -5828,7 +5871,7 @@ function markCourseTurnActive(turnIndex, element) {
   });
   const row = findCourseTurnRow(turnIndex) || element?.closest?.(".course-turn-row");
   row?.classList.add("is-playing");
-  row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  row?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
 }
 
 function clearActive() {
@@ -6212,7 +6255,7 @@ function loadEntry(entryId) {
   persist();
   renderAll();
   setStatus(`已打开：${entry.title}`);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: scrollBehavior() });
 }
 
 function setCurrentText(text, entryId, options = {}) {
@@ -6953,7 +6996,7 @@ function syncCourseCustomMenu() {
   elements.courseCustomOptions.querySelectorAll("[data-course-mode]").forEach((option) => {
     const selected = option.dataset.courseMode === courseMode;
     option.classList.toggle("is-selected", selected);
-    option.setAttribute("aria-checked", String(selected));
+    option.setAttribute("aria-pressed", String(selected));
   });
 }
 

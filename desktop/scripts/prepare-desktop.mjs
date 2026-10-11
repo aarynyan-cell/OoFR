@@ -9,7 +9,6 @@ const distDir = join(desktopDir, "dist");
 
 const files = [
   "index.html",
-  "reset.html",
   "styles.css",
   "version.js",
   "learning-package.js",

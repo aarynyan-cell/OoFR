@@ -4,6 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#121514">
+    <meta name="description" content="OoFR 法语磁带：把任意法语或英语文本变成可朗读、可录音的逐句课程。">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="法语磁带">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <title>OoFR 法语磁带</title>
     <link rel="icon" href="./icons/icon-192.png">
     <link rel="manifest" href="./manifest.webmanifest">
@@ -192,6 +199,7 @@
                 <div class="course-bottom-actions">
                   <div class="course-bottom-settings">
                     <label class="course-bottom-select">语速 <select id="courseRateSelect"><option value="0.75">0.75x</option><option value="0.85">0.85x</option><option value="0.9">0.9x</option><option value="1">1.0x</option><option value="1.2">1.2x</option></select></label>
+                    <button id="courseRateButton" class="course-rate-button" type="button" aria-label="语速：点按切换">0.9x</button>
                     <div class="course-voice-menu">
                       <button id="courseVoiceButton" class="course-voice-button" type="button" aria-haspopup="listbox" aria-expanded="false">系统默认</button>
                       <div id="courseVoiceOptions" class="course-voice-options" role="listbox" hidden></div>
@@ -199,21 +207,21 @@
                     </div>
                     <label class="course-bottom-check"><input id="courseBottomTranslationToggle" type="checkbox" checked> 显示译文</label>
                   </div>
-                  <div class="course-transport-controls" aria-label="播放定位">
+                  <div class="course-transport-controls" role="group" aria-label="播放定位">
                     <button id="courseFastBackBtn" class="course-bottom-icon" type="button" title="后退一句" aria-label="后退一句" data-icon="rewind"></button>
                     <button id="courseBottomPlayBtn" class="course-bottom-play" type="button" title="播放" aria-label="播放" data-icon="play"></button>
                     <button id="courseFastForwardBtn" class="course-bottom-icon" type="button" title="前进一句" aria-label="前进一句" data-icon="forward"></button>
                   </div>
                   <div class="course-custom-menu course-bottom-custom-menu">
-                    <button id="courseCustomButton" class="course-custom-button" type="button" aria-haspopup="menu" aria-expanded="false">全文播放</button>
-                    <div id="courseCustomOptions" class="course-custom-options" role="menu" hidden>
+                    <button id="courseCustomButton" class="course-custom-button" type="button" aria-controls="courseCustomOptions" aria-expanded="false">全文播放</button>
+                    <div id="courseCustomOptions" class="course-custom-options" role="group" aria-label="播放模式" hidden>
                       <button type="button" class="course-custom-option is-selected" data-course-mode="all">全文播放</button>
                       <button type="button" class="course-custom-option" data-course-mode="single">单句循环</button>
                       <button type="button" class="course-custom-option" data-course-mode="loop">选段循环</button>
                       <button type="button" class="course-custom-option" data-course-mode="speaker">对话练习</button>
                       <div class="course-custom-details">
                         <label>说话人 <select id="courseSpeakerSelect" class="course-speaker-select" aria-label="选择说话人"><option value="all">全部说话人</option></select></label>
-                        <div class="course-segment-controls" aria-label="片段范围">
+                        <div class="course-segment-controls" role="group" aria-label="片段范围">
                           <label>从 <select id="courseSegmentStart" aria-label="片段开始"></select></label>
                           <label>到 <select id="courseSegmentEnd" aria-label="片段结束"></select></label>
                         </div>
@@ -333,7 +341,7 @@
 
                     <div class="control-group">
                       <span class="field-label">重复</span>
-                      <div id="repeatGroup" class="segmented-control" role="radiogroup" aria-label="重复次数">
+                      <div id="repeatGroup" class="segmented-control" role="group" aria-label="重复次数">
                         <button type="button" data-repeat="1" aria-pressed="true">1</button>
                         <button type="button" data-repeat="2" aria-pressed="false">2</button>
                         <button type="button" data-repeat="3" aria-pressed="false">3</button>
@@ -429,7 +437,7 @@
 
             <section class="material-browser-panel" aria-label="素材列表">
               <div class="material-browser-toolbar">
-                <div class="material-filter-tabs" aria-label="素材状态筛选">
+                <div class="material-filter-tabs" role="group" aria-label="素材状态筛选">
                   <button class="material-filter-tab is-selected" type="button" data-material-filter="all">全部</button>
                   <button class="material-filter-tab" type="button" data-material-filter="recent">最近学习</button>
                   <button class="material-filter-tab" type="button" data-material-filter="pending">待整理</button>
@@ -463,12 +471,12 @@
             </button>
           </div>
 
-          <div id="wordbookShelf" class="wordbook-grid" aria-label="词句本列表"></div>
+          <div id="wordbookShelf" class="wordbook-grid" role="group" aria-label="词句本列表"></div>
 
           <div class="vocab-toolbar">
             <label class="field-label" for="vocabSearch">搜索</label>
             <input id="vocabSearch" class="text-input" type="search" autocomplete="off">
-            <div class="vocab-filter-selects" aria-label="词句筛选">
+            <div class="vocab-filter-selects" role="group" aria-label="词句筛选">
               <select id="phraseSourceFilter" aria-label="来源筛选"><option value="all">所有来源</option></select>
               <select id="phraseDateFilter" aria-label="日期筛选"><option value="all">所有日期</option><option value="today">今天</option><option value="week">最近 7 天</option></select>
               <select id="phraseStatusFilter" aria-label="状态筛选"><option value="all">所有状态</option><option value="new">待学习</option><option value="learning">学习中</option><option value="got">已掌握</option></select>
@@ -648,7 +656,7 @@
       </main>
     </div>
 
-    <dialog id="appDialog" class="app-dialog">
+    <dialog id="appDialog" class="app-dialog" aria-labelledby="dialogTitle">
       <form id="dialogForm" method="dialog">
         <div class="dialog-header">
           <div>
@@ -700,7 +708,8 @@
           <p id="desktopAiSetupDetail" class="micro-copy">首次安装约需下载 3.5GB，之后可以一键启动。</p>
           <label class="desktop-ai-consent">
             <input id="desktopAiTermsCheck" type="checkbox">
-            <span>我同意从官方来源下载 Ollama，并了解 gemma3:4b 受 <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noreferrer">Gemma 使用条款</a>约束。</span>
+            <span>我同意从官方来源下载 Ollama，并了解 gemma3:4b 受 <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noreferrer">Gemma 使用条款</a>（ai.google.dev/gemma/terms）约束。</span>
+            <button id="desktopAiTermsCopyBtn" class="mini-button" type="button">复制条款链接</button>
           </label>
         </div>
         <div class="dialog-actions">

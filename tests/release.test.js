@@ -46,3 +46,37 @@ test("prepares the complete offline desktop web payload", () => {
     assert.match(prepareScript, new RegExp(required.replace(".", "\\.")));
   }
 });
+
+test("every ?v= cache-busting version, in the page and in the service worker, matches version.js", () => {
+  const version = require("../version.js");
+  const stale = [];
+  for (const file of ["index.html", "sw.js"]) {
+    for (const match of read(file).matchAll(/\?v=([0-9][0-9.]*)/g)) {
+      if (match[1] !== version) stale.push(`${file}: ?v=${match[1]}`);
+    }
+  }
+  assert.deepEqual(stale, []);
+});
+
+test("every script and file the page needs is cached, packaged for the extension and bundled for the desktop app", () => {
+  const index = read("index.html");
+  const scripts = [...index.matchAll(/<script src="\.\/([^"?]+)/g)].map((match) => match[1]);
+  const stylesheets = [...index.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((match) => match[1]);
+  const needed = [...scripts, ...stylesheets, "index.html", "dictionary", "icons"];
+  assert.ok(scripts.includes("app.js") && scripts.includes("dictionary.js"));
+
+  const worker = read("sw.js");
+  const packageScript = read("scripts/package_extension.sh");
+  const prepareScript = read("desktop/scripts/prepare-desktop.mjs");
+  const lacking = [];
+  for (const name of needed) {
+    if (!fs.existsSync(path.join(root, name))) lacking.push(`missing file: ${name}`);
+    if (!packageScript.includes(name)) lacking.push(`extension package lacks ${name}`);
+    if (!prepareScript.includes(`"${name}"`)) lacking.push(`desktop bundle lacks ${name}`);
+    if (!/^(dictionary|icons)$/.test(name) && !worker.includes(`./${name}`)) lacking.push(`service worker does not precache ${name}`);
+  }
+  assert.deepEqual(lacking, []);
+  for (const asset of [...worker.matchAll(/"\.\/([^"?]+)/g)].map((match) => match[1]).filter((name) => name && name !== "")) {
+    assert.ok(fs.existsSync(path.join(root, asset)), `service worker caches a file that does not exist: ${asset}`);
+  }
+});
