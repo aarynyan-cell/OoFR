@@ -350,6 +350,13 @@ let audioDbPromise = null;
 let courseSegmentStart = 0;
 let courseSegmentEnd = 0;
 let courseSentenceLoop = false;
+// True after the last full run finished, so the next play starts from the top.
+let courseRunFinished = false;
+// A timeline drag in progress (see the timeline handler).
+let courseScrubbing = false;
+let courseScrubWasPlaying = false;
+// Set while getUserMedia is waiting for permission, so a second click cannot start a second recorder.
+let courseRecordingStarting = false;
 let courseProgressTimer = 0;
 let courseProgressRatio = 0;
 let courseProgressTickerState = null;
@@ -1069,6 +1076,7 @@ function bindCourseEvents() {
   elements.coursePracticeBtn.addEventListener("click", openCoursePractice);
   elements.courseSpeakerSelect.addEventListener("change", () => {
     if (elements.courseSpeakerSelect.value !== "all") courseMode = "speaker";
+    stopCoursePlaybackForSettingChange();
     renderCoursePlayer();
   });
   elements.courseTranslationToggle.addEventListener("change", renderCoursePlayer);
@@ -1090,10 +1098,12 @@ function bindCourseEvents() {
   elements.courseSegmentStart.addEventListener("change", () => {
     courseSegmentStart = Number(elements.courseSegmentStart.value || 0);
     courseSegmentEnd = Math.max(courseSegmentEnd, courseSegmentStart);
+    stopCoursePlaybackForSettingChange();
     renderCoursePlayer();
   });
   elements.courseSegmentEnd.addEventListener("change", () => {
     courseSegmentEnd = Math.max(courseSegmentStart, Number(elements.courseSegmentEnd.value || courseSegmentStart));
+    stopCoursePlaybackForSettingChange();
     renderCoursePlayer();
   });
   if (elements.courseSentenceLoop) elements.courseSentenceLoop.addEventListener("change", () => {
@@ -1105,13 +1115,29 @@ function bindCourseEvents() {
   elements.courseFastBackBtn.addEventListener("click", () => seekCourseBy(-1));
   elements.courseFastForwardBtn.addEventListener("click", () => seekCourseBy(1));
   elements.courseBottomPlayBtn.addEventListener("click", playCourseSelection);
+  // Dragging only moves the position; the sentence list is rebuilt once on release,
+  // and playback that was running continues from the chosen sentence.
   elements.courseTimeline.addEventListener("input", () => {
     const lesson = getActiveCourseLesson();
     const total = lesson?.turns.length || 1;
+    if (!courseScrubbing) {
+      courseScrubbing = true;
+      courseScrubWasPlaying = playback.status === "playing";
+      stopSpeech({ quiet: true });
+    }
     courseCurrentTurnIndex = Math.min(total - 1, Math.max(0, Math.round((Number(elements.courseTimeline.value || 0) / 1000) * total)));
-    stopSpeech();
+    courseRunFinished = false;
+    elements.coursePlaybackStatus.textContent = `已定位到第 ${courseCurrentTurnIndex + 1} / ${total} 句`;
+  });
+  elements.courseTimeline.addEventListener("change", () => {
+    if (!courseScrubbing) return;
+    const resume = courseScrubWasPlaying;
+    courseScrubbing = false;
+    courseScrubWasPlaying = false;
     renderCoursePlayer();
+    findCourseTurnRow(courseCurrentTurnIndex)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     setStatus(`已定位到第 ${courseCurrentTurnIndex + 1} 句`);
+    if (resume) playCourseSelection({ startFromCurrent: true });
   });
   elements.courseVoiceButton.addEventListener("click", toggleCompactVoiceMenu);
   elements.courseExportLearningPackageBtn?.addEventListener("click", exportActiveLearningPackage);
@@ -1165,12 +1191,18 @@ function bindCourseEvents() {
     button.addEventListener("click", () => {
       courseMode = button.dataset.courseMode;
       if (courseMode !== "speaker") elements.courseSpeakerSelect.value = "all";
+      stopCoursePlaybackForSettingChange();
       syncCourseCustomMenu();
       renderCoursePlayer();
     });
   });
   document.addEventListener("click", closeCompactVoiceMenuOnOutsideClick);
   document.addEventListener("click", closeCourseCustomMenuOnOutsideClick);
+  // Release the microphone (and keep the take so far) when the page is left or backgrounded.
+  window.addEventListener("pagehide", stopCourseRecordingSession);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCourseRecordingSession();
+  });
 }
 
 function createEmptyCourseDraft() {
@@ -2360,6 +2392,11 @@ function renderCourseLibrary() {
 function renderCoursePlayer() {
   const lesson = getActiveCourseLesson();
   if (!lesson) return;
+  // Switching to another lesson ends the recording and playback of the previous one.
+  if (courseRecordingSession && courseRecordingSession.lessonId !== lesson.id) stopCourseRecordingSession();
+  if (playback.status !== "idle" && playback.key.startsWith("course:") && !playback.key.startsWith(`course:${lesson.id}:`)) {
+    stopSpeech({ quiet: true });
+  }
   if (applyKnownLocalTranslations(lesson)) persist();
   elements.coursePlayerTitle.textContent = lesson.title;
   elements.coursePlayerMeta.textContent = `${lesson.language === "en" ? "英语" : "法语"} · ${lesson.explainLanguage === "en" ? "English explanation" : "中文解释"} · ${lesson.turns.length} 句`;
@@ -2405,7 +2442,8 @@ function renderCourseTranscript(lesson) {
   elements.courseTranscriptList.replaceChildren();
   visibleTurns.forEach((turn) => {
     const originalIndex = lesson.turns.findIndex((item) => item.id === turn.id);
-    const row = el("article", `course-turn-row${originalIndex === courseCurrentTurnIndex ? " is-current" : ""}`);
+    const isPlayingRow = playback.status !== "idle" && playback.key.startsWith("course:") && originalIndex === courseCurrentTurnIndex;
+    const row = el("article", `course-turn-row${originalIndex === courseCurrentTurnIndex ? " is-current" : ""}${isPlayingRow ? " is-playing" : ""}`);
     row.dataset.turnId = turn.id;
     const top = el("div", "course-turn-top");
     top.append(el("span", "course-turn-number", String(originalIndex + 1).padStart(2, "0")), el("span", "speaker-chip", turn.speakerLabel));
@@ -2440,14 +2478,16 @@ function renderCourseTranscript(lesson) {
     const hasValidExplanation = !aiExplanationNeedsGeneration(turn.aiExplanation, lesson);
     const explanationLabel = hasValidExplanation ? "查看讲解" : isHostedOnlineRuntime() ? "需桌面生成" : "AI 讲解";
     actions.append(button(explanationLabel, "mini-button", () => openCourseSentenceDetail(lesson, originalIndex), "spark"));
-    if (turn.recording.status === "recorded") {
+    if (courseRecordingSession?.turnId === turn.id) {
+      // Recording state lives in the session, never in the saved turn, so an
+      // earlier take is not hidden if the page is reloaded mid-recording.
+      actions.append(button("停止录音", "mini-button recording-active", () => stopCourseRecording(lesson, turn.id), "stop"));
+    } else if (turn.recording.status === "recorded") {
       actions.append(
         button(`我的录音 · ${formatCourseDuration(turn.recording.durationMs)}`, "mini-button recording-ready", () => playCourseRecording(turn), "play"),
         button("重录", "mini-button", () => startCourseRecording(lesson, turn.id), "refresh"),
         button("删除", "mini-button danger-mini", () => deleteCourseRecording(lesson, turn.id), "trash")
       );
-    } else if (turn.recording.status === "recording") {
-      actions.append(button("停止录音", "mini-button recording-active", () => stopCourseRecording(lesson, turn.id), "stop"));
     } else {
       actions.append(button("开始录音", "mini-button record-button", () => startCourseRecording(lesson, turn.id), "mic"));
     }
@@ -3171,6 +3211,8 @@ function courseWordSpokenForm(info, surface) {
 
 function speakCourseWord(word, lesson) {
   if (!canSpeak()) return;
+  // Pronouncing a word ends the running lesson audio (its position is kept).
+  if (playback.status !== "idle") stopSpeech({ quiet: true });
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(word);
   utterance.lang = lesson.language === "en" ? "en-US" : "fr-FR";
@@ -3486,8 +3528,14 @@ function estimateCourseTurnDurationMs(text, rate = Number(state?.settings?.rate 
   return Math.max(2400, (String(text || "").length * 95) / Math.max(0.5, rate) + 1600);
 }
 
+// One sentence including its repeats and the gaps between them.
+function estimateCourseTurnTotalMs(text) {
+  const repeat = Math.max(1, getRepeat());
+  return estimateCourseTurnDurationMs(text) * repeat + getPauseMs() * (repeat - 1);
+}
+
 function estimateCourseDurationSeconds(turns) {
-  return turns.reduce((sum, turn) => sum + estimateCourseTurnDurationMs(turn.text) / 1000, 0);
+  return turns.reduce((sum, turn) => sum + estimateCourseTurnTotalMs(turn.text) / 1000, 0);
 }
 
 function updateCourseProgressRatio(ratio, lesson) {
@@ -3502,7 +3550,7 @@ function updateCourseProgressRatio(ratio, lesson) {
 function startCourseProgressTicker(turnIndex, text, lesson, initialElapsedMs = 0) {
   stopCourseProgressTicker();
   if (!lesson?.turns?.length) return;
-  const itemDuration = estimateCourseTurnDurationMs(text);
+  const itemDuration = estimateCourseTurnTotalMs(text);
   courseProgressTickerState = {
     turnIndex,
     text,
@@ -3543,6 +3591,7 @@ function moveCourseTurn(delta) {
   const lesson = getActiveCourseLesson();
   if (!lesson) return;
   courseCurrentTurnIndex = Math.min(Math.max(0, courseCurrentTurnIndex + delta), lesson.turns.length - 1);
+  courseRunFinished = false;
   courseProgressRatio = courseCurrentTurnIndex / Math.max(1, lesson.turns.length);
   renderCoursePlayer();
   document.querySelector(turnRowSelector(lesson.turns[courseCurrentTurnIndex]?.id))?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -3568,16 +3617,23 @@ function playCourseSelection(options = {}) {
   const turns = getCourseVisibleTurns(lesson);
   const rows = Array.from(elements.courseTranscriptList.querySelectorAll(".course-turn-row"));
   let items = turns.map((turn, index) => ({ text: turn.text, element: rows[index], label: `第 ${lesson.turns.indexOf(turn) + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: lesson.turns.indexOf(turn) }));
-  if (options.startFromCurrent) {
+  // The click handlers pass the click event here; only an explicit boolean counts.
+  // Starting from the sentence the learner moved to is the default, unless the
+  // previous run reached the end (then play from the top).
+  const requested = typeof options.startFromCurrent === "boolean" ? options.startFromCurrent : null;
+  const startFromCurrent = requested ?? (playback.status === "idle" && !courseRunFinished && courseCurrentTurnIndex > 0);
+  if (startFromCurrent) {
     const startIndex = items.findIndex((item) => item.turnIndex >= courseCurrentTurnIndex);
     if (startIndex >= 0) items = items.slice(startIndex);
   }
   if (!items.length) return;
+  courseRunFinished = false;
   elements.coursePlaybackStatus.textContent = `正在播放${courseModeLabel(courseMode)}…`;
   togglePlayback(items, {
     key: `course:${lesson.id}:${courseMode}:${elements.courseSpeakerSelect.value}:${courseSegmentStart}-${courseSegmentEnd}`,
     label: lesson.title,
-    loop: courseMode === "single" || courseMode === "loop"
+    loop: courseMode === "single" || courseMode === "loop",
+    transport: true
   });
 }
 
@@ -3589,12 +3645,25 @@ function playFullCourse() {
 }
 
 function playCourseTurn(lesson, index) {
+  // The button of the sentence being played pauses/resumes it; any other
+  // sentence's button starts that sentence.
+  const isCurrentRun = playback.status !== "idle" && playback.key.startsWith(`course:${lesson.id}:`) && index === courseCurrentTurnIndex;
   courseCurrentTurnIndex = index;
+  courseRunFinished = false;
   courseProgressRatio = index / Math.max(1, lesson.turns.length);
-  renderCoursePlayer();
-  const row = elements.courseTranscriptList.querySelector(turnRowSelector(lesson.turns[index].id));
+  if (!isCurrentRun) renderCoursePlayer();
+  const row = findCourseTurnRow(index);
   elements.coursePlaybackStatus.textContent = `正在播放第 ${index + 1} 句…`;
-  togglePlayback([{ text: lesson.turns[index].text, element: row, label: `第 ${index + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: index }], { key: `course:${lesson.id}:turn:${index}`, label: `第 ${index + 1} 句` });
+  togglePlayback([{ text: lesson.turns[index].text, element: row, label: `第 ${index + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: index }], { key: `course:${lesson.id}:turn:${index}`, label: `第 ${index + 1} 句`, transport: isCurrentRun });
+}
+
+function stopCourseRecordingAudio() {
+  if (courseRecordingAudio) {
+    courseRecordingAudio.pause();
+    courseRecordingAudio = null;
+  }
+  courseRecordingUrls.forEach((url) => URL.revokeObjectURL(url));
+  courseRecordingUrls.clear();
 }
 
 function playCourseRecording(turn) {
@@ -3607,15 +3676,22 @@ function playCourseRecording(turn) {
       setStatus("找不到本地录音文件，可能是清理浏览器数据后丢失");
       return;
     }
-    if (courseRecordingAudio) courseRecordingAudio.pause();
+    // One sound at a time: the lesson voice and any earlier recording stop first.
+    if (playback.status !== "idle") stopSpeech({ quiet: true });
+    stopCourseRecordingAudio();
     const url = URL.createObjectURL(blob);
     courseRecordingUrls.set(turn.recording.mediaKey, url);
-    courseRecordingAudio = new Audio(url);
-    courseRecordingAudio.onended = () => {
+    const audio = new Audio(url);
+    courseRecordingAudio = audio;
+    audio.onended = () => {
       elements.coursePlaybackStatus.textContent = `我的录音播放完成 · ${formatCourseDuration(turn.recording.durationMs)}`;
+      if (courseRecordingAudio === audio) stopCourseRecordingAudio();
     };
+    audio.onerror = () => setStatus("这条录音无法播放，可以删除后重录");
     elements.coursePlaybackStatus.textContent = `正在播放我的录音：${turn.speakerLabel}`;
-    courseRecordingAudio.play().catch(() => setStatus("浏览器阻止了音频自动播放，请再次点击播放"));
+    audio.play().catch((error) => {
+      setStatus(error?.name === "NotAllowedError" ? "浏览器阻止了音频自动播放，请再次点击播放" : "这条录音无法播放，可以删除后重录");
+    });
   });
 }
 
@@ -3626,13 +3702,18 @@ async function startCourseRecording(lesson, turnId) {
     setStatus("当前浏览器不支持录音，请使用新版 Chrome、Edge 或 Safari");
     return;
   }
-  if (courseRecordingSession) {
+  if (courseRecordingSession || courseRecordingStarting) {
     setStatus("请先停止当前录音");
     return;
   }
+  courseRecordingStarting = true;
+  // The lesson voice must not be picked up by the microphone.
+  stopSpeech({ quiet: true });
+  stopCourseRecordingAudio();
+  let stream = null;
   try {
     elements.coursePlaybackStatus.textContent = "正在请求麦克风权限…";
-    const stream = await navigator.mediaDevices.getUserMedia({
+    stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
         echoCancellation: true,
@@ -3640,56 +3721,85 @@ async function startCourseRecording(lesson, turnId) {
         autoGainControl: true
       }
     });
-    const options = pickRecorderOptions();
-    const recorder = new MediaRecorder(stream, options);
-    const chunks = [];
-    const startedAt = Date.now();
-    courseRecordingSession = { lesson, turn, turnId, stream, recorder, chunks, startedAt };
-    turn.recording.status = "recording";
+    const recorder = new MediaRecorder(stream, pickRecorderOptions());
+    const session = { lessonId: lesson.id, turnId, stream, recorder, chunks: [], startedAt: Date.now() };
     recorder.addEventListener("dataavailable", (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
+      if (event.data.size > 0) session.chunks.push(event.data);
     });
-    recorder.addEventListener("stop", async () => {
-      const session = courseRecordingSession;
-      courseRecordingSession = null;
-      session.stream.getTracks().forEach((track) => track.stop());
-      const blob = new Blob(session.chunks, { type: recorder.mimeType || "audio/webm" });
-      const mediaKey = `recording:${lesson.id}:${turnId}:${Date.now()}`;
-      await saveRecordingBlob(mediaKey, blob);
-      session.turn.recording = {
-        status: "recorded",
-        durationMs: Math.max(100, Date.now() - session.startedAt),
-        mediaKey,
-        mimeType: blob.type,
-        size: blob.size
-      };
-      persist();
-      elements.coursePlaybackStatus.textContent = `已保存第 ${lesson.turns.indexOf(session.turn) + 1} 句真实录音`;
-      renderCoursePlayer();
-    });
+    recorder.addEventListener("stop", () => void finishCourseRecording(session));
+    recorder.addEventListener("error", (event) => void finishCourseRecording(session, event.error || new Error("recorder error")));
     recorder.start(250);
+    courseRecordingSession = session;
     elements.coursePlaybackStatus.textContent = `本机麦克风录音中：${turn.speakerLabel} · 点击停止完成`;
     renderCourseTranscript(lesson);
   } catch (error) {
+    stream?.getTracks().forEach((track) => track.stop());
     courseRecordingSession = null;
     setStatus(error?.name === "NotAllowedError" ? "麦克风权限被拒绝，录音功能未启动" : "无法启动麦克风录音");
     renderCoursePlayer();
+  } finally {
+    courseRecordingStarting = false;
   }
+}
+
+// Runs when a recorder stops (button, lesson switch, page hide) or fails.
+async function finishCourseRecording(session, failure = null) {
+  // A recorder error is followed by a stop event; handle the session once.
+  if (session.finished) return;
+  session.finished = true;
+  if (courseRecordingSession === session) courseRecordingSession = null;
+  session.stream.getTracks().forEach((track) => track.stop());
+  // The lesson may have been edited or deleted meanwhile: look the turn up again.
+  const lesson = state.courseLessons.find((item) => item.id === session.lessonId);
+  const turn = lesson?.turns.find((item) => item.id === session.turnId);
+  try {
+    if (failure) throw failure;
+    if (!turn) {
+      setStatus("这句已不在课程里，录音没有保存");
+      return;
+    }
+    const blob = new Blob(session.chunks, { type: session.recorder.mimeType || "audio/webm" });
+    if (!blob.size) throw new Error("empty recording");
+    const mediaKey = `recording:${lesson.id}:${session.turnId}:${Date.now()}`;
+    await saveRecordingBlob(mediaKey, blob);
+    const replacedKey = turn.recording?.mediaKey;
+    turn.recording = {
+      status: "recorded",
+      durationMs: Math.max(100, Date.now() - session.startedAt),
+      mediaKey,
+      mimeType: blob.type,
+      size: blob.size
+    };
+    queueRecordingRelease([replacedKey]);
+    persist();
+    elements.coursePlaybackStatus.textContent = `已保存第 ${lesson.turns.indexOf(turn) + 1} 句真实录音`;
+  } catch (error) {
+    // The earlier take (if any) is untouched; nothing half-saved is referenced.
+    console.error("OoFR recording was not saved", error);
+    setStatus("录音保存失败，设备空间可能不足；之前的录音没有受影响");
+  }
+  renderCoursePlayer();
 }
 
 function stopCourseRecording(lesson, turnId) {
   if (!courseRecordingSession || courseRecordingSession.turnId !== turnId) return;
-  if (courseRecordingSession.recorder.state !== "inactive") {
-    courseRecordingSession.recorder.stop();
-  }
+  stopCourseRecordingSession();
   elements.coursePlaybackStatus.textContent = "正在保存录音…";
+}
+
+// Ends the active recording (the take recorded so far is kept).
+function stopCourseRecordingSession() {
+  const session = courseRecordingSession;
+  if (!session) return;
+  if (session.recorder.state !== "inactive") session.recorder.stop();
+  else void finishCourseRecording(session);
 }
 
 async function deleteCourseRecording(lesson, turnId) {
   const turn = lesson.turns.find((item) => item.id === turnId);
   if (!turn) return;
-  if (courseRecordingSession?.turnId === turnId) stopCourseRecording(lesson, turnId);
-  if (turn.recording.mediaKey) await deleteRecordingBlob(turn.recording.mediaKey);
+  if (courseRecordingSession?.turnId === turnId) stopCourseRecordingSession();
+  queueRecordingRelease([turn.recording.mediaKey]);
   turn.recording = { status: "none", durationMs: 0, mediaKey: "", mimeType: "", size: 0 };
   persist();
   elements.coursePlaybackStatus.textContent = "已删除这句录音，播放时会回退到 TTS";
@@ -3708,8 +3818,17 @@ function openAudioDb() {
   audioDbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open("oofr-audio", 1);
     request.onupgradeneeded = () => request.result.createObjectStore("recordings");
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Browsers (iOS in particular) may close idle connections; reopen next time.
+      db.onclose = () => { audioDbPromise = null; };
+      db.onversionchange = () => { db.close(); audioDbPromise = null; };
+      resolve(db);
+    };
+    request.onerror = () => {
+      audioDbPromise = null;
+      reject(request.error);
+    };
   });
   return audioDbPromise;
 }
@@ -3721,6 +3840,7 @@ async function saveRecordingBlob(key, blob) {
     transaction.objectStore("recordings").put(blob, key);
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error("recording save aborted"));
   });
 }
 
@@ -3746,6 +3866,7 @@ async function deleteRecordingBlob(key) {
       transaction.objectStore("recordings").delete(key);
       transaction.oncomplete = resolve;
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error("recording delete aborted"));
     });
   } catch {}
 }
@@ -3765,12 +3886,14 @@ async function exportCourseRecordings() {
   }
   try {
     setStatus("正在合并我的逐句录音…");
-    const wav = await mergeRecordingBlobs(recordedTurns.map((item) => item.blob));
+    const { wav, skipped } = await mergeRecordingBlobs(recordedTurns.map((item) => item.blob));
     const filename = `oofr-${slugifyFilePart(lesson.title)}-我的录音.wav`;
-    await shareOrDownloadAudio(wav, filename);
-    setStatus("完整录音已准备好");
-  } catch {
-    setStatus("浏览器无法合并这些录音，可逐句播放或分别导出");
+    const outcome = await shareOrDownloadAudio(wav, filename);
+    if (outcome === "cancelled") setStatus("已取消分享");
+    else setStatus(skipped ? `完整录音已准备好（有 ${skipped} 句录音无法解码，已跳过）` : "完整录音已准备好");
+  } catch (error) {
+    console.error("OoFR recording export failed", error);
+    setStatus("浏览器无法合并这些录音，可逐句播放");
   }
 }
 
@@ -3779,13 +3902,19 @@ async function mergeRecordingBlobs(blobs) {
   if (!AudioContextClass) throw new Error("AudioContext unavailable");
   const context = new AudioContextClass();
   const buffers = [];
+  let skipped = 0;
   try {
     for (const blob of blobs) {
-      buffers.push(await context.decodeAudioData(await blob.arrayBuffer()));
+      try {
+        buffers.push(await context.decodeAudioData(await blob.arrayBuffer()));
+      } catch {
+        skipped += 1;
+      }
     }
   } finally {
     await context.close().catch(() => {});
   }
+  if (!buffers.length) throw new Error("no recording could be decoded");
   const sampleRate = buffers[0].sampleRate;
   const channels = Math.max(...buffers.map((buffer) => buffer.numberOfChannels));
   const gapFrames = Math.round(sampleRate * 0.32);
@@ -3800,7 +3929,7 @@ async function mergeRecordingBlobs(blobs) {
     offset += buffer.length + (index < buffers.length - 1 ? gapFrames : 0);
   });
   const rendered = await offline.startRendering();
-  return audioBufferToWav(rendered);
+  return { wav: audioBufferToWav(rendered), skipped };
 }
 
 function audioBufferToWav(buffer) {
@@ -3839,24 +3968,31 @@ function writeAscii(view, offset, text) {
   Array.from(text).forEach((char, index) => view.setUint8(offset + index, char.charCodeAt(0)));
 }
 
+// Returns "shared", "cancelled" or "downloaded".
 async function shareOrDownloadAudio(blob, filename) {
   const file = new File([blob], filename, { type: blob.type });
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ title: "OoFR 我的录音", files: [file] });
-    return;
+    try {
+      await navigator.share({ title: "OoFR 我的录音", files: [file] });
+      return "shared";
+    } catch (error) {
+      if (error?.name === "AbortError") return "cancelled";
+      // Share sheets need a fresh tap; after a long merge the browser may
+      // refuse. Fall back to a normal download.
+    }
   }
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadText(blob, filename, blob.type);
+  return "downloaded";
 }
 
 function formatCourseDuration(milliseconds) {
   return `${(Number(milliseconds || 0) / 1000).toFixed(1)}s`;
+}
+
+// Changing mode / speaker / range while a course plays would leave the old run
+// behind the new settings, so it stops (position is kept).
+function stopCoursePlaybackForSettingChange() {
+  if (playback.status !== "idle" && playback.key.startsWith("course:")) stopSpeech({ quiet: true });
 }
 
 function openCoursePractice() {
@@ -5081,6 +5217,7 @@ function speakCurrentPhraseCard(force = false) {
   if (!item || (!force && phrasePracticeLastSpokenKey === `${item.id}:${phrasePracticeIndex}`)) return;
   phrasePracticeLastSpokenKey = `${item.id}:${phrasePracticeIndex}`;
   if (!canSpeak()) return;
+  if (playback.status !== "idle") stopSpeech({ quiet: true });
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(item.text);
   utterance.lang = item.language === "en" ? "en-US" : "fr-FR";
@@ -5148,17 +5285,29 @@ function toggleAllSentences() {
 
 function togglePlayback(items, options = {}) {
   const key = options.key || playbackKeyForItems(items);
-  const sameCoursePlayback = key.startsWith("course:") && playback.key.startsWith("course:");
-  if ((playback.key === key || sameCoursePlayback) && playback.status === "playing") {
+  // Only the transport control (bottom play button, or the button of the sentence
+  // being played) pauses/resumes whatever course audio is running. Every other
+  // start replaces it, so the UI never claims one sentence while another plays.
+  const sameRun = playback.key === key
+    || (options.transport && key.startsWith("course:") && playback.key.startsWith("course:"));
+  if (sameRun && playback.status === "playing") {
     pauseSpeech();
     return;
   }
-  if ((playback.key === key || sameCoursePlayback) && playback.status === "paused") {
+  if (sameRun && playback.status === "paused") {
     resumeSpeech();
     return;
   }
   playItems(items, { ...options, key });
 }
+
+const SPEECH_ERROR_MESSAGES = {
+  "not-allowed": "浏览器要求先点一次播放按钮才能朗读，请再点一次",
+  "audio-busy": "扬声器正被其他应用占用，朗读失败",
+  "audio-hardware": "找不到可用的扬声器，朗读失败",
+  "voice-unavailable": "当前设备没有可用的朗读声音",
+  "language-unavailable": "当前设备没有这种语言的朗读声音"
+};
 
 async function playItems(items, options = {}) {
   const playableItems = items.filter((item) => item?.text?.trim());
@@ -5173,52 +5322,103 @@ async function playItems(items, options = {}) {
   const key = options.key || playbackKeyForItems(playableItems);
   const label = options.label || playableItems[0]?.label || "朗读";
   window.speechSynthesis.cancel();
+  // Some engines stay paused after cancel(), which would silence the new run.
+  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+  stopCourseRecordingAudio();
   clearActive();
   playback = { status: "playing", key, label, token };
   setBusy(true);
   renderPlaybackControls();
 
+  let abortMessage = "";
+  let speechFailures = 0;
   try {
-    do {
+    run: do {
       for (const item of playableItems) {
-        if (token !== runToken) break;
+        if (token !== runToken) break run;
         const turnIndex = Number(item.turnIndex);
-        if (Number.isInteger(turnIndex)) {
+        const isCourseTurn = Number.isInteger(turnIndex);
+        // Rows are rebuilt by re-renders, so look the row up each time.
+        const row = isCourseTurn ? (findCourseTurnRow(turnIndex) || item.element) : item.element;
+        if (isCourseTurn) {
           courseCurrentTurnIndex = turnIndex;
           courseProgressRatio = turnIndex / Math.max(1, getActiveCourseLesson()?.turns.length || 1);
           renderCourseProgress(getActiveCourseLesson() || { turns: [] });
         }
-        markActive(item.element);
-        if (Number.isInteger(turnIndex)) markCourseTurnActive(turnIndex, item.element);
+        markActive(row);
+        if (isCourseTurn) markCourseTurnActive(turnIndex, row);
         playback.label = item.label || label;
         renderPlaybackControls();
         setStatus(`正在播放：${item.label}`);
 
         const repeat = getRepeat();
-        const courseLesson = Number.isInteger(turnIndex) ? getActiveCourseLesson() : null;
+        const courseLesson = isCourseTurn ? getActiveCourseLesson() : null;
         if (courseLesson) startCourseProgressTicker(turnIndex, item.text, courseLesson);
         for (let index = 0; index < repeat; index += 1) {
-          if (token !== runToken) break;
-          await speakOnce(item.text, token, item);
-          if (token !== runToken || index >= repeat - 1) break;
+          if (token !== runToken) break run;
+          const outcome = await speakItem(item, token);
+          if (token !== runToken) break run;
+          if (outcome.status === "cancelled") {
+            abortMessage = "朗读被系统打断，已停止";
+            break run;
+          }
+          if (outcome.status === "error") {
+            speechFailures += 1;
+            if (speechFailures >= 3) {
+              abortMessage = SPEECH_ERROR_MESSAGES[outcome.error] || "朗读连续失败，已停止";
+              break run;
+            }
+          } else {
+            speechFailures = 0;
+          }
+          if (index >= repeat - 1) break;
           await pause(getPauseMs(), token);
         }
-        if (courseLesson) {
+        if (token === runToken && courseLesson) {
           stopCourseProgressTicker();
           updateCourseProgressRatio((turnIndex + 1) / courseLesson.turns.length, courseLesson);
         }
       }
     } while (options.loop && token === runToken);
+    if (token === runToken && !abortMessage && options.transport) courseRunFinished = true;
   } finally {
-    stopCourseProgressTicker();
+    // A superseded run must leave the new run's ticker and highlight alone.
     if (token === runToken) {
+      stopCourseProgressTicker();
       clearActive();
       setBusy(false);
       playback = { status: "idle", key: "", label: "", token: 0 };
       renderPlaybackControls();
-      setStatus("播放完成");
+      setStatus(abortMessage || "播放完成");
     }
   }
+}
+
+// Speaks one sentence. Engines that implement pause() as cancel() (Chrome on
+// Android, some iOS versions) end the utterance early; when that happens while
+// the learner has paused, wait for resume and say the sentence again.
+async function speakItem(item, token) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const outcome = await speakOnce(item.text, token, item);
+    if (token !== runToken) return outcome;
+    if (outcome.status !== "ended" && playback.status === "paused") {
+      await waitWhilePaused(token);
+      if (token !== runToken) return outcome;
+      continue;
+    }
+    return outcome;
+  }
+  return { status: "error", error: "retry-limit" };
+}
+
+function waitWhilePaused(token) {
+  return new Promise((resolve) => {
+    const check = () => {
+      if (token !== runToken || playback.status !== "paused") resolve();
+      else window.setTimeout(check, 120);
+    };
+    check();
+  });
 }
 
 function playbackKeyForItems(items) {
@@ -5230,6 +5430,12 @@ function isActivePlayback(key) {
   return playback.key === key && (playback.status === "playing" || playback.status === "paused");
 }
 
+// Chrome can garbage-collect a speaking utterance and then never fire its events.
+let currentUtterance = null;
+
+// Resolves { status: "ended" | "cancelled" | "error", error }.
+// "cancelled" means the engine dropped the utterance (interruption, or the
+// stop of a superseded run); the caller decides what that means.
 function speakOnce(text, token, options = {}) {
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
@@ -5244,37 +5450,54 @@ function speakOnce(text, token, options = {}) {
     }
 
     let settled = false;
-    const finish = () => {
+    let fallbackTimer = 0;
+    const finish = (result) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(fallbackTimer);
-      resolve();
+      if (currentUtterance === utterance) currentUtterance = null;
+      resolve(result);
     };
 
-    utterance.onend = finish;
-    utterance.onerror = finish;
+    utterance.onend = () => finish({ status: "ended" });
+    utterance.onerror = (event) => {
+      const reason = String(event?.error || "");
+      finish({ status: reason === "canceled" || reason === "interrupted" ? "cancelled" : "error", error: reason });
+    };
 
     const estimatedMs = Math.max(2400, (text.length * 95) / Math.max(0.5, utterance.rate) + 1600);
-    let fallbackTimer = 0;
-    const scheduleFallback = () => {
+    let extendedOnce = false;
+    const scheduleFallback = (delay = estimatedMs) => {
       fallbackTimer = window.setTimeout(() => {
         if (token !== runToken) {
-          finish();
+          finish({ status: "cancelled" });
           return;
         }
         if (playback.status === "paused") {
           scheduleFallback();
           return;
         }
-        finish();
-      }, estimatedMs);
+        // The engine never reported the end (Chrome silently stops long
+        // utterances). Give it a moment, then cancel so the next sentence is
+        // not queued behind a stuck one.
+        if (window.speechSynthesis.speaking) {
+          if (!extendedOnce) {
+            extendedOnce = true;
+            scheduleFallback(3000);
+            return;
+          }
+          window.speechSynthesis.cancel();
+        }
+        finish({ status: "ended" });
+      }, delay);
     };
     scheduleFallback();
 
     if (token === runToken) {
+      currentUtterance = utterance;
       window.speechSynthesis.speak(utterance);
     } else {
-      finish();
+      finish({ status: "cancelled" });
     }
   });
 }
@@ -5297,16 +5520,18 @@ function resumeSpeech() {
   setStatus(`继续播放：${playback.label}`);
 }
 
-function stopSpeech() {
+function stopSpeech({ quiet = false } = {}) {
   runToken += 1;
   if (canSpeak()) {
     window.speechSynthesis.cancel();
   }
+  currentUtterance = null;
+  stopCourseProgressTicker();
   clearActive();
   setBusy(false);
   playback = { status: "idle", key: "", label: "", token: 0 };
   renderPlaybackControls();
-  setStatus("已停止");
+  if (!quiet) setStatus("已停止");
 }
 
 function pause(milliseconds, token) {
@@ -5351,12 +5576,17 @@ function markActive(element) {
   row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
+function findCourseTurnRow(turnIndex) {
+  const turn = getActiveCourseLesson()?.turns[turnIndex];
+  return turn ? elements.courseTranscriptList?.querySelector(turnRowSelector(turn.id)) || null : null;
+}
+
 function markCourseTurnActive(turnIndex, element) {
   elements.courseTranscriptList?.querySelectorAll(".course-turn-row").forEach((row) => {
     row.classList.remove("is-playing");
     row.classList.toggle("is-current", Number(row.querySelector(".course-turn-number")?.textContent || 0) === turnIndex + 1);
   });
-  const row = element?.closest?.(".course-turn-row") || elements.courseTranscriptList?.querySelector(turnRowSelector(getActiveCourseLesson()?.turns[turnIndex]?.id));
+  const row = findCourseTurnRow(turnIndex) || element?.closest?.(".course-turn-row");
   row?.classList.add("is-playing");
   row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
@@ -6880,8 +7110,8 @@ function downloadJson(data, filename) {
   downloadText(JSON.stringify(data, null, 2), filename);
 }
 
-function downloadText(text, filename, type = "application/json") {
-  const blob = new Blob([text], { type });
+function downloadText(content, filename, type = "application/json") {
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

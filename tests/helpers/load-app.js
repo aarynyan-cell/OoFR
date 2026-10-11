@@ -58,6 +58,7 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
       querySelector: () => stubElement(),
       querySelectorAll: () => [],
       createElement: () => stubElement(),
+      createTextNode: () => stubElement(),
       addEventListener() {},
       body: stubElement(),
       head: stubElement(),
