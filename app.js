@@ -1286,7 +1286,7 @@ function normalizeCourseLesson(lesson) {
       lemma: String(item.lemma || item.text || "").trim(),
       type: String(item.type || "expression").trim(),
       verified: item.verified === "dictionary" ? "dictionary" : ""
-    })).filter((item) => item.text) : [],
+    })).filter((item) => item.text && item.text.length <= 64).slice(0, 200) : [],
     practice: {
       completed: Math.max(0, Number(lesson.practice?.completed || 0)),
       correct: Math.max(0, Number(lesson.practice?.correct || 0))
@@ -1827,7 +1827,7 @@ function generateDemoCourse() {
   }
 
   const isDialogue = draft.materialType === "情景对话" && Boolean(courseMaterialAnalysis?.isDialogue || detectDialogueStructure(draft.text));
-  const turns = splitCourseTurns(draft.text, { materialType: draft.materialType }).map((item, index) => ({
+  const freshTurns = splitCourseTurns(draft.text, { materialType: draft.materialType }).map((item, index) => ({
     id: makeId("turn"),
     text: item.text,
     translation: draft.explainLanguage === "zh" ? "译文待补充" : "Translation pending",
@@ -1835,6 +1835,16 @@ function generateDemoCourse() {
     speakerLabel: isDialogue ? (item.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
     recording: { status: "none", durationMs: 0, mediaKey: "" }
   }));
+  // Editing keeps translations, explanations and recordings of unchanged sentences.
+  const editingLesson = draft.editingId ? state.courseLessons.find((item) => item.id === draft.editingId) : null;
+  const sameExplainLanguage = editingLesson?.explainLanguage === draft.explainLanguage;
+  const carried = carryOverTurns(editingLesson?.turns || [], freshTurns, { translations: sameExplainLanguage, explanations: sameExplainLanguage });
+  if (carried.dropped.length && !window.confirm(`有 ${carried.dropped.length} 句录音对应的句子被改动或删除，保存后这些录音会被移除。继续吗？`)) {
+    setStatus("已取消保存，课程没有改动");
+    return;
+  }
+  const turns = carried.turns;
+  queueRecordingRelease(carried.dropped.map((turn) => turn.recording.mediaKey));
   const lesson = normalizeCourseLesson({
     id: draft.editingId || makeId("lesson"),
     title: draft.title,
@@ -2610,14 +2620,20 @@ function normalizeLexicalUnit(value) {
 function courseLexicalUnitPattern(lesson) {
   const units = [
     ...Object.keys(KNOWN_LEXICAL_UNITS),
-    ...((lesson?.lexicalUnits || []).map((item) => item.text))
+    // Only multi-word units are fixed expressions; a stray one-word "unit"
+    // (e.g. "e") would otherwise split ordinary words.
+    ...((lesson?.lexicalUnits || []).map((item) => item.text).filter((text) => (String(text || "").match(/[\p{L}\p{M}]+(?:['’-][\p{L}\p{M}]+)*/gu) || []).length >= 2))
   ]
     .map((item) => String(item || "").trim())
-    .filter(Boolean)
+    // Imported or AI-made units are untrusted: cap length and count so the
+    // pattern can always be compiled.
+    .filter((item) => item && item.length <= 64)
+    .slice(0, 200)
     .sort((a, b) => b.length - a.length)
     .map((item) => item.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/['’]/g, "['’]"));
   const wordSource = `[\\p{L}\\p{M}]+(?:['’\\-][\\p{L}\\p{M}]+)*`;
-  return new RegExp(units.length ? `(?:${units.join("|")})|${wordSource}` : wordSource, "giu");
+  // A unit only counts when it ends at a word boundary ("un peu" must not match inside "un peuple").
+  return new RegExp(units.length ? `(?:(?:${units.join("|")})(?![\\p{L}\\p{M}]))|${wordSource}` : wordSource, "giu");
 }
 
 function wordMeaningForSystem(info) {
@@ -3412,8 +3428,16 @@ function isSuspiciousTranslation(source, translation) {
   const result = String(translation || "").trim();
   if (!result) return true;
   if (!/[()（）]/.test(original) && /^[（(].+[，,].+[）)]$/.test(result)) return true;
-  if (/[#]{1,}|老师不关心|李立思/.test(result)) return true;
+  // Markdown headings / hashtags are only a problem when the model added them.
+  if (/#/.test(result) && !/#/.test(original)) return true;
   return false;
+}
+
+// Turn ids can come from imported files, so never splice them into a selector raw.
+function turnRowSelector(turnId) {
+  const id = String(turnId ?? "");
+  const escaped = globalThis.CSS?.escape ? CSS.escape(id) : id.replace(/["\\]/g, "\\$&");
+  return `[data-turn-id="${escaped}"]`;
 }
 
 function escapeHtml(value) {
@@ -3521,7 +3545,7 @@ function moveCourseTurn(delta) {
   courseCurrentTurnIndex = Math.min(Math.max(0, courseCurrentTurnIndex + delta), lesson.turns.length - 1);
   courseProgressRatio = courseCurrentTurnIndex / Math.max(1, lesson.turns.length);
   renderCoursePlayer();
-  document.querySelector(`[data-turn-id="${lesson.turns[courseCurrentTurnIndex]?.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  document.querySelector(turnRowSelector(lesson.turns[courseCurrentTurnIndex]?.id))?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function seekCourseBy(delta) {
@@ -3568,7 +3592,7 @@ function playCourseTurn(lesson, index) {
   courseCurrentTurnIndex = index;
   courseProgressRatio = index / Math.max(1, lesson.turns.length);
   renderCoursePlayer();
-  const row = elements.courseTranscriptList.querySelector(`[data-turn-id="${lesson.turns[index].id}"]`);
+  const row = elements.courseTranscriptList.querySelector(turnRowSelector(lesson.turns[index].id));
   elements.coursePlaybackStatus.textContent = `正在播放第 ${index + 1} 句…`;
   togglePlayback([{ text: lesson.turns[index].text, element: row, label: `第 ${index + 1} 句`, lang: lesson.language === "en" ? "en-US" : "fr-FR", turnIndex: index }], { key: `course:${lesson.id}:turn:${index}`, label: `第 ${index + 1} 句` });
 }
@@ -4449,31 +4473,154 @@ function openCourseFromEntry(entry) {
   scheduleCourseBackgroundEnrichment(lesson);
 }
 
-function syncCourseFromEntry(entry) {
+// Similarity in [0, 1] used to recognise a lightly edited sentence (typo fix).
+function textSimilarity(a, b) {
+  if (a === b) return 1;
+  const longest = Math.max(a.length, b.length);
+  if (!longest || Math.abs(a.length - b.length) / longest > 0.3) return 0;
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    previous = current;
+  }
+  return 1 - previous[b.length] / longest;
+}
+
+// Re-attaches the per-sentence work (translation, AI explanation, recording and
+// the turn id) of `oldTurns` to the rebuilt `newTurns`. Identical sentences are
+// paired in order, so a repeated line keeps its own recording; a close edit at
+// about the same place (typo fix) keeps translation and recording too.
+// `dropped` lists old turns whose recording no longer belongs to any sentence.
+// `prefer: "old"` (local edits) keeps what the learner already has and only
+// fills gaps from the new turns; `prefer: "new"` (imported package) takes the
+// package's content and only fills gaps from the old turns. Recordings always
+// stay with the old turn, since they only exist on this device.
+function carryOverTurns(oldTurns, newTurns, { translations = true, explanations = true, prefer = "old" } = {}) {
+  const pick = (oldValue, newValue) => (prefer === "old" ? (oldValue || newValue) : (newValue || oldValue));
+  const queues = new Map();
+  oldTurns.forEach((turn) => {
+    const key = String(turn.text || "").trim();
+    queues.set(key, [...(queues.get(key) || []), turn]);
+  });
+  const used = new Set();
+  const matches = newTurns.map((turn) => {
+    const old = queues.get(String(turn.text || "").trim())?.shift();
+    if (old) used.add(old);
+    return old ? { old, exact: true } : null;
+  });
+  newTurns.forEach((turn, index) => {
+    if (matches[index]) return;
+    let best = null;
+    for (let distance = 0; distance <= 3; distance += 1) {
+      const positions = distance ? [index - distance, index + distance] : [index];
+      positions.forEach((position) => {
+        const old = oldTurns[position];
+        if (!old || used.has(old)) return;
+        const score = textSimilarity(String(old.text || "").trim(), String(turn.text || "").trim());
+        if (score >= 0.85 && (!best || score > best.score)) best = { old, score };
+      });
+    }
+    if (best) {
+      used.add(best.old);
+      matches[index] = { old: best.old, exact: false };
+    }
+  });
+  const turns = newTurns.map((turn, index) => {
+    const match = matches[index];
+    if (!match) return turn;
+    const { old, exact } = match;
+    return {
+      ...turn,
+      id: old.id,
+      translation: translations ? pick(old.translation, turn.translation) : turn.translation,
+      aiExplanation: (explanations && exact ? pick(old.aiExplanation, turn.aiExplanation) : turn.aiExplanation) || null,
+      recording: old.recording || turn.recording
+    };
+  });
+  const dropped = oldTurns.filter((turn) => !used.has(turn) && turn.recording?.mediaKey);
+  return { turns, dropped };
+}
+
+// Recording files live in IndexedDB. They are deleted only after the state that
+// no longer references them has been saved (see persist), and never while some
+// other sentence still points at the same file.
+let recordingKeysToRelease = new Set();
+
+function queueRecordingRelease(keys) {
+  (keys || []).filter(Boolean).forEach((key) => recordingKeysToRelease.add(key));
+}
+
+function flushRecordingRelease() {
+  if (!recordingKeysToRelease.size || !state) return;
+  const stillUsed = new Set(state.courseLessons.flatMap((lesson) => lesson.turns.map((turn) => turn.recording?.mediaKey).filter(Boolean)));
+  const keys = [...recordingKeysToRelease];
+  recordingKeysToRelease = new Set();
+  keys.filter((key) => !stillUsed.has(key)).forEach((key) => {
+    void deleteRecordingBlob(key);
+  });
+}
+
+function recordingKeysOfLessons(lessons) {
+  return lessons.flatMap((lesson) => lesson.turns.map((turn) => turn.recording?.mediaKey).filter(Boolean));
+}
+
+// What deleting these lessons takes with it, for the confirmation text.
+function lessonRemovalSummary(lessonIds) {
+  const ids = new Set([...lessonIds].filter(Boolean));
+  const lessons = state.courseLessons.filter((lesson) => ids.has(lesson.id));
+  const recordings = recordingKeysOfLessons(lessons).length;
+  const phraseCards = state.phraseItems.filter((item) => ids.has(item.sourceLessonId)).length;
+  const parts = [];
+  if (recordings) parts.push(`${recordings} 句录音会一并删除`);
+  if (phraseCards) parts.push(`${phraseCards} 条已收藏的词句卡会保留在词句本里`);
+  return parts.length ? `\n${parts.join("；")}。` : "";
+}
+
+// Removes lessons and queues their recordings for deletion. Saved words and
+// phrase cards carry the learner's progress, so they are kept (detached from
+// the removed lesson) rather than deleted with it.
+function removeLessons(lessonIds) {
+  const ids = new Set([...lessonIds].filter(Boolean));
+  if (!ids.size) return;
+  queueRecordingRelease(recordingKeysOfLessons(state.courseLessons.filter((lesson) => ids.has(lesson.id))));
+  state.courseLessons = state.courseLessons.filter((lesson) => !ids.has(lesson.id));
+  state.phraseItems.forEach((item) => {
+    if (ids.has(item.sourceLessonId)) item.sourceLessonId = "";
+  });
+}
+
+// Pure planning step shared by syncCourseFromEntry and the entry edit dialog.
+function planEntryLessonTurns(entry) {
   const materialType = entry.materialType || inferStoredMaterialType(entry.text);
   const isDialogue = materialType === "情景对话";
   const parts = splitCourseTurns(entry.text, { materialType });
-  if (!parts.length) return null;
   const lessonId = entry.courseLessonId || `course_entry_${entry.id}`;
-  const existing = state.courseLessons.find((lesson) => lesson.id === lessonId);
-  const oldTurns = new Map((existing?.turns || []).map((turn) => [turn.text, turn]));
-  const turns = parts.map((part, index) => {
-    const old = oldTurns.get(part.text);
-    return {
-      id: old?.id || `${entry.id}_turn_${index + 1}`,
-      text: part.text,
-      translation: old?.translation || "",
-      speakerId: isDialogue ? (part.speakerId || old?.speakerId || (index % 2 === 0 ? "a" : "b")) : "narrator",
-      speakerLabel: isDialogue ? (part.speakerLabel || old?.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
-      aiExplanation: old?.aiExplanation || null,
-      recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
-    };
-  });
+  const existing = state.courseLessons.find((lesson) => lesson.id === lessonId) || null;
+  const fresh = parts.map((part, index) => ({
+    id: `${entry.id}_turn_${index + 1}`,
+    text: part.text,
+    translation: "",
+    speakerId: isDialogue ? (part.speakerId || (index % 2 === 0 ? "a" : "b")) : "narrator",
+    speakerLabel: isDialogue ? (part.speakerLabel || (index % 2 === 0 ? "A" : "B")) : "旁白",
+    aiExplanation: null,
+    recording: { status: "none", durationMs: 0, mediaKey: "" }
+  }));
+  const carried = carryOverTurns(existing?.turns || [], fresh);
+  return { materialType, lessonId, existing, parts, turns: carried.turns, dropped: carried.dropped };
+}
+
+function syncCourseFromEntry(entry) {
+  const plan = planEntryLessonTurns(entry);
+  if (!plan.parts.length) return null;
+  const { existing, turns, materialType } = plan;
   const lesson = normalizeCourseLesson({
-    id: lessonId,
+    id: plan.lessonId,
     title: entry.title,
     language: entry.language || "fr",
-    explainLanguage: "zh",
+    explainLanguage: existing?.explainLanguage || systemExplainLanguage(),
     materialType,
     description: `${turns.length} 句 · 来自自建素材`,
     createdAt: existing?.createdAt || entry.createdAt,
@@ -4484,6 +4631,7 @@ function syncCourseFromEntry(entry) {
     turns,
     practice: existing?.practice || { completed: 0, correct: 0 }
   });
+  queueRecordingRelease(plan.dropped.map((turn) => turn.recording.mediaKey));
   if (existing) state.courseLessons.splice(state.courseLessons.indexOf(existing), 1, lesson);
   else state.courseLessons.unshift(lesson);
   entry.courseLessonId = lesson.id;
@@ -5208,7 +5356,7 @@ function markCourseTurnActive(turnIndex, element) {
     row.classList.remove("is-playing");
     row.classList.toggle("is-current", Number(row.querySelector(".course-turn-number")?.textContent || 0) === turnIndex + 1);
   });
-  const row = element?.closest?.(".course-turn-row") || elements.courseTranscriptList?.querySelector(`[data-turn-id="${getActiveCourseLesson()?.turns[turnIndex]?.id}"]`);
+  const row = element?.closest?.(".course-turn-row") || elements.courseTranscriptList?.querySelector(turnRowSelector(getActiveCourseLesson()?.turns[turnIndex]?.id));
   row?.classList.add("is-playing");
   row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
@@ -5371,6 +5519,12 @@ function openEntryDialog(entryId, tapeId = state.ui.selectedTapeId) {
       { name: "notes", label: "备注", type: "textarea", value: entry?.notes || "" }
     ],
     onSubmit(values) {
+      if (entry?.courseLessonId) {
+        const plan = planEntryLessonTurns({ ...entry, text: values.text.trim(), materialType: values.materialType });
+        if (plan.dropped.length && !window.confirm(`有 ${plan.dropped.length} 句录音对应的句子被改动或删除，保存后这些录音会被移除。继续吗？`)) {
+          return false;
+        }
+      }
       const targetTapeId = ensureTapeForAlbum(values.albumId);
       if (entry) {
         entry.tapeId = targetTapeId;
@@ -5669,14 +5823,13 @@ function createWordbook(title, description = "") {
 function deleteAlbum(albumId) {
   const album = getAlbum(albumId);
   const albumEntries = getEntriesByAlbum(albumId);
-  if (!album || !window.confirm(`删除磁带「${album.title}」及其中 ${albumEntries.length} 条素材？`)) return;
+  const lessonIds = new Set([album?.courseLessonId, ...albumEntries.map((entry) => entry.courseLessonId)].filter(Boolean));
+  if (!album || !window.confirm(`删除磁带「${album.title}」及其中 ${albumEntries.length} 条素材？${lessonRemovalSummary(lessonIds)}`)) return;
   const tapeIds = getTapes(albumId).map((tape) => tape.id);
-  const lessonIds = new Set(albumEntries.map((entry) => entry.courseLessonId).filter(Boolean));
   state.albums = state.albums.filter((item) => item.id !== albumId);
   state.tapes = state.tapes.filter((item) => item.albumId !== albumId);
   state.entries = state.entries.filter((item) => !tapeIds.includes(item.tapeId));
-  state.courseLessons = state.courseLessons.filter((lesson) => !lessonIds.has(lesson.id));
-  state.phraseItems = state.phraseItems.filter((item) => !lessonIds.has(item.sourceLessonId));
+  removeLessons(lessonIds);
   if (state.ui.selectedAlbumId === albumId) {
     state.ui.selectedAlbumId = state.albums[0]?.id || null;
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
@@ -5691,13 +5844,12 @@ function deleteAlbum(albumId) {
 
 function deleteTape(tapeId) {
   const tape = getTape(tapeId);
-  if (!tape || !window.confirm(`删除磁带「${tape.title}」？`)) return;
-  const tapeEntries = getEntries(tapeId);
+  const tapeEntries = tape ? getEntries(tapeId) : [];
   const lessonIds = new Set(tapeEntries.map((entry) => entry.courseLessonId).filter(Boolean));
+  if (!tape || !window.confirm(`删除磁带「${tape.title}」？${lessonRemovalSummary(lessonIds)}`)) return;
   state.tapes = state.tapes.filter((item) => item.id !== tapeId);
   state.entries = state.entries.filter((item) => item.tapeId !== tapeId);
-  state.courseLessons = state.courseLessons.filter((lesson) => !lessonIds.has(lesson.id));
-  state.phraseItems = state.phraseItems.filter((item) => !lessonIds.has(item.sourceLessonId));
+  removeLessons(lessonIds);
   if (state.ui.selectedTapeId === tapeId) {
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
   }
@@ -5710,12 +5862,9 @@ function deleteTape(tapeId) {
 
 function deleteEntry(entryId) {
   const entry = getEntry(entryId);
-  if (!entry || !window.confirm(`删除素材「${entry.title}」？`)) return;
+  if (!entry || !window.confirm(`删除素材「${entry.title}」？${lessonRemovalSummary([entry.courseLessonId])}`)) return;
   state.entries = state.entries.filter((item) => item.id !== entryId);
-  if (entry.courseLessonId) {
-    state.courseLessons = state.courseLessons.filter((lesson) => lesson.id !== entry.courseLessonId);
-    state.phraseItems = state.phraseItems.filter((item) => item.sourceLessonId !== entry.courseLessonId);
-  }
+  removeLessons([entry.courseLessonId]);
   if (state.activeEntryId === entryId) {
     state.activeEntryId = null;
   }
@@ -6541,7 +6690,11 @@ function renderLearningPackagePreview(pkg, filename = "") {
   const explanationCount = lesson.turns.filter((turn) => turn.aiExplanation).length;
   const translatedCount = lesson.turns.filter((turn) => String(turn.translation || "").trim()).length;
   const lexicalCount = Array.isArray(lesson.lexicalUnits) ? lesson.lexicalUnits.length : 0;
-  const existing = state.courseLessons.some((item) => item.id === lesson.id);
+  const existingLesson = state.courseLessons.find((item) => item.id === lesson.id);
+  const existing = Boolean(existingLesson);
+  const droppedRecordings = existingLesson
+    ? carryOverTurns(existingLesson.turns, lesson.turns, { prefer: "new" }).dropped.length
+    : 0;
   elements.learningPackageTitle.textContent = `导入：${lesson.title}`;
   elements.learningPackagePreview.replaceChildren(
     el("p", "learning-package-source", filename ? `文件：${filename}` : `来源版本：${pkg.appVersion || "未知"}`),
@@ -6550,7 +6703,7 @@ function renderLearningPackagePreview(pkg, filename = "") {
     learningPackagePreviewRow("AI 缓存", `${explanationCount} 句讲解 · ${lexicalCount} 个固定表达`),
     learningPackagePreviewRow("来源", pkg.material?.album?.title || pkg.material?.tape?.title || pkg.material?.entry?.title || "独立课程"),
     el("p", `micro-copy learning-package-conflict${existing ? " is-warning" : ""}`, existing
-      ? "这台设备已有同一课程。默认更新课程，并保留本机逐句录音；也可以导入为副本。"
+      ? `这台设备已有同一课程。默认更新课程，并保留本机逐句录音；也可以导入为副本。${droppedRecordings ? `\n注意：本机有 ${droppedRecordings} 句录音对应的句子在学习包里已不存在，更新后这些录音会被移除；想保留请选“导入为副本”。` : ""}`
       : "这是一门新课程。点击“更新已有课程”会直接加入当前设备。")
   );
   elements.learningPackageUpdateBtn.textContent = existing ? "更新已有课程" : "导入课程";
@@ -6578,34 +6731,36 @@ function importPendingLearningPackage(strategy) {
   }
 }
 
+// Ids from files are untrusted: they end up in storage keys and CSS selectors.
+const SAFE_ID_PATTERN = /^[\w:.-]{1,80}$/;
+
 function applyLearningPackage(pkg, strategy = "update") {
   const source = globalThis.OoFRLearningPackage.validate(pkg);
   const copyMode = strategy === "copy";
   const sourceLessonId = String(source.course.id);
-  const lessonId = copyMode ? makeId("course") : sourceLessonId;
+  const lessonId = copyMode || !SAFE_ID_PATTERN.test(sourceLessonId) ? makeId("course") : sourceLessonId;
   const importedLesson = cloneJson(source.course);
   importedLesson.id = lessonId;
   if (copyMode) importedLesson.title = `${importedLesson.title}（导入）`;
   importedLesson.turns = importedLesson.turns.map((turn, index) => ({
     ...turn,
-    id: copyMode ? `${lessonId}_turn_${index + 1}` : String(turn.id || `${lessonId}_turn_${index + 1}`),
+    id: !copyMode && SAFE_ID_PATTERN.test(String(turn.id || "")) ? String(turn.id) : `${lessonId}_turn_${index + 1}`,
     recording: { status: "none", durationMs: 0, mediaKey: "" }
   }));
 
   const existingLesson = copyMode ? null : state.courseLessons.find((item) => item.id === lessonId);
-  if (existingLesson) {
-    const recordings = new Map(existingLesson.turns.flatMap((turn) => [
-      [`id:${turn.id}`, turn.recording],
-      [`text:${normalizeLexicalUnit(turn.text)}`, turn.recording]
-    ]));
-    importedLesson.turns.forEach((turn) => {
-      turn.recording = recordings.get(`id:${turn.id}`) || recordings.get(`text:${normalizeLexicalUnit(turn.text)}`) || turn.recording;
-    });
-  }
   const normalizedLesson = normalizeCourseLesson(importedLesson);
-  if (!normalizedLesson) throw new Error("学习包中的课程格式无效");
+  if (!normalizedLesson?.turns.length) throw new Error("学习包里没有可学习的句子，已取消导入");
+  let dropped = [];
+  if (existingLesson) {
+    // The package brings translations and AI notes; recordings exist only on this device.
+    const carried = carryOverTurns(existingLesson.turns, normalizedLesson.turns, { prefer: "new" });
+    normalizedLesson.turns = carried.turns;
+    dropped = carried.dropped;
+  }
 
   const material = importLearningPackageMaterial(source.material, normalizedLesson, copyMode);
+  queueRecordingRelease(dropped.map((turn) => turn.recording.mediaKey));
   const lessonIndex = state.courseLessons.findIndex((item) => item.id === normalizedLesson.id);
   if (lessonIndex >= 0) state.courseLessons.splice(lessonIndex, 1, normalizedLesson);
   else state.courseLessons.unshift(normalizedLesson);
@@ -6614,7 +6769,7 @@ function applyLearningPackage(pkg, strategy = "update") {
   source.phraseItems.forEach((raw) => {
     const item = normalizePhraseItem({
       ...raw,
-      id: copyMode ? makeId("phrase") : raw.id,
+      id: copyMode || !SAFE_ID_PATTERN.test(String(raw.id || "")) ? makeId("phrase") : raw.id,
       sourceLessonId: normalizedLesson.id,
       sourceTitle: normalizedLesson.title
     });
@@ -6634,46 +6789,60 @@ function applyLearningPackage(pkg, strategy = "update") {
   return normalizedLesson.title;
 }
 
+// Brings the package's material (album / tape / entry) onto this device.
+// Updating never rewrites what the learner already has: an existing album or
+// tape is kept as is, and an existing entry only takes the package's text and
+// type while keeping local notes and practice history.
 function importLearningPackageMaterial(material, lesson, copyMode) {
   if (!material || (!material.album && !material.tape && !material.entry)) return { album: null, tape: null, entry: null };
   const albumSource = material.album || {};
-  const albumId = copyMode ? makeId("album") : String(albumSource.id || state.ui.selectedAlbumId || makeId("album"));
-  let album = normalizeAlbum({
-    ...albumSource,
-    id: albumId,
-    title: copyMode ? `${albumSource.title || lesson.title}（导入）` : (albumSource.title || lesson.title),
-    courseLessonId: ""
-  });
-  if (!album) album = normalizeAlbum({ id: albumId, title: lesson.title, description: "从学习包导入", courseLessonId: "" });
-  const albumIndex = state.albums.findIndex((item) => item.id === album.id);
-  if (albumIndex >= 0) state.albums.splice(albumIndex, 1, album);
-  else state.albums.push(album);
-
   const tapeSource = material.tape || {};
-  const tapeId = copyMode ? makeId("tape") : String(tapeSource.id || makeId("tape"));
-  let tape = normalizeTape({ ...tapeSource, id: tapeId, albumId: album.id, title: tapeSource.title || "导入素材" });
-  if (!tape) tape = normalizeTape({ id: tapeId, albumId: album.id, title: "导入素材", description: "" });
-  const tapeIndex = state.tapes.findIndex((item) => item.id === tape.id);
-  if (tapeIndex >= 0) state.tapes.splice(tapeIndex, 1, tape);
-  else state.tapes.push(tape);
-
   const entrySource = material.entry || {};
-  const entryId = copyMode ? makeId("entry") : String(entrySource.id || makeId("entry"));
+  const safeSourceId = (value) => (!copyMode && SAFE_ID_PATTERN.test(String(value || "")) ? String(value) : "");
   const fallbackText = lesson.turns.map((turn) => lesson.materialType === "情景对话" ? `${turn.speakerLabel}: ${turn.text}` : turn.text).join("\n");
-  let entry = normalizeEntry({
-    ...entrySource,
-    id: entryId,
-    tapeId: tape.id,
+  const entryFields = {
     title: entrySource.title || lesson.title,
-    text: typeof entrySource.text === "string" ? entrySource.text : fallbackText,
+    text: typeof entrySource.text === "string" && entrySource.text.trim() ? entrySource.text : fallbackText,
     language: lesson.language,
     materialType: lesson.materialType,
     courseLessonId: lesson.id
-  });
+  };
+
+  const existingEntry = safeSourceId(entrySource.id) ? getEntry(safeSourceId(entrySource.id)) : null;
+  if (existingEntry) {
+    const tape = getTape(existingEntry.tapeId);
+    const album = tape ? getAlbum(tape.albumId) : null;
+    Object.assign(existingEntry, entryFields, { updatedAt: nowIso() });
+    if (album) state.ui.selectedAlbumId = album.id;
+    if (tape) state.ui.selectedTapeId = tape.id;
+    return { album, tape, entry: existingEntry };
+  }
+
+  let tape = safeSourceId(tapeSource.id) ? getTape(safeSourceId(tapeSource.id)) : null;
+  let album = tape ? getAlbum(tape.albumId) : (safeSourceId(albumSource.id) ? getAlbum(safeSourceId(albumSource.id)) : null);
+  // A package without an album joins the album the learner has open, untouched.
+  if (!album && !copyMode && !material.album) album = getAlbum(state.ui.selectedAlbumId);
+  if (!album) {
+    const albumId = safeSourceId(albumSource.id) || makeId("album");
+    album = normalizeAlbum({
+      ...albumSource,
+      id: albumId,
+      title: copyMode ? `${albumSource.title || lesson.title}（导入）` : (albumSource.title || lesson.title),
+      courseLessonId: ""
+    }) || normalizeAlbum({ id: albumId, title: lesson.title, description: "从学习包导入", courseLessonId: "" });
+    state.albums.push(album);
+  }
+  if (!tape || tape.albumId !== album.id) {
+    const tapeId = safeSourceId(tapeSource.id) && !getTape(safeSourceId(tapeSource.id)) ? safeSourceId(tapeSource.id) : makeId("tape");
+    tape = normalizeTape({ ...tapeSource, id: tapeId, albumId: album.id, title: tapeSource.title || "导入素材" })
+      || normalizeTape({ id: tapeId, albumId: album.id, title: "导入素材", description: "" });
+    state.tapes.push(tape);
+  }
+
+  const entryId = safeSourceId(entrySource.id) || makeId("entry");
+  const entry = normalizeEntry({ ...entrySource, ...entryFields, id: entryId, tapeId: tape.id });
   if (!entry) throw new Error("学习包素材格式无效");
-  const entryIndex = state.entries.findIndex((item) => item.id === entry.id);
-  if (entryIndex >= 0) state.entries.splice(entryIndex, 1, entry);
-  else state.entries.push(entry);
+  state.entries.push(entry);
   state.ui.selectedAlbumId = album.id;
   state.ui.selectedTapeId = tape.id;
   return { album, tape, entry };
@@ -7288,7 +7457,8 @@ function normalizeAlbum(album) {
     id: String(album.id),
     title: String(album.title),
     description: String(album.description || ""),
-    coverColor: album.coverColor || pickAlbumColor(),
+    // Only plain hex colours: the value ends up in a CSS custom property.
+    coverColor: /^#[0-9a-f]{3,8}$/i.test(String(album.coverColor || "")) ? String(album.coverColor) : pickAlbumColor(),
     courseLessonId: album.courseLessonId ? String(album.courseLessonId) : "",
     createdAt: album.createdAt || nowIso(),
     updatedAt: album.updatedAt || nowIso()
@@ -7474,7 +7644,10 @@ function persist({ skipCloud = false } = {}) {
     } catch (error) {
       pending = Promise.reject(error);
     }
-    pending.then(clearSaveFailureNotice, handleSaveFailure);
+    pending.then(() => {
+      clearSaveFailureNotice();
+      flushRecordingRelease();
+    }, handleSaveFailure);
   }
   try {
     renderMy();

@@ -48,8 +48,10 @@ function createMemoryStorage(initial = {}, { quotaChars = Infinity } = {}) {
 function loadApp({ store = {}, quotaChars, hostname = "example.github.io", protocol = "https:", extra = {} } = {}) {
   const source = fs.readFileSync(APP_PATH, "utf8").replace(/^initApp\(\)[^\n]*$/m, "/* initApp is started by the tests */");
   const localStorage = createMemoryStorage(store, { quotaChars });
+  const quiet = { log() {}, info() {}, warn() {}, error() {} };
   const sandbox = {
-    console,
+    // The app logs recoverable problems with console.error; keep test output readable.
+    console: process.env.OOFR_TEST_LOG ? console : quiet,
     setTimeout, clearTimeout, setInterval, clearInterval,
     Option: function Option(label, value) { return { label, value }; },
     document: {
@@ -71,6 +73,10 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
+  // The small shared scripts index.html loads before app.js.
+  ["version.js", "learning-package.js"].forEach((name) => {
+    vm.runInContext(fs.readFileSync(path.resolve(__dirname, "../..", name), "utf8"), context, { filename: name });
+  });
   vm.runInContext(source, context, { filename: "app.js" });
   return {
     context,
