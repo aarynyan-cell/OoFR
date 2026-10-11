@@ -6,7 +6,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-const APP_PATH = path.resolve(__dirname, "../../app.js");
+const ROOT = path.resolve(__dirname, "../..");
+
+// The scripts the page loads, in its own order, so the tests run the app as the
+// browser does (dictionary.js is left out: it fetches its data as soon as it loads).
+function pageScripts() {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  return [...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((match) => match[1]).filter((name) => name !== "dictionary.js");
+}
 
 function stubElement() {
   const handler = {
@@ -47,9 +54,6 @@ function createMemoryStorage(initial = {}, { quotaChars = Infinity } = {}) {
 }
 
 function loadApp({ store = {}, quotaChars, hostname = "example.github.io", protocol = "https:", extra = {}, startApp = false } = {}) {
-  let source = fs.readFileSync(APP_PATH, "utf8");
-  // By default the tests start nothing on their own; `startApp` runs the real start-up.
-  if (!startApp) source = source.replace(/^initApp\(\)[^\n]*$/m, "/* initApp is started by the tests */");
   const localStorage = createMemoryStorage(store, { quotaChars });
   const quiet = { log() {}, info() {}, warn() {}, error() {} };
   const sandbox = {
@@ -79,11 +83,12 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
-  // The small shared scripts index.html loads before app.js.
-  ["version.js", "learning-package.js", "ollama-client.js"].forEach((name) => {
-    vm.runInContext(fs.readFileSync(path.resolve(__dirname, "../..", name), "utf8"), context, { filename: name });
+  pageScripts().forEach((name) => {
+    let source = fs.readFileSync(path.join(ROOT, name), "utf8");
+    // By default the tests start nothing on their own; `startApp` runs the real start-up.
+    if (name === "app.js" && !startApp) source = source.replace(/^initApp\(\)[^\n]*$/m, "/* initApp is started by the tests */");
+    vm.runInContext(source, context, { filename: name });
   });
-  vm.runInContext(source, context, { filename: "app.js" });
   return {
     context,
     localStorage,
@@ -92,4 +97,4 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
   };
 }
 
-module.exports = { loadApp, createMemoryStorage, stubElement };
+module.exports = { loadApp, createMemoryStorage, stubElement, pageScripts };

@@ -5,6 +5,9 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const { pageScripts } = require("./helpers/load-app.js");
+// All of the app's own code (app.js is split over several scripts).
+const appSource = () => ["dictionary.js", ...pageScripts()].map(read).join("\n");
 
 test("index.html stays valid under the extension and desktop CSP (no inline script, handlers or javascript: URLs)", () => {
   const html = read("index.html");
@@ -15,16 +18,16 @@ test("index.html stays valid under the extension and desktop CSP (no inline scri
   assert.doesNotMatch(html, /<(?:link|script)[^>]+(?:https?:)?\/\/(?!ai\.google\.dev)/i, "no external scripts or stylesheets");
 });
 
-test("every element app.js looks up by id exists in index.html", () => {
-  const app = read("app.js");
+test("every element the app looks up by id exists in index.html", () => {
+  const app = appSource();
   const html = read("index.html");
   const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]));
   const referenced = new Set([...app.matchAll(/querySelector\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]));
   assert.deepEqual([...referenced].filter((id) => !ids.has(id)), []);
 });
 
-test("the only HTML app.js builds from strings is the static icon set", () => {
-  const app = read("app.js");
+test("the only HTML the app builds from strings is the static icon set", () => {
+  const app = appSource();
   const sinks = [...app.matchAll(/(?:innerHTML|insertAdjacentHTML\([^,]+,|outerHTML)\s*=?\s*([^;\n]+)/g)].map((match) => match[1].trim());
   const unsafe = sinks.filter((expression) => !/^icons\b|^icons\[|^`?\$\{?icons|^icons\./.test(expression) && !/icons\[/.test(expression));
   assert.deepEqual(unsafe, [], "dynamic text must be added with textContent / createTextNode");

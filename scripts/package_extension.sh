@@ -21,6 +21,11 @@ zip -qr "$OUT_FILE" \
   dictionary.js \
   dictionary \
   app.js \
+  app-state.js \
+  app-speech.js \
+  app-course-player.js \
+  app-local-ai.js \
+  app-words.js \
   lexicon.js \
   manifest.webmanifest \
   sw.js \
