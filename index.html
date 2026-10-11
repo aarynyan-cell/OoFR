@@ -221,6 +221,10 @@
                       <button type="button" class="course-custom-option" data-course-mode="speaker">对话练习</button>
                       <div class="course-custom-details">
                         <label>说话人 <select id="courseSpeakerSelect" class="course-speaker-select" aria-label="选择说话人"><option value="all">全部说话人</option></select></label>
+                        <div class="course-timing-controls" role="group" aria-label="重复与间隔">
+                          <label>重复 <select id="courseRepeatSelect" aria-label="每句重复次数"><option value="1">1 次</option><option value="2">2 次</option><option value="3">3 次</option></select></label>
+                          <label>间隔 <select id="coursePauseSelect" aria-label="重复之间的停顿"><option value="0">无</option><option value="0.4">0.4 秒</option><option value="0.8">0.8 秒</option><option value="1.5">1.5 秒</option></select></label>
+                        </div>
                         <div class="course-segment-controls" role="group" aria-label="片段范围">
                           <label>从 <select id="courseSegmentStart" aria-label="片段开始"></select></label>
                           <label>到 <select id="courseSegmentEnd" aria-label="片段结束"></select></label>
@@ -718,6 +722,8 @@
         </div>
       </article>
     </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <script src="./version.js?v=1.0.0"></script>
     <script src="./learning-package.js?v=1.0.0"></script>

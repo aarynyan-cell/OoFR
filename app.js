@@ -20,9 +20,7 @@ const APP_VERSION = globalThis.OOFR_VERSION || "1.0.0";
 const ASSET_VERSION = APP_VERSION;
 const CLOUD_SYNC_ENABLED = false;
 const LEARNING_PACKAGE_TYPE = "oofr.learning-package";
-const LEARNING_PACKAGE_SCHEMA_VERSION = 1;
 const DESKTOP_AI_MODEL = "gemma3:4b";
-const DICTIONARY_ENRICHMENT_VERSION = "3";
 const AI_CONTENT_VERSION = "2";
 const LEXICON_SCRIPT_SRC = `./lexicon.js?v=${ASSET_VERSION}`;
 const WORD_PATTERN_SOURCE = String.raw`[\p{L}\p{M}]+(?:[’'\-][\p{L}\p{M}]+)*`;
@@ -132,6 +130,9 @@ const elements = {
   pauseControl: document.querySelector("#pauseControl"),
   pauseLabel: document.querySelector("#pauseLabel"),
   statusLine: document.querySelector("#statusLine"),
+  toast: document.querySelector("#toast"),
+  courseRepeatSelect: document.querySelector("#courseRepeatSelect"),
+  coursePauseSelect: document.querySelector("#coursePauseSelect"),
   lexiconStatus: document.querySelector("#lexiconStatus"),
   sentenceList: document.querySelector("#sentenceList"),
   wordPanel: document.querySelector("#wordPanel"),
@@ -262,11 +263,7 @@ const elements = {
   courseSpeakerSelect: document.querySelector("#courseSpeakerSelect"),
   courseSegmentStart: document.querySelector("#courseSegmentStart"),
   courseSegmentEnd: document.querySelector("#courseSegmentEnd"),
-  courseProgressFill: document.querySelector("#courseProgressFill"),
   coursePlaybackStatus: document.querySelector("#coursePlaybackStatus"),
-  coursePrevBtn: document.querySelector("#coursePrevBtn"),
-  coursePlayBtn: document.querySelector("#coursePlayBtn"),
-  courseNextBtn: document.querySelector("#courseNextBtn"),
   courseRateSelect: document.querySelector("#courseRateSelect"),
   courseRateButton: document.querySelector("#courseRateButton"),
   courseTranslationToggle: document.querySelector("#courseTranslationToggle"),
@@ -283,14 +280,10 @@ const elements = {
   courseVoiceSelect: document.querySelector("#courseVoiceSelect"),
   courseVoiceButton: document.querySelector("#courseVoiceButton"),
   courseVoiceOptions: document.querySelector("#courseVoiceOptions"),
-  courseSentenceLoop: document.querySelector("#courseSentenceLoop"),
   courseBottomTranslationToggle: document.querySelector("#courseBottomTranslationToggle"),
-  courseWordHelpBtn: document.querySelector("#courseWordHelpBtn"),
   courseTranscriptList: document.querySelector("#courseTranscriptList"),
   courseWordCount: document.querySelector("#courseWordCount"),
   courseWordList: document.querySelector("#courseWordList"),
-  courseExplanationTitle: document.querySelector("#courseExplanationTitle"),
-  courseExplanationBody: document.querySelector("#courseExplanationBody"),
   courseWordPopover: document.querySelector("#courseWordPopover"),
   coursePopoverWord: document.querySelector("#coursePopoverWord"),
   coursePopoverMeta: document.querySelector("#coursePopoverMeta"),
@@ -353,14 +346,12 @@ let courseDraft = null;
 let courseActiveLessonId = null;
 let courseMode = "all";
 let courseCurrentTurnIndex = 0;
-let courseRecordingTimers = new Map();
 let courseRecordingSession = null;
 let courseRecordingAudio = null;
 let courseRecordingUrls = new Map();
 let audioDbPromise = null;
 let courseSegmentStart = 0;
 let courseSegmentEnd = 0;
-let courseSentenceLoop = false;
 // True after the last full run finished, so the next play starts from the top.
 let courseRunFinished = false;
 // A timeline drag in progress (see the timeline handler).
@@ -376,8 +367,6 @@ let phrasePracticePromptLanguage = "original";
 let phrasePracticeSpeaking = false;
 let selectedCourseWord = null;
 let dictionaryCache = new Map();
-let dictionaryEnrichmentRuns = new Map();
-let dictionaryEnrichmentQueue = Promise.resolve();
 let courseWordDetailRunId = 0;
 let courseSentenceDetailRunId = 0;
 let translationCache = new Map();
@@ -1173,12 +1162,18 @@ function bindCourseEvents() {
     stopCoursePlaybackForSettingChange();
     renderCoursePlayer();
   });
-  if (elements.courseSentenceLoop) elements.courseSentenceLoop.addEventListener("change", () => {
-    courseSentenceLoop = elements.courseSentenceLoop.checked;
+  elements.courseRepeatSelect?.addEventListener("change", () => {
+    state.settings.repeat = elements.courseRepeatSelect.value;
+    setRepeat(state.settings.repeat);
+    persist();
+    renderCourseProgress(getActiveCourseLesson() || { turns: [] });
   });
-  if (elements.coursePlayBtn) elements.coursePlayBtn.addEventListener("click", playCourseSelection);
-  if (elements.coursePrevBtn) elements.coursePrevBtn.addEventListener("click", () => moveCourseTurn(-1));
-  if (elements.courseNextBtn) elements.courseNextBtn.addEventListener("click", () => moveCourseTurn(1));
+  elements.coursePauseSelect?.addEventListener("change", () => {
+    state.settings.pause = elements.coursePauseSelect.value;
+    updateLabels();
+    persist();
+    renderCourseProgress(getActiveCourseLesson() || { turns: [] });
+  });
   elements.courseFastBackBtn.addEventListener("click", () => seekCourseBy(-1));
   elements.courseFastForwardBtn.addEventListener("click", () => seekCourseBy(1));
   elements.courseBottomPlayBtn.addEventListener("click", playCourseSelection);
@@ -1225,7 +1220,6 @@ function bindCourseEvents() {
     if (event.target === elements.courseSentenceDetailDialog) closeCourseSentenceDetail();
   });
   elements.courseSentenceDetailDialog?.addEventListener("close", () => { courseSentenceDetailRunId += 1; });
-  if (elements.courseWordHelpBtn) elements.courseWordHelpBtn.addEventListener("click", () => setStatus("快捷键：←/→ 切换句子，空格播放/暂停，S 收藏当前词句"));
   elements.courseRevealBtn.addEventListener("click", revealCoursePracticeAnswer);
   elements.courseAgainBtn.addEventListener("click", () => advanceCoursePractice(false));
   elements.courseKnownBtn.addEventListener("click", () => advanceCoursePractice(true));
@@ -2652,7 +2646,6 @@ function renderCoursePlayer() {
   elements.courseSegmentEnd.replaceChildren(...lesson.turns.map((turn, index) => new Option(`第 ${index + 1} 句`, String(index))));
   elements.courseSegmentStart.value = String(courseSegmentStart);
   elements.courseSegmentEnd.value = String(courseSegmentEnd);
-  if (elements.courseSentenceLoop) elements.courseSentenceLoop.checked = courseSentenceLoop;
   elements.courseBottomTranslationToggle.checked = elements.courseTranslationToggle.checked;
   syncCourseVoiceSelect();
   syncCourseCustomMenu();
@@ -2973,9 +2966,6 @@ function showCourseWordInfo(word, lesson, anchor = null) {
   const info = getDemoWordInfo(word, lesson);
   selectedCourseWord = { word, lesson, anchor, info };
   renderCourseWordPopover(info);
-  const meaning = wordMeaningForSystem(info);
-  if (elements.courseExplanationTitle) elements.courseExplanationTitle.textContent = `${info.displayWord || info.lemma} · ${info.ipa}`;
-  if (elements.courseExplanationBody) elements.courseExplanationBody.innerHTML = `<strong>${escapeHtml(meaning)}</strong><br><span>${escapeHtml(info.pos)} · ${escapeHtml(info.forms)}</span>`;
   elements.courseWordPopover.hidden = false;
   positionCourseWordPopover();
   playSelectedCourseWord();
@@ -3263,186 +3253,6 @@ function cleanDictionaryDetailNotes(value) {
     .filter((part) => !/同音词|近音词/.test(part))
     .slice(0, 4)
     .join(" · ");
-}
-
-function dictionaryEnrichmentKey(word, lesson, info) {
-  const lemma = normalizeLexicalUnit(info?.lemma || word);
-  const partOfSpeech = normalizeLexicalUnit(info?.pos || info?.partOfSpeech || "word");
-  return [DICTIONARY_ENRICHMENT_VERSION, lesson?.language || "fr", lemma, partOfSpeech].join(":");
-}
-
-function applyDictionaryEnrichment(info, enrichment) {
-  if (!enrichment?.senses?.length) return info;
-  const localSenses = dictionarySenseList(info.zh, "zh", 20);
-  const aiSenses = validatedAiDictionarySenses(enrichment.senses, enrichment.evidenceCount || 1);
-  if (!aiSenses.length) return info;
-  const trusted = isTrustedDictionaryInfo(info);
-  const senses = trusted
-    ? localSenses
-    : mergeDictionarySenses(aiSenses, localSenses, 12);
-  if (!senses.length) return info;
-  const forms = [info.forms, enrichment.formNote]
-    .map((value) => String(value || "").trim())
-    .filter(Boolean)
-    .filter((value, index, values) => values.indexOf(value) === index)
-    .join("\n");
-  return {
-    ...info,
-    zh: senses.join("；"),
-    forms,
-    contextMeaning: String(enrichment.contextMeaning || "").trim(),
-    aiUsageNote: String(enrichment.usageNote || "").trim(),
-    source: trusted
-      ? formatDictionarySource(info.source)
-      : `${formatDictionarySource(info.source)} · 本机 ${enrichment.model || "AI"} 按词典证据整理`,
-    aiDictionary: true,
-    aiModel: enrichment.model || ""
-  };
-}
-
-function dictionarySenseList(value, language = "zh", limit = 12) {
-  if (window.OOFR_DICTIONARY?.senseList) return window.OOFR_DICTIONARY.senseList(value, language, limit);
-  return String(value || "")
-    .split(/\s*(?:\n+|；|;|•|\s+·\s+)\s*/)
-    .map((sense) => sense.trim())
-    .filter(Boolean)
-    .slice(0, limit);
-}
-
-function isTrustedDictionaryInfo(info) {
-  return /OoFR\s*校订/i.test(String(info?.source || ""));
-}
-
-function dictionaryEvidenceGlosses(info) {
-  const source = String(info?.en || info?.dictionaryDetails || "");
-  return dictionarySenseList(source, "en", 8)
-    .map((gloss) => gloss.replace(/^(?:to|a|an|the)\s+/i, "").trim())
-    .filter(Boolean);
-}
-
-function validatedAiDictionarySenses(values, evidenceCount = 1) {
-  const upperBound = Math.max(1, Math.min(8, Number(evidenceCount) || 1));
-  return dictionarySenseList((values || []).join("；"), "zh", upperBound)
-    .map((sense) => sense.replace(/^[\d①-⑳]+[.、．)）]\s*/u, "").trim())
-    .filter((sense) => sense.length <= 32)
-    .filter((sense) => !/^(?:对|在)(?:某|一个|一些).*(?:进行|执行|处理|操作|分析|评估|研究|探索|尝试)$/u.test(sense));
-}
-
-function mergeDictionarySenses(primary, secondary, limit = 12) {
-  const output = [];
-  const keys = new Set();
-  [...primary, ...secondary].forEach((sense) => {
-    const value = String(sense || "").trim();
-    const key = value.toLocaleLowerCase().replace(/[\s,，、.。()（）]/g, "");
-    if (!value || !key || keys.has(key) || output.length >= limit) return;
-    keys.add(key);
-    output.push(value);
-  });
-  return output;
-}
-
-function enrichCourseWordInfo(word, lesson, info, anchor = null) {
-  if (!info || !lesson || !globalThis.OoFROllama?.Client || !localAiRuntimeEnabled()) return Promise.resolve(info);
-  const key = dictionaryEnrichmentKey(word, lesson, info);
-  const cached = state.dictionaryEntries?.[key];
-  if (cached?.version === DICTIONARY_ENRICHMENT_VERSION && cached.senses?.length) {
-    const enriched = applyDictionaryEnrichment(info, cached);
-    dictionaryCache.set(`${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(selectedCourseWordTurn({ word, lesson, anchor })?.text || "")}`, enriched);
-    if (selectedCourseWord?.word === word) {
-      selectedCourseWord.info = enriched;
-      renderCourseWordPopover(enriched);
-    }
-    return Promise.resolve(enriched);
-  }
-  if (dictionaryEnrichmentRuns.has(key)) return dictionaryEnrichmentRuns.get(key).then((result) => applyDictionaryEnrichment(info, result));
-
-  if (selectedCourseWord?.word === word && elements.coursePopoverSource) {
-    elements.coursePopoverSource.textContent = `来源：${formatDictionarySource(info.source)} · 本机 AI 正在核对…`;
-  }
-  const run = dictionaryEnrichmentQueue
-    .catch(() => undefined)
-    .then(() => requestDictionaryEnrichment(word, lesson, info, anchor))
-    .finally(() => dictionaryEnrichmentRuns.delete(key));
-  dictionaryEnrichmentQueue = run;
-  dictionaryEnrichmentRuns.set(key, run);
-  return run.then((enrichment) => {
-    if (!enrichment?.senses?.length) {
-      if (selectedCourseWord?.word === word) renderCourseWordPopover(info);
-      return info;
-    }
-    if (!state.dictionaryEntries) state.dictionaryEntries = {};
-    state.dictionaryEntries[key] = enrichment;
-    persist();
-    const enriched = applyDictionaryEnrichment(info, enrichment);
-    const context = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
-    dictionaryCache.set(`${systemExplainLanguage()}:${lesson.language}:${normalizeLexicalUnit(word)}:${normalizeLexicalUnit(context)}`, enriched);
-    if (selectedCourseWord?.word === word) {
-      selectedCourseWord.info = enriched;
-      renderCourseWordPopover(enriched);
-    }
-    return enriched;
-  });
-}
-
-async function requestDictionaryEnrichment(word, lesson, info, anchor) {
-  const sentence = selectedCourseWordTurn({ word, lesson, anchor })?.text || "";
-  const evidenceGlosses = dictionaryEvidenceGlosses(info);
-  const trusted = isTrustedDictionaryInfo(info);
-  const schema = {
-    type: "object",
-    properties: {
-      senses: { type: "array", items: { type: "string" } },
-      contextMeaning: { type: "string" },
-      formNote: { type: "string" },
-      usageNote: { type: "string" }
-    },
-    required: ["senses", "contextMeaning", "formNote", "usageNote"]
-  };
-  const prompt = `Clean this ${lesson.language === "en" ? "English" : "French"} dictionary entry for a Chinese learner. Return Simplified Chinese only except for cited word forms.
-
-STRICT EVIDENCE RULES:
-1. The senses array may translate or merge only the numbered EVIDENCE_GLOSSES below. Never add a meaning, domain, profession, object or use that is not explicitly present in those glosses.
-2. Return at most ${Math.max(1, evidenceGlosses.length)} short senses. Fewer accurate senses are better than invented completeness. If evidence is sparse, keep the result sparse.
-3. Do not produce examples, IPA, etymology, source notes, part-of-speech labels or near-duplicate paraphrases in senses.
-4. LOCAL_CHINESE is reference text only. Correct its wording when an English gloss supports the correction; do not expand beyond the English evidence.
-5. For an inflected verb, explain the exact form in formNote. For an elision, explain the expansion. For non-verbs such as ça, retain the actual pronunciation-bearing headword.
-6. contextMeaning must state only the meaning used in SENTENCE. usageNote may explain one important grammar or register point, but must not invent dictionary senses.
-Return only the required JSON.
-
-SURFACE: ${word}
-LEMMA: ${info.lemma || word}
-PART_OF_SPEECH: ${info.pos || "unknown"}
-TRUSTED_CURATED_ENTRY: ${trusted ? "yes" : "no"}
-LOCAL_CHINESE: ${conciseChineseDictionaryMeaning(info.zh)}
-EVIDENCE_GLOSSES:
-${evidenceGlosses.length ? evidenceGlosses.map((gloss, index) => `${index + 1}. ${gloss}`).join("\n") : "1. No English gloss available; preserve LOCAL_CHINESE without adding meanings."}
-SENTENCE: ${sentence}`;
-  try {
-    const response = await createLocalAiClient(90000).chatJson({
-      prompt,
-      schema,
-      timeoutMs: 90000,
-      options: { num_predict: 360 }
-    });
-    const senses = validatedAiDictionarySenses(response.data?.senses || [], Math.max(1, evidenceGlosses.length));
-    if (!senses.length) throw new Error("模型没有返回可用的简中义项");
-    lastLocalAiError = null;
-    return {
-      version: DICTIONARY_ENRICHMENT_VERSION,
-      lemma: String(info.lemma || word),
-      partOfSpeech: String(info.pos || ""),
-      evidenceCount: Math.max(1, evidenceGlosses.length),
-      senses,
-      contextMeaning: String(response.data?.contextMeaning || "").trim(),
-      formNote: String(response.data?.formNote || "").trim(),
-      usageNote: String(response.data?.usageNote || "").trim(),
-      model: response.model,
-      updatedAt: nowIso()
-    };
-  } catch (error) {
-    lastLocalAiError = error;
-    return null;
-  }
 }
 
 function playSelectedCourseWord() {
@@ -3777,15 +3587,10 @@ function turnRowSelector(turnId) {
   return `[data-turn-id="${escaped}"]`;
 }
 
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-}
-
 function renderCourseProgress(lesson) {
   const total = lesson.turns.length || 1;
   courseProgressRatio = clamp(courseProgressRatio || courseCurrentTurnIndex / total, 0, 1);
   if (!playback.status || playback.status === "idle") courseProgressRatio = clamp(courseCurrentTurnIndex / total, 0, 1);
-  if (elements.courseProgressFill) elements.courseProgressFill.style.width = `${Math.round(courseProgressRatio * 100)}%`;
   elements.coursePlaybackStatus.textContent = `第 ${courseCurrentTurnIndex + 1} / ${lesson.turns.length} 句 · ${lesson.turns.filter((turn) => turn.recording.status === "recorded").length} 句已录音`;
   elements.courseTimeline.max = "1000";
   elements.courseTimeline.value = String(Math.round(courseProgressRatio * 1000));
@@ -3817,11 +3622,6 @@ function renderCoursePlaybackButtons(lesson = getActiveCourseLesson()) {
   renderCourseTurnPlayButtons();
 }
 
-function formatCourseTimeline(index, total) {
-  const seconds = Math.max(0, Math.round(Number(index || 0) * 8));
-  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 function formatSeconds(seconds) {
   const rounded = Math.max(0, Math.round(Number(seconds) || 0));
   return `${String(Math.floor(rounded / 60)).padStart(2, "0")}:${String(rounded % 60).padStart(2, "0")}`;
@@ -3847,7 +3647,6 @@ function updateCourseProgressRatio(ratio, lesson) {
   const estimatedTotalSeconds = estimateCourseDurationSeconds(lesson.turns);
   elements.courseTimeline.value = String(Math.round(courseProgressRatio * 1000));
   elements.courseElapsed.textContent = formatSeconds(courseProgressRatio * estimatedTotalSeconds);
-  if (elements.courseProgressFill) elements.courseProgressFill.style.width = `${Math.round(courseProgressRatio * 100)}%`;
 }
 
 function startCourseProgressTicker(turnIndex, text, lesson, initialElapsedMs = 0) {
@@ -3938,13 +3737,6 @@ function playCourseSelection(options = {}) {
     loop: courseMode === "single" || courseMode === "loop",
     transport: true
   });
-}
-
-function playFullCourse() {
-  courseMode = "all";
-  syncCourseCustomMenu();
-  renderCoursePlayer();
-  playCourseSelection();
 }
 
 function playCourseTurn(lesson, index) {
@@ -4761,23 +4553,6 @@ function selectAlbum(albumId) {
   renderLibrary();
 }
 
-function openCourseFromAlbum(album) {
-  const lesson = state.courseLessons?.find((item) => item.id === album.courseLessonId);
-  if (!lesson) {
-    setStatus("这个磁带还没有课程");
-    return;
-  }
-  state.ui.selectedAlbumId = album.id;
-  state.activeCourseId = lesson.id;
-  courseActiveLessonId = lesson.id;
-  courseCurrentTurnIndex = 0;
-  state.ui.activeView = "course";
-  persist();
-  renderView();
-  setCourseStage("player");
-  scheduleCourseBackgroundEnrichment(lesson);
-}
-
 function renderLibraryDetail() {
   elements.libraryDetail.replaceChildren();
   elements.materialFilterButtons.forEach((filterButton) => {
@@ -5076,171 +4851,6 @@ function syncCourseFromEntry(entry) {
   else state.courseLessons.unshift(lesson);
   entry.courseLessonId = lesson.id;
   return lesson;
-}
-
-function renderCourseAlbumDetail(album, course) {
-  const wrap = el("section", "course-album-detail");
-  const header = el("div", "detail-header");
-  const titleBox = el("div");
-  titleBox.append(
-    el("p", "eyebrow", "Tape course"),
-    el("h2", "", album.title),
-    el("p", "micro-copy", `${course.language === "en" ? "英语" : "法语"} · ${course.turns.length} 句 · ${course.description || "自定义课程"}`)
-  );
-  const actions = el("div", "row-actions");
-  actions.append(
-    button("打开课程", "command-button primary", () => openCourseFromAlbum(album), "play"),
-    button("编辑磁带", "command-button", () => openAlbumDialog(album.id), "edit")
-  );
-  header.append(titleBox, actions);
-  const preview = el("div", "course-album-preview");
-  preview.append(el("p", "eyebrow", "Course preview"));
-  course.turns.slice(0, 3).forEach((turn, index) => {
-    const row = el("div", "course-album-preview-row");
-    row.append(el("span", "course-turn-number", String(index + 1).padStart(2, "0")), el("span", "", turn.text), el("span", "speaker-chip", turn.speakerLabel));
-    preview.append(row);
-  });
-  const courseSection = el("section", "album-content-section");
-  courseSection.append(el("p", "eyebrow", "课程"), preview);
-  wrap.append(header, courseSection, renderAlbumMaterialSection(album));
-  elements.libraryDetail.append(wrap);
-  scheduleCourseBackgroundEnrichment(course);
-}
-
-function syncCourseFromAlbumEntries(album) {
-  const entries = getEntriesByAlbum(album.id).sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
-  if (!entries.length) return;
-  const existing = state.courseLessons?.find((lesson) => lesson.id === album.courseLessonId);
-  if (existing && !String(existing.id).startsWith("course_")) return;
-  const oldTurns = new Map((existing?.turns || []).map((turn) => [turn.text, turn]));
-  const turns = entries.flatMap((entry) => splitCourseTurns(entry.text).map((part, index) => {
-    const old = oldTurns.get(part.text);
-    return {
-      id: `${entry.id}_turn_${index + 1}`,
-      text: part.text,
-      translation: old?.translation || "",
-      speakerId: part.speakerId || old?.speakerId || "a",
-      speakerLabel: part.speakerLabel || old?.speakerLabel || "默认说话人",
-      aiExplanation: old?.aiExplanation || null,
-      recording: old?.recording || { status: "none", durationMs: 0, mediaKey: "" }
-    };
-  }));
-  if (!turns.length) return;
-  const sameTurns = existing?.turns?.length === turns.length && existing.turns.every((turn, index) => turn.id === turns[index].id && turn.text === turns[index].text);
-  if (existing && sameTurns) return;
-  const lesson = existing || normalizeCourseLesson({
-    id: `course_${album.id}`,
-    title: album.title,
-    language: "fr",
-    explainLanguage: "zh",
-    materialType: "磁带素材",
-    description: `从「${album.title}」的自建段落转换而来`,
-    turns,
-    practice: { completed: 0, correct: 0 }
-  });
-  lesson.title = album.title;
-  lesson.turns = turns;
-  lesson.updatedAt = nowIso();
-  if (!existing) state.courseLessons.push(lesson);
-  album.courseLessonId = lesson.id;
-  persist();
-}
-
-function renderAlbumMaterialSection(album) {
-  const section = el("section", "album-content-section album-material-section");
-  const heading = el("div", "album-material-heading");
-  heading.append(el("p", "eyebrow", "素材"), el("h3", "", "磁带里的学习素材"));
-  const entries = getEntriesByAlbum(album.id);
-  const list = el("div", "album-singles-list");
-  if (!entries.length) {
-    list.append(emptyState("还没有素材，先新建一段学习内容"));
-  } else {
-    entries.forEach((entry) => {
-      const item = el("article", "album-single-row");
-      item.append(el("span", "course-turn-number", "♪"));
-      const body = el("div", "album-single-body");
-      body.append(el("strong", "", entry.title), el("p", "entry-preview", entry.text));
-      const actions = el("div", "row-actions");
-      actions.append(
-        miniButton("进入课程", () => openCourseFromAlbum(album)),
-        miniButton("编辑", () => openEntryDialog(entry.id)),
-        miniButton("删除", () => deleteEntry(entry.id))
-      );
-      item.append(body, actions);
-      list.append(item);
-    });
-  }
-  section.append(heading, list);
-  return section;
-}
-
-function createTapeCard(tape) {
-  const card = el("article", "cassette-card");
-  card.classList.toggle("is-selected", state.ui.selectedTapeId === tape.id);
-
-  const face = el("div", "cassette-face");
-  const leftReel = el("div", "cassette-reel");
-  const label = el("button", "cassette-label");
-  label.type = "button";
-  label.addEventListener("click", () => {
-    state.ui.selectedTapeId = tape.id;
-    persist();
-    renderLibrary();
-  });
-  label.append(el("h3", "", tape.title), el("p", "", tape.description || `${getEntries(tape.id).length} 个段落`));
-  const rightReel = el("div", "cassette-reel");
-  face.append(leftReel, label, rightReel);
-
-  const actions = el("div", "row-actions");
-  actions.append(
-    miniButton("编辑", () => openTapeDialog(tape.id)),
-    miniButton("删除", () => deleteTape(tape.id))
-  );
-
-  card.append(face, actions);
-  return card;
-}
-
-function createEntrySection() {
-  const wrap = el("section", "entry-list");
-  const tape = getTape(state.ui.selectedTapeId);
-
-  if (!tape) {
-    wrap.append(emptyState("选择或新建一盘磁带"));
-    return wrap;
-  }
-
-  const header = el("div", "detail-header");
-  const titleBox = el("div");
-  titleBox.append(el("p", "eyebrow", "Cassette"), el("h2", "", tape.title), el("p", "micro-copy", tape.description || " "));
-  const actions = el("div", "row-actions");
-  actions.append(button("段落", "command-button primary", () => openEntryDialog(null, tape.id), "plus"));
-  header.append(titleBox, actions);
-  wrap.append(header);
-
-  const entries = getEntries(tape.id);
-  if (entries.length === 0) {
-    wrap.append(emptyState("还没有段落"));
-    return wrap;
-  }
-
-  entries.forEach((entry) => {
-    const item = el("article", "entry-item");
-    const titleRow = el("div", "item-title-row");
-    titleRow.append(el("h3", "", entry.title), el("span", "badge", `${entry.practiceCount || 0} 次`));
-    const preview = el("p", "entry-preview", entry.text);
-    const meta = el("p", "", entry.lastPracticedAt ? `最近练习：${formatDate(entry.lastPracticedAt)}` : "尚未练习");
-    const rowActions = el("div", "row-actions");
-    rowActions.append(
-      miniButton("打开", () => loadEntry(entry.id)),
-      miniButton("编辑", () => openEntryDialog(entry.id)),
-      miniButton("删除", () => deleteEntry(entry.id))
-    );
-    item.append(titleRow, preview, meta, rowActions);
-    wrap.append(item);
-  });
-
-  return wrap;
 }
 
 function renderWordbooks() {
@@ -5651,7 +5261,7 @@ async function playItems(items, options = {}) {
         if (isCourseTurn) markCourseTurnActive(turnIndex, row);
         playback.label = item.label || label;
         renderPlaybackControls();
-        setStatus(`正在播放：${item.label}`);
+        setStatus(`正在播放：${item.label}`, { toast: false });
 
         const repeat = getRepeat();
         const courseLesson = isCourseTurn ? getActiveCourseLesson() : null;
@@ -5691,7 +5301,7 @@ async function playItems(items, options = {}) {
       setBusy(false);
       playback = { status: "idle", key: "", label: "", token: 0 };
       renderPlaybackControls();
-      setStatus(abortMessage || "播放完成");
+      setStatus(abortMessage || "播放完成", { toast: Boolean(abortMessage) });
     }
   }
 }
@@ -5810,7 +5420,7 @@ function pauseSpeech() {
   pauseCourseProgressTicker();
   playback.status = "paused";
   renderPlaybackControls();
-  setStatus(`已暂停：${playback.label}`);
+  setStatus(`已暂停：${playback.label}`, { toast: false });
 }
 
 function resumeSpeech() {
@@ -5819,7 +5429,7 @@ function resumeSpeech() {
   window.speechSynthesis.resume();
   resumeCourseProgressTicker();
   renderPlaybackControls();
-  setStatus(`继续播放：${playback.label}`);
+  setStatus(`继续播放：${playback.label}`, { toast: false });
 }
 
 function stopSpeech({ quiet = false } = {}) {
@@ -5833,7 +5443,7 @@ function stopSpeech({ quiet = false } = {}) {
   setBusy(false);
   playback = { status: "idle", key: "", label: "", token: 0 };
   renderPlaybackControls();
-  if (!quiet) setStatus("已停止");
+  if (!quiet) setStatus("已停止", { toast: false });
 }
 
 function pause(milliseconds, token) {
@@ -5961,36 +5571,6 @@ function openAlbumDialog(albumId) {
         libraryAlbumScope = created.id;
         const tape = createTape(created.id, "素材", "磁带里的学习素材");
         state.ui.selectedTapeId = tape.id;
-      }
-      persist();
-      renderLibrary();
-    }
-  });
-}
-
-function openTapeDialog(tapeId, albumId = state.ui.selectedAlbumId) {
-  const tape = getTape(tapeId);
-  const albumOptions = state.albums.map((album) => ({ value: album.id, label: album.title }));
-  openDialog({
-    title: tape ? "编辑磁带" : "新建磁带",
-    submitText: tape ? "更新" : "创建",
-    fields: [
-      { name: "albumId", label: "所属磁带", type: "select", value: tape?.albumId || albumId, options: albumOptions, required: true },
-      { name: "title", label: "标题", type: "text", value: tape?.title || "", required: true },
-      { name: "description", label: "描述", type: "textarea", value: tape?.description || "" }
-    ],
-    onSubmit(values) {
-      if (tape) {
-        tape.albumId = values.albumId;
-        tape.title = values.title.trim();
-        tape.description = values.description.trim();
-        tape.updatedAt = nowIso();
-        state.ui.selectedAlbumId = values.albumId;
-        state.ui.selectedTapeId = tape.id;
-      } else {
-        const created = createTape(values.albumId, values.title, values.description);
-        state.ui.selectedAlbumId = values.albumId;
-        state.ui.selectedTapeId = created.id;
       }
       persist();
       renderLibrary();
@@ -6267,20 +5847,6 @@ function closeDialog() {
   }
 }
 
-function loadEntry(entryId) {
-  const entry = getEntry(entryId);
-  if (!entry) return;
-  const tape = getTape(entry.tapeId);
-  state.ui.selectedTapeId = entry.tapeId;
-  state.ui.selectedAlbumId = tape?.albumId || state.ui.selectedAlbumId;
-  state.ui.activeView = "library";
-  setCurrentText(entry.text, entry.id, { skipPersist: true });
-  persist();
-  renderAll();
-  setStatus(`已打开：${entry.title}`);
-  window.scrollTo({ top: 0, behavior: scrollBehavior() });
-}
-
 function setCurrentText(text, entryId, options = {}) {
   state.currentText = text;
   state.activeEntryId = entryId;
@@ -6371,24 +5937,6 @@ function deleteAlbum(albumId) {
     state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
   }
   if (libraryAlbumScope === albumId) libraryAlbumScope = state.ui.selectedAlbumId || "all";
-  if (state.activeEntryId && !getEntry(state.activeEntryId)) {
-    state.activeEntryId = null;
-  }
-  persist();
-  renderAll();
-}
-
-function deleteTape(tapeId) {
-  const tape = getTape(tapeId);
-  const tapeEntries = tape ? getEntries(tapeId) : [];
-  const lessonIds = new Set(tapeEntries.map((entry) => entry.courseLessonId).filter(Boolean));
-  if (!tape || !window.confirm(`删除磁带「${tape.title}」？${lessonRemovalSummary(lessonIds)}`)) return;
-  state.tapes = state.tapes.filter((item) => item.id !== tapeId);
-  state.entries = state.entries.filter((item) => item.tapeId !== tapeId);
-  removeLessons(lessonIds);
-  if (state.ui.selectedTapeId === tapeId) {
-    state.ui.selectedTapeId = getTapes(state.ui.selectedAlbumId)[0]?.id || null;
-  }
   if (state.activeEntryId && !getEntry(state.activeEntryId)) {
     state.activeEntryId = null;
   }
@@ -6591,16 +6139,6 @@ function isDiyVocabulary(item) {
   return !hasMeaningfulText(item.ipa) || !hasMeaningfulText(item.zh);
 }
 
-function wordbookNamesText(item) {
-  const names = [];
-  if (isDiyVocabulary(item)) names.push("DIY");
-  (item.wordbookIds || []).forEach((id) => {
-    const book = state.wordbooks.find((wordbook) => wordbook.id === id);
-    if (book) names.push(book.title);
-  });
-  return names.join("、");
-}
-
 function selectedCustomWordbookId() {
   const selected = state.ui.selectedWordbookId;
   return state.wordbooks.some((book) => book.id === selected) ? selected : "";
@@ -6703,16 +6241,6 @@ function trackSeenForm(item, rawWord) {
     item.seenForms.push({ form: rawWord.trim(), normalized, count: 1 });
   }
   item.updatedAt = nowIso();
-}
-
-function seenFormsText(item) {
-  if (!Array.isArray(item.seenForms)) return "";
-  return item.seenForms
-    .filter((entry) => entry.normalized && entry.normalized !== item.normalized)
-    .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
-    .slice(0, 6)
-    .map((entry) => `${entry.form || entry.normalized}${entry.count > 1 ? `×${entry.count}` : ""}`)
-    .join("、");
 }
 
 function normalizeWord(word) {
@@ -6832,10 +6360,6 @@ function getTapes(albumId) {
   return state.tapes.filter((tape) => tape.albumId === albumId);
 }
 
-function getEntries(tapeId) {
-  return state.entries.filter((entry) => entry.tapeId === tapeId);
-}
-
 function getEntriesByAlbum(albumId) {
   const tapeIds = getTapes(albumId).map((tape) => tape.id);
   return state.entries.filter((entry) => tapeIds.includes(entry.tapeId));
@@ -6866,13 +6390,24 @@ function updateLabels() {
 
 function setRepeat(value) {
   elements.repeatGroup.querySelectorAll("button[data-repeat]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.repeat === value));
+    button.setAttribute("aria-pressed", String(button.dataset.repeat === String(value)));
   });
+  if (elements.courseRepeatSelect) elements.courseRepeatSelect.value = String(getRepeat());
+}
+
+// The repeat and gap choices of the player menu always show the saved settings.
+function syncCourseTimingControls() {
+  if (elements.courseRepeatSelect) elements.courseRepeatSelect.value = String(getRepeat());
+  if (!elements.coursePauseSelect) return;
+  const options = Array.from(elements.coursePauseSelect.options, (option) => Number(option.value));
+  const wanted = Number(state.settings.pause);
+  const closest = options.reduce((best, value) => (Math.abs(value - wanted) < Math.abs(best - wanted) ? value : best), options[0]);
+  elements.coursePauseSelect.value = String(closest);
 }
 
 function getRepeat() {
-  const selected = elements.repeatGroup.querySelector('button[data-repeat][aria-pressed="true"]');
-  return Number(selected?.dataset.repeat || state.settings.repeat || "1");
+  const repeat = Math.round(Number(state.settings.repeat));
+  return Number.isFinite(repeat) && repeat >= 1 && repeat <= 5 ? repeat : 1;
 }
 
 function getPauseMs() {
@@ -6915,7 +6450,7 @@ function loadVoices() {
   syncCourseVoiceSelect();
 
   if (frenchVoices.length === 0) {
-    setStatus("未找到法语声音，使用系统默认");
+    setStatus("未找到法语声音，使用系统默认", { toast: false });
   }
 }
 
@@ -7014,6 +6549,7 @@ function courseModeLabel(mode) {
 
 function syncCourseCustomMenu() {
   if (!elements.courseCustomButton || !elements.courseCustomOptions) return;
+  syncCourseTimingControls();
   elements.courseCustomButton.textContent = courseModeLabel(courseMode);
   elements.courseCustomButton.title = `当前模式：${courseModeLabel(courseMode)}`;
   elements.courseCustomOptions.querySelectorAll("[data-course-mode]").forEach((option) => {
@@ -7157,8 +6693,24 @@ function setButtonContent(button, iconName, label) {
   button.append(el("span", "", label));
 }
 
-function setStatus(text) {
+// Feedback for what the learner just did. It is shown as a short toast (and read
+// aloud by screen readers); `toast: false` keeps routine progress text, such as
+// "正在播放：第 2 句", out of the way.
+function setStatus(text, { toast = true } = {}) {
   elements.statusLine.textContent = text;
+  if (toast) showToast(text);
+}
+
+let toastTimer = 0;
+
+function showToast(message) {
+  const node = elements.toast;
+  const text = String(message || "").trim();
+  if (!node || !text) return;
+  node.textContent = text;
+  node.hidden = false;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => { node.hidden = true; }, Math.min(8000, 2500 + text.length * 70));
 }
 
 function exportData() {
@@ -8580,17 +8132,4 @@ function makeId(prefix) {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function formatDate(value) {
-  try {
-    return new Intl.DateTimeFormat("zh-CN", {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(new Date(value));
-  } catch {
-    return "";
-  }
 }

@@ -15,15 +15,19 @@ test("index.html stays valid under the extension and desktop CSP (no inline scri
   assert.doesNotMatch(html, /<(?:link|script)[^>]+(?:https?:)?\/\/(?!ai\.google\.dev)/i, "no external scripts or stylesheets");
 });
 
-test("every element app.js looks up by id exists in index.html (known leftovers aside)", () => {
+test("every element app.js looks up by id exists in index.html", () => {
   const app = read("app.js");
   const html = read("index.html");
   const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]));
   const referenced = new Set([...app.matchAll(/querySelector\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]));
-  // Left over from an older player layout; every use is guarded. Remove them with the dead-code clean-up.
-  const knownLeftovers = new Set(["courseProgressFill", "coursePrevBtn", "coursePlayBtn", "courseNextBtn", "courseSentenceLoop", "courseWordHelpBtn", "courseExplanationTitle", "courseExplanationBody"]);
-  const missing = [...referenced].filter((id) => !ids.has(id) && !knownLeftovers.has(id));
-  assert.deepEqual(missing, []);
+  assert.deepEqual([...referenced].filter((id) => !ids.has(id)), []);
+});
+
+test("the only HTML app.js builds from strings is the static icon set", () => {
+  const app = read("app.js");
+  const sinks = [...app.matchAll(/(?:innerHTML|insertAdjacentHTML\([^,]+,|outerHTML)\s*=?\s*([^;\n]+)/g)].map((match) => match[1].trim());
+  const unsafe = sinks.filter((expression) => !/^icons\b|^icons\[|^`?\$\{?icons|^icons\./.test(expression) && !/icons\[/.test(expression));
+  assert.deepEqual(unsafe, [], "dynamic text must be added with textContent / createTextNode");
 });
 
 test("every CSS custom property that is used is defined", () => {

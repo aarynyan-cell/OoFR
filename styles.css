@@ -470,8 +470,7 @@ h3 {
 .panel-title-row,
 .reader-title-row,
 .section-heading,
-.label-row,
-.item-title-row {
+.label-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -803,13 +802,6 @@ input[type="range"] {
 
 .section-heading {
   padding: 18px 0 12px;
-}
-
-.library-layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 390px) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
 }
 
 .material-library-heading {
@@ -1199,94 +1191,16 @@ input[type="range"] {
 }
 
 .album-grid,
-.cassette-list,
-.entry-list,
 .vocab-list {
   display: grid;
   gap: 12px;
 }
 
-.album-card,
-.cassette-card,
-.entry-item,
-.vocab-item,
 .empty-state {
   border: 2px solid var(--dark);
   border-radius: 8px;
   background: var(--paper);
   box-shadow: 6px 6px 0 rgba(18, 21, 20, 0.88);
-}
-
-.album-card {
-  min-height: 154px;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 10px;
-  padding: 14px;
-  color: var(--paper);
-  overflow: hidden;
-  position: relative;
-  cursor: pointer;
-}
-
-.album-card::after {
-  content: "";
-  position: absolute;
-  inset: auto -18px -42px auto;
-  width: 130px;
-  height: 130px;
-  border: 16px solid rgba(255, 253, 244, 0.22);
-  border-radius: 999px;
-}
-
-.album-card.is-selected {
-  outline: 4px solid var(--yellow);
-  outline-offset: 3px;
-}
-
-.album-card:focus-visible {
-  outline: 4px solid var(--yellow);
-  outline-offset: 3px;
-}
-
-.album-button {
-  all: unset;
-  cursor: pointer;
-  min-width: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.album-button h3,
-.album-button p,
-.album-meta {
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 0 rgba(18, 21, 20, 0.3);
-}
-
-.album-button p {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.album-meta {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: rgba(255, 253, 244, 0.88);
-  font-size: 0.8rem;
-  font-weight: 850;
-}
-
-.album-card .row-actions,
-.cassette-card .row-actions,
-.entry-item .row-actions,
-.vocab-item .row-actions {
-  position: relative;
-  z-index: 1;
-  justify-content: flex-end;
 }
 
 .mini-button {
@@ -1307,89 +1221,6 @@ input[type="range"] {
 .library-detail {
   display: grid;
   gap: 16px;
-}
-
-.detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px;
-  border: 2px solid var(--dark);
-  border-radius: 8px;
-  background: var(--paper);
-}
-
-.detail-header-plain {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.cassette-card {
-  padding: 14px;
-  background:
-    linear-gradient(90deg, var(--dark) 0 16px, transparent 16px calc(100% - 16px), var(--dark) calc(100% - 16px)),
-    linear-gradient(180deg, rgba(22, 143, 136, 0.14), transparent 64%),
-    var(--paper);
-}
-
-.cassette-card.is-selected {
-  background:
-    linear-gradient(90deg, var(--orange) 0 16px, transparent 16px calc(100% - 16px), var(--orange) calc(100% - 16px)),
-    linear-gradient(180deg, rgba(216, 107, 42, 0.18), transparent 64%),
-    var(--paper);
-}
-
-.cassette-face {
-  min-height: 76px;
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 54px;
-  align-items: center;
-  gap: 12px;
-}
-
-.cassette-reel {
-  width: 46px;
-  height: 46px;
-  border: 8px solid var(--dark);
-  border-radius: 999px;
-  background: var(--paper);
-  box-shadow: inset 0 0 0 4px rgba(18, 21, 20, 0.12);
-}
-
-.cassette-label {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 2px solid var(--dark);
-  border-radius: 8px;
-  background: #fffefa;
-}
-
-.cassette-label p {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.entry-item,
-.vocab-item {
-  padding: 14px;
-}
-
-.entry-item p,
-.vocab-item p {
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.entry-preview {
-  max-height: 3.05em;
-  overflow: hidden;
 }
 
 .vocab-toolbar {
@@ -1475,38 +1306,6 @@ input[type="range"] {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
-}
-
-.vocab-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  border-left-width: 10px;
-}
-
-.vocab-item.status-new {
-  border-left-color: var(--orange);
-}
-
-.vocab-item.status-got {
-  border-left-color: var(--green);
-}
-
-.vocab-word {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.vocab-word strong {
-  font-size: 1.08rem;
-}
-
-.vocab-word span {
-  color: var(--teal-deep);
-  font-weight: 850;
 }
 
 .my-grid {
@@ -1791,33 +1590,6 @@ input[type="range"] {
   border: 0;
 }
 
-.course-album-detail {
-  display: grid;
-  gap: 16px;
-}
-
-.course-album-preview {
-  display: grid;
-  gap: 0;
-  padding: 14px;
-  border: 2px dashed rgba(18, 21, 20, 0.25);
-  border-radius: 8px;
-  background: rgba(22, 143, 136, 0.08);
-}
-
-.course-album-preview-row {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 11px 0;
-  border-bottom: 1px dashed rgba(18, 21, 20, 0.18);
-}
-
-.course-album-preview-row:last-child {
-  border-bottom: 0;
-}
-
 .phrasebook-row {
   display: grid;
   grid-template-columns: 26px 38px minmax(190px, 1.2fr) minmax(180px, 1fr) minmax(120px, 0.55fr) auto;
@@ -2044,7 +1816,6 @@ input[type="range"] {
 
 .course-hero,
 .course-stage,
-.course-player-console,
 .course-transcript-card,
 .course-rail-card,
 .practice-demo-card {
@@ -2070,15 +1841,11 @@ input[type="range"] {
   font-size: clamp(1.35rem, 3vw, 2rem);
 }
 
-.course-hero-stats,
 .course-card-actions,
 .course-heading-actions,
-.course-console-actions,
 .course-form-actions,
 .course-turn-actions,
 .practice-actions,
-.course-console-top,
-.course-console-bottom,
 .course-card-header,
 .course-turn-top,
 .course-player-heading {
@@ -2086,10 +1853,6 @@ input[type="range"] {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.course-hero-stats {
-  justify-content: flex-end;
 }
 
 .course-stage {
@@ -2276,67 +2039,13 @@ input[type="range"] {
   flex: 1 1 180px;
 }
 
-.course-player-console {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 18px;
-  padding: 16px;
-  background:
-    linear-gradient(135deg, rgba(22, 143, 136, 0.15), transparent 60%),
-    var(--panel);
-  box-shadow: none;
-}
-
-.course-console-top,
-.course-console-bottom {
-  justify-content: space-between;
-}
-
-.course-mode-group {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.course-mode-button,
-.course-speaker-select,
-.course-rate-control select {
+.course-speaker-select {
   min-height: 38px;
   padding: 0 10px;
   border: 2px solid var(--dark);
   border-radius: 999px;
   color: var(--dark);
   background: var(--paper);
-  font-weight: 850;
-}
-
-.course-mode-button.is-selected {
-  color: var(--paper);
-  background: var(--teal-deep);
-}
-
-.course-progress-track {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(18, 21, 20, 0.14);
-}
-
-.course-progress-track span {
-  display: block;
-  width: 10%;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--orange);
-  transition: width 180ms ease;
-}
-
-.course-rate-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 0.85rem;
   font-weight: 850;
 }
 
@@ -2529,12 +2238,6 @@ input[type="range"] {
   font-size: 0.76rem;
 }
 
-.course-explanation-card {
-  background:
-    linear-gradient(135deg, rgba(242, 200, 75, 0.24), transparent 70%),
-    var(--paper);
-}
-
 .practice-demo-card {
   display: grid;
   justify-items: center;
@@ -2559,16 +2262,12 @@ input[type="range"] {
 
 @media (max-width: 760px) {
   .course-hero,
-  .course-console-top,
-  .course-console-bottom,
-  .course-player-heading {
+.course-player-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .course-hero-stats,
-  .course-heading-actions,
-  .course-console-actions {
+  .course-heading-actions {
     width: 100%;
     justify-content: flex-start;
   }
@@ -2589,9 +2288,7 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 
-  .course-mode-button {
-    flex: 1 1 calc(50% - 6px);
-  }
+  
 
   .course-turn-actions .mini-button {
     flex: 1 1 120px;
@@ -2623,8 +2320,7 @@ input[type="range"] {
     flex: 1 1 0;
   }
 
-  .reader-grid,
-  .library-layout {
+  .reader-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2669,10 +2365,9 @@ input[type="range"] {
   }
 
   .deck-panel,
-  .console-panel,
-  .reader-panel,
-  .detail-header,
-  .app-dialog form {
+.console-panel,
+.reader-panel,
+.app-dialog form {
     padding: 14px;
   }
 
@@ -2731,9 +2426,7 @@ input[type="range"] {
     display: none;
   }
 
-  .word-panel,
-  .vocab-item,
-  .detail-header {
+  .word-panel {
     grid-template-columns: 1fr;
   }
 
@@ -2858,29 +2551,11 @@ input[type="range"] {
   box-shadow: 4px 4px 0 rgba(18, 21, 20, 0.82);
 }
 
-.course-bottom-heading,
 .course-bottom-actions,
 .course-bottom-timeline {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.course-bottom-heading {
-  justify-content: space-between;
-}
-
-.course-bottom-heading > div {
-  display: grid;
-  gap: 2px;
-}
-
-.course-bottom-mode-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 2px;
 }
 
 .course-custom-menu {
@@ -2952,11 +2627,6 @@ input[type="range"] {
   font-weight: 800;
 }
 
-.album-material-heading {
-  display: grid;
-  gap: 3px;
-}
-
 .course-custom-details {
   display: grid;
   gap: 8px;
@@ -2973,12 +2643,6 @@ input[type="range"] {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-
-.course-bottom-mode-row .course-speaker-select {
-  min-height: 34px;
-  max-width: 190px;
-  padding: 0 9px;
 }
 
 .course-voice-menu {
@@ -3111,23 +2775,6 @@ input[type="range"] {
   height: 23px;
 }
 
-.course-full-play-button {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 2px solid var(--dark);
-  border-radius: 999px;
-  color: var(--paper);
-  background: var(--dark);
-  font-weight: 900;
-}
-
-.course-full-play-button svg {
-  width: 15px;
-  height: 15px;
-  margin-right: 5px;
-  vertical-align: -2px;
-}
-
 .course-bottom-check {
   color: var(--muted);
   font-size: 0.78rem;
@@ -3151,43 +2798,6 @@ input[type="range"] {
   min-height: 38px;
   justify-content: center;
   padding: 0;
-}
-
-.album-content-section {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 2px dashed rgba(18, 21, 20, 0.2);
-}
-
-.album-content-section .detail-header {
-  margin: 0;
-}
-
-.album-singles-list {
-  display: grid;
-  gap: 9px;
-}
-
-.album-single-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 12px;
-  border: 1px solid rgba(18, 21, 20, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 253, 244, 0.74);
-}
-
-.album-single-body {
-  min-width: 0;
-}
-
-.album-single-body strong,
-.album-single-body p {
-  overflow-wrap: anywhere;
 }
 
 .study-summary-panel {
@@ -3705,7 +3315,6 @@ button,
   }
 }
 
-
 /* iOS Safari zooms the whole page when a field with text under 16px gets focus,
    and does not zoom back. Only iOS WebKit supports this feature query. */
 @supports (-webkit-touch-callout: none) {
@@ -3728,4 +3337,47 @@ button,
 label.command-button:focus-within {
   outline: 3px solid var(--teal-deep);
   outline-offset: 2px;
+}
+
+/* Short feedback messages (setStatus). The old status line lived in a view that is no longer reachable. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 1050;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: var(--paper);
+  background: var(--dark);
+  box-shadow: var(--shadow);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.course-timing-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.course-timing-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.course-timing-controls select {
+  min-height: 32px;
+  padding: 0 7px;
+  border: 1px solid rgba(18, 21, 20, 0.3);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+  font-weight: 800;
 }

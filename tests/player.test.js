@@ -280,3 +280,44 @@ test("leaving the page stops the recording and keeps the take so far", async () 
   assert.equal(app.run("__lesson.turns[0].recording.status"), "recorded");
   assert.deepEqual(tracks, ["stopped"]);
 });
+
+test("the repeat count and gap come from the saved settings (the player menu is their only control)", async () => {
+  const engine = createSpeechEngine();
+  const app = newPlayer(engine);
+  app.run(`state.settings.repeat = "2"; state.settings.pause = "0";`);
+  assert.equal(app.run("getRepeat()"), 2);
+  app.run(`playItems([__items[0]], { key: "course:L:turn:0" })`);
+  await wait();
+  engine.finishCurrent();
+  await wait(30);
+  assert.deepEqual(engine.spoken, ["Un.", "Un."], "the sentence is said twice");
+  engine.finishCurrent();
+  await wait(10);
+  assert.equal(app.run("playback.status"), "idle");
+
+  app.run(`state.settings.repeat = "banana";`);
+  assert.equal(app.run("getRepeat()"), 1, "a damaged value falls back to one");
+});
+
+test("the repeat and gap menus show the saved values, picking the nearest gap", () => {
+  const app = newPlayer(createSpeechEngine());
+  app.run(`
+    elements.courseRepeatSelect = { value: "" };
+    elements.coursePauseSelect = { value: "", options: ["0", "0.4", "0.8", "1.5"].map((value) => ({ value })) };
+    state.settings.repeat = "3"; state.settings.pause = "0.7";
+    syncCourseTimingControls();
+  `);
+  assert.equal(app.run("elements.courseRepeatSelect.value"), "3");
+  assert.equal(app.run("elements.coursePauseSelect.value"), "0.8");
+});
+
+test("feedback messages appear as a toast, routine playback progress does not", () => {
+  const app = loadApp();
+  app.run(`elements.toast = { textContent: "", hidden: true }; elements.statusLine = { textContent: "" };`);
+  app.run(`setStatus("完整数据导入完成");`);
+  assert.equal(app.run("elements.toast.textContent"), "完整数据导入完成");
+  assert.equal(app.run("elements.toast.hidden"), false);
+  app.run(`elements.toast.hidden = true; elements.toast.textContent = ""; setStatus("正在播放：第 1 句", { toast: false });`);
+  assert.equal(app.run("elements.toast.hidden"), true);
+  assert.equal(app.run("elements.statusLine.textContent"), "正在播放：第 1 句", "the text is still recorded");
+});
