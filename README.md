@@ -105,7 +105,7 @@ http://localhost:4173/
 
 ## 数据
 
-网页/PWA 版数据默认保存在浏览器 `localStorage` 中，逐句录音保存在 IndexedDB。插件版完整数据保存在 `chrome.storage.local` 中。升级到 1.0.0 不会清空课程、磁带、词句本、学习记录或 AI 缓存。
+网页/PWA 版和 macOS 版的数据保存在浏览器的 IndexedDB 中（没有 `localStorage` 约 5MB 的上限，这对 iPhone 尤其重要），逐句录音也保存在 IndexedDB。从旧版本升级时，原来保存在 `localStorage` 里的数据会在第一次打开时自动复制过去，原副本原样保留、不再使用；如果 IndexedDB 在某次打开时不可用，那一次会改用 `localStorage`，下次打开时自动采用其中较新的数据。插件版完整数据保存在 `chrome.storage.local` 中（已申请 `unlimitedStorage`）。升级不会清空课程、磁带、词句本、学习记录或 AI 缓存。
 
 ### 电脑与手机迁移
 

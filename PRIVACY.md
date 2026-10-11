@@ -12,7 +12,7 @@ OoFR 法语磁带是一个本地优先的法语/英语学习工具。1.0.0 不�
 - 单词本、单词状态、音标、中文释义和自定义词本。
 - 播放设置，例如声音、语速、重复次数和间隔。
 
-网页/PWA 版默认使用浏览器 `localStorage`，录音使用本机 IndexedDB。插件版使用 `chrome.storage.local` 保存完整学习数据，并使用 `chrome.storage.sync` 保存少量非敏感播放设置。课程、磁带、词句本、学习记录、AI 缓存和录音不会由 OoFR 1.0.0 自动上传。
+网页/PWA 版和 macOS 版使用浏览器本机的 IndexedDB 保存学习数据和录音（旧版本保存在 `localStorage` 的数据会被复制过来，原副本保留在本机）。插件版使用 `chrome.storage.local` 保存完整学习数据，并使用 `chrome.storage.sync` 保存少量非敏感播放设置。课程、磁带、词句本、学习记录、AI 缓存和录音不会由 OoFR 1.0.0 自动上传。
 
 ## 数据导入与导出
 

@@ -39,7 +39,9 @@ function createWorker({ origin = "https://example.github.io" } = {}) {
       return new Response("fresh", { status: 200 });
     },
     addEventListener: (type, handler) => { listeners[type] = handler; },
-    OOFR_VERSION: "1.0.0"
+    OOFR_VERSION: "1.0.0",
+    OOFR_NETWORK_TIMEOUT_MS: 40,
+    setTimeout, clearTimeout
   };
   scope.self = scope;
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, "../sw.js"), "utf8"), scope);
@@ -48,7 +50,8 @@ function createWorker({ origin = "https://example.github.io" } = {}) {
     listeners.fetch({ request: new Request(url), respondWith: (value) => { answer = value; } });
     return answer === undefined ? undefined : answer;
   };
-  return { stores, state, listeners, respond };
+  const setFetch = (implementation) => { scope.fetch = async (request) => { state.networkCalls.push(request.url || String(request)); return implementation(request); }; };
+  return { stores, state, listeners, respond, setFetch };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
@@ -88,3 +91,23 @@ async function caches_open(worker, name) {
   const entries = worker.stores.get(name);
   return { put: async (key, value) => { entries.set(key, value); } };
 }
+
+test("a slow network does not stall the app when a cached copy exists, and is awaited when none exists", async () => {
+  const worker = createWorker();
+  const url = "https://example.github.io/OoFR/app.js?v=1.0.0";
+  await worker.respond(url); // cache a fresh copy
+  await settle();
+  let release;
+  worker.setFetch(() => new Promise((resolve) => { release = () => resolve(new Response("slow-fresh", { status: 200 })); }));
+  const quick = await worker.respond(url);
+  assert.equal(await quick.text(), "fresh", "served from cache after the timeout");
+  release();
+
+  const uncached = "https://example.github.io/OoFR/brand-new.js";
+  let releaseNew;
+  worker.setFetch(() => new Promise((resolve) => { releaseNew = () => resolve(new Response("late", { status: 200 })); }));
+  const pending = worker.respond(uncached);
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  releaseNew();
+  assert.equal(await (await pending).text(), "late", "no cached copy: the network answer is still used");
+});

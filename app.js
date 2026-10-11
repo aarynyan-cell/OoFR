@@ -7,6 +7,13 @@ const SYNC_STORAGE_KEY = "oofr.sync.v1";
 // Side copies written by the safety nets below; never read back as live data.
 const CORRUPT_STORAGE_KEY = `${APP_STORAGE_KEY}.corrupt`;
 const BACKUP_STORAGE_KEY = `${APP_STORAGE_KEY}.backup`;
+// Constants the storage driver needs while the page is still starting up must
+// be declared above the initApp() call at the top of the script (const is not
+// usable before its declaration runs).
+const STATE_DB_NAME = "oofr-state";
+const STATE_DB_STORE = "kv";
+const LEGACY_NEWER_KEY = "oofr.state.legacy-newer";
+const STATE_DB_OPEN_TIMEOUT_MS = 4000;
 const CLOUD_LOCAL_META_KEY = "oofr.cloud.local-meta.v1";
 const LEGACY_STORAGE_KEY = "oofr.pronunciation.v1";
 const APP_VERSION = globalThis.OOFR_VERSION || "1.0.0";
@@ -437,16 +444,13 @@ function handleStartupFailure(error) {
 async function downloadStoredState() {
   let text = "";
   try {
-    text = window.localStorage.getItem(APP_STORAGE_KEY) || "";
+    text = await storageDriver.getRaw(APP_STORAGE_KEY);
   } catch {
-    // Storage may be blocked; fall through to the active driver.
-  }
-  if (!text) {
+    // The active store itself may be what is broken; try the plain localStorage copy.
     try {
-      const value = await storageDriver.getLocal(APP_STORAGE_KEY);
-      if (value) text = JSON.stringify(value);
-    } catch (error) {
-      text = typeof error?.rawValue === "string" ? error.rawValue : "";
+      text = window.localStorage.getItem(APP_STORAGE_KEY) || "";
+    } catch {
+      text = "";
     }
   }
   if (text) downloadText(text, `oofr-raw-data-${dateStamp()}.json`);
@@ -481,7 +485,7 @@ async function initApp() {
   hideStartupLoader();
   registerServiceWorker();
   requestPersistentStorage();
-  loadLexiconInBackground();
+  loadLexiconWhenIdle();
   void hydrateVocabularyFromStructuredDictionary();
   // Background AI work starts only once the local AI is known to be up
   // (on the desktop it may still be starting Ollama).
@@ -689,6 +693,14 @@ function hideStartupLoader() {
   window.setTimeout(() => elements.startupLoader?.remove(), 260);
 }
 
+// The 5 MB legacy lexicon is only a fallback behind the sharded dictionary, so
+// it must not compete with the first screen: wait until the page is idle.
+function loadLexiconWhenIdle() {
+  const start = () => { void loadLexiconInBackground(); };
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(start, { timeout: 4000 });
+  else window.setTimeout(start, 1500);
+}
+
 function loadLexiconInBackground() {
   if (isLexiconReady()) {
     handleLexiconReady(false);
@@ -761,12 +773,18 @@ function setLexiconStatus(text) {
 
 function hydrateVocabularyFromLexicon() {
   if (!state || !isLexiconReady()) return;
+  const before = JSON.stringify(state.vocabulary);
   state.vocabulary = normalizeVocabularyList(state.vocabulary);
   state.vocabulary.forEach((item) => {
     item.wordbookIds = validWordbookIds(item.wordbookIds);
   });
   if (selectedWord) {
     selectedWord.info = resolveWordInfo(selectedWord.raw);
+  }
+  // Nothing new learned from the lexicon: no save, no repaint (this ran on every start).
+  if (JSON.stringify(state.vocabulary) === before) {
+    if (selectedWord) renderWordPanel();
+    return;
   }
   persist();
   renderWordbooks();
@@ -1248,6 +1266,7 @@ function bindCourseEvents() {
   document.addEventListener("click", closeCompactVoiceMenuOnOutsideClick);
   document.addEventListener("click", closeCourseCustomMenuOnOutsideClick);
   window.addEventListener("storage", handleStorageEvent);
+  storageDriver.onExternalChange?.(handleExternalStateChange);
   globalThis.chrome?.storage?.onChanged?.addListener?.(handleExtensionStorageChange);
   // Release the microphone (and keep the take so far) when the page is left or backgrounded.
   window.addEventListener("pagehide", stopCourseRecordingSession);
@@ -8263,6 +8282,10 @@ function queueSyncedSettings() {
   }, 800);
 }
 
+// Where the state is kept:
+//  - extension page: chrome.storage.local (no practical size limit with unlimitedStorage)
+//  - every other page (iPhone/Safari, desktop browsers, the Mac app): IndexedDB, with
+//    localStorage as the fallback and as the source for the one-time move
 function createStorageDriver() {
   const chromeApi = globalThis.chrome;
   const hasChromeStorage = Boolean(chromeApi?.storage?.local);
@@ -8275,6 +8298,10 @@ function createStorageDriver() {
         return new Promise((resolve) => {
           chromeApi.storage.local.get(key, (result) => resolve(result?.[key] || null));
         });
+      },
+      async getRaw(key) {
+        const value = await this.getLocal(key);
+        return value ? JSON.stringify(value) : "";
       },
       async hasLocal(key) {
         return new Promise((resolve) => {
@@ -8309,6 +8336,11 @@ function createStorageDriver() {
     };
   }
 
+  const local = createLocalStorageDriver();
+  return window.indexedDB ? createIndexedDbStateDriver(local) : local;
+}
+
+function createLocalStorageDriver() {
   return {
     canSync: false,
     async getLocal(key) {
@@ -8321,11 +8353,157 @@ function createStorageDriver() {
         throw error;
       }
     },
+    async getRaw(key) {
+      return window.localStorage.getItem(key) || "";
+    },
     async hasLocal(key) {
       return window.localStorage.getItem(key) !== null;
     },
     async setLocal(key, value) {
       window.localStorage.setItem(key, JSON.stringify(value));
+    },
+    async getSync() {
+      return null;
+    },
+    async setSync() {}
+  };
+}
+
+// localStorage holds only about 5 MB per site (less on iOS), which a library with
+// AI explanations can outgrow; IndexedDB has no such ceiling.
+//  - The first start after the upgrade copies the localStorage state over; the
+//    old copy is left untouched as a safety net and is not used afterwards.
+//  - If IndexedDB cannot be opened (private mode, an iOS bug), the session runs on
+//    localStorage and leaves a marker, so the next start knows that copy is newer.
+//  - A failed IndexedDB write is reported (no silent second copy), like a full localStorage.
+function createIndexedDbStateDriver(legacy) {
+  let dbPromise = null;
+  let unavailable = false;
+  const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("oofr-state") : null;
+
+  function open() {
+    if (unavailable) return Promise.reject(new Error("IndexedDB unavailable"));
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        const timer = window.setTimeout(() => reject(new Error("IndexedDB open timed out")), STATE_DB_OPEN_TIMEOUT_MS);
+        let request;
+        try {
+          request = indexedDB.open(STATE_DB_NAME, 1);
+        } catch (error) {
+          window.clearTimeout(timer);
+          reject(error);
+          return;
+        }
+        request.onupgradeneeded = () => request.result.createObjectStore(STATE_DB_STORE);
+        request.onsuccess = () => {
+          window.clearTimeout(timer);
+          const db = request.result;
+          // Browsers may close idle connections or upgrade the database: reopen on demand.
+          db.onclose = () => { dbPromise = null; };
+          db.onversionchange = () => { db.close(); dbPromise = null; };
+          resolve(db);
+        };
+        request.onerror = () => {
+          window.clearTimeout(timer);
+          reject(request.error);
+        };
+      }).catch((error) => {
+        dbPromise = null;
+        unavailable = true;
+        console.warn("OoFR: IndexedDB is not available, using localStorage", error);
+        throw error;
+      });
+    }
+    return dbPromise;
+  }
+
+  function request(db, mode, run) {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STATE_DB_STORE, mode);
+      const pending = run(transaction.objectStore(STATE_DB_STORE));
+      transaction.oncomplete = () => resolve(pending?.result);
+      transaction.onerror = () => reject(transaction.error || pending?.error);
+      transaction.onabort = () => reject(transaction.error || new Error("IndexedDB transaction aborted"));
+    });
+  }
+
+  const readRecord = (db, key) => request(db, "readonly", (store) => store.get(key));
+  const writeRecord = (db, key, value) => request(db, "readwrite", (store) => store.put({ savedAt: nowIso(), json: JSON.stringify(value) }, key));
+
+  function parseRecord(record) {
+    try {
+      return JSON.parse(record.json);
+    } catch (error) {
+      error.rawValue = String(record.json || "");
+      throw error;
+    }
+  }
+
+  function legacyIsNewer(record) {
+    try {
+      const marker = window.localStorage.getItem(LEGACY_NEWER_KEY);
+      return Boolean(marker) && (!record?.savedAt || marker > record.savedAt);
+    } catch {
+      return false;
+    }
+  }
+
+  return {
+    canSync: false,
+    async getLocal(key) {
+      let db;
+      try {
+        db = await open();
+      } catch {
+        return legacy.getLocal(key);
+      }
+      const record = await readRecord(db, key);
+      const legacyNewer = key === APP_STORAGE_KEY && legacyIsNewer(record);
+      if (record && !legacyNewer) return parseRecord(record);
+      // Nothing in IndexedDB yet (first start after the upgrade), or the old copy
+      // is newer: bring it over. A failed copy only means we try again next time.
+      const value = await legacy.getLocal(key);
+      if (value == null) return record ? parseRecord(record) : null;
+      try {
+        await writeRecord(db, key, value);
+        if (legacyNewer) window.localStorage.removeItem(LEGACY_NEWER_KEY);
+      } catch (error) {
+        console.warn("OoFR: could not copy the saved data into IndexedDB", error);
+      }
+      return value;
+    },
+    async getRaw(key) {
+      try {
+        const record = await readRecord(await open(), key);
+        if (record && !legacyIsNewer(record)) return String(record.json || "");
+      } catch {
+        // fall through to the localStorage copy
+      }
+      return legacy.getRaw(key);
+    },
+    async hasLocal(key) {
+      try {
+        if (await readRecord(await open(), key)) return true;
+      } catch {
+        // fall through
+      }
+      return legacy.hasLocal(key);
+    },
+    async setLocal(key, value) {
+      let db;
+      try {
+        db = await open();
+      } catch {
+        await legacy.setLocal(key, value);
+        try { window.localStorage.setItem(LEGACY_NEWER_KEY, nowIso()); } catch { /* best effort */ }
+        return;
+      }
+      await writeRecord(db, key, value);
+      if (key === APP_STORAGE_KEY) channel?.postMessage("saved");
+    },
+    // Other windows (which share this database) tell us when they saved.
+    onExternalChange(callback) {
+      if (channel) channel.onmessage = () => callback();
     },
     async getSync() {
       return null;

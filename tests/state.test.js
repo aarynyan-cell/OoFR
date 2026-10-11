@@ -235,3 +235,19 @@ test("a save made in another window raises a notice, a save of our own does not"
   app.run(`handleExtensionStorageChange({ "oofr.app.v1": {} }, "local")`);
   assert.equal(app.run("storageNotice && storageNotice.kind"), "changed-elsewhere");
 });
+
+test("a legacy-lexicon load that teaches nothing does not save or repaint", () => {
+  const app = loadApp();
+  app.run(`
+    renderMy = function () {}; queueSyncedSettings = function () {};
+    window.OOFR_LEXICON = {}; window.OOFR_FORM_LEMMAS = {}; window.OOFR_LEXICON_META = { entries: 1 };
+    state = createStarterState({});
+    state.vocabulary = normalizeVocabularyList([{ id: "w", word: "maison", surface: "maison", lemma: "maison", normalized: "maison", partOfSpeech: "noun", ipa: "/mɛ.zɔ̃/", zh: "房子", status: "got", language: "fr", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }]);
+    var __saves = 0; var __paints = 0;
+    persist = function () { __saves += 1; };
+    renderWordbooks = renderVocab = renderSentences = renderWordPanel = function () { __paints += 1; };
+    hydrateVocabularyFromLexicon();
+  `);
+  assert.equal(app.run("__saves"), 0);
+  assert.equal(app.run("__paints"), 0);
+});

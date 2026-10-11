@@ -51,27 +51,29 @@ self.addEventListener("fetch", (event) => {
   if (new URL(event.request.url).origin !== self.location.origin) return;
 
   const acceptsHtml = event.request.headers.get("accept")?.includes("text/html");
-  if (event.request.mode === "navigate" || acceptsHtml) {
-    event.respondWith(
-      fetch(event.request, { cache: "no-cache" })
-        .then((response) => {
-          cacheOkResponse(event.request, response);
-          return response;
-        })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
-    );
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request, { cache: "no-cache" })
-      .then((response) => {
-        cacheOkResponse(event.request, response);
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
+  const isPage = event.request.mode === "navigate" || acceptsHtml;
+  event.respondWith(networkFirst(event.request, isPage ? "./index.html" : ""));
 });
+
+// Fresh files when the network answers; the cached copy when it fails or is
+// too slow (a weak phone connection must not stall opening the app).
+async function networkFirst(request, pageFallback) {
+  const limit = self.OOFR_NETWORK_TIMEOUT_MS || 4000;
+  const network = fetch(request, { cache: "no-cache" }).then((response) => {
+    cacheOkResponse(request, response);
+    return response;
+  });
+  let timer = 0;
+  const outcome = await Promise.race([
+    network.catch(() => null),
+    new Promise((resolve) => { timer = setTimeout(() => resolve(null), limit); })
+  ]);
+  clearTimeout(timer);
+  if (outcome) return outcome;
+  const cached = (await caches.match(request)) || (pageFallback ? await caches.match(pageFallback) : undefined);
+  // Nothing cached: keep waiting for the network (or fail the way it fails).
+  return cached || network;
+}
 
 function cacheOkResponse(request, response) {
   // Partial (206) responses cannot be cached.

@@ -13,7 +13,8 @@ function stubElement() {
     get(_target, key) {
       if (key === Symbol.toPrimitive) return () => "";
       if (key === "classList") return { add() {}, remove() {}, toggle() {}, contains: () => false };
-      if (key === "dataset" || key === "style") return {};
+      if (key === "dataset") return {};
+      if (key === "style") return new Proxy({}, { get: (target, name) => (name === "setProperty" || name === "removeProperty" ? () => {} : target[name]), set: (target, name, value) => { target[name] = value; return true; } });
       if (key === "children" || key === "childNodes") return [];
       if (key === "querySelectorAll") return () => [];
       if (key === "querySelector") return () => stubElement();
@@ -45,8 +46,10 @@ function createMemoryStorage(initial = {}, { quotaChars = Infinity } = {}) {
   };
 }
 
-function loadApp({ store = {}, quotaChars, hostname = "example.github.io", protocol = "https:", extra = {} } = {}) {
-  const source = fs.readFileSync(APP_PATH, "utf8").replace(/^initApp\(\)[^\n]*$/m, "/* initApp is started by the tests */");
+function loadApp({ store = {}, quotaChars, hostname = "example.github.io", protocol = "https:", extra = {}, startApp = false } = {}) {
+  let source = fs.readFileSync(APP_PATH, "utf8");
+  // By default the tests start nothing on their own; `startApp` runs the real start-up.
+  if (!startApp) source = source.replace(/^initApp\(\)[^\n]*$/m, "/* initApp is started by the tests */");
   const localStorage = createMemoryStorage(store, { quotaChars });
   const quiet = { log() {}, info() {}, warn() {}, error() {} };
   const sandbox = {
@@ -69,6 +72,7 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
     location: { protocol, hostname },
     structuredClone, URL, URLSearchParams, Intl, JSON, Math, Date, Map, Set, Promise, TextEncoder, TextDecoder, Blob,
     AbortController, AbortSignal, Response, Request, Headers,
+    addEventListener() {}, removeEventListener() {}, matchMedia: () => ({ matches: false }),
     ...extra
   };
   sandbox.window = sandbox;
