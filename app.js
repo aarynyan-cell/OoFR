@@ -377,6 +377,19 @@ let courseEnrichmentRuns = new Map();
 let courseEnrichmentQueue = Promise.resolve();
 let localAiClient = null;
 let localAiClientKey = "";
+// After a timeout / unreachable error, background AI work pauses for a minute
+// instead of retrying every sentence against a server that is not answering.
+const AI_DOWN_COOLDOWN_MS = 60000;
+let aiDownUntil = 0;
+// One AbortController per lesson so deleting or replacing work can cancel its requests.
+const aiAbortControllers = new Map();
+// Lessons whose background run was requested again while one was still running.
+const courseEnrichmentRerun = new Set();
+// A non-loopback Ollama address only counts after the user confirmed it on this
+// device. The approval is stored under its own key, so backups, imports and
+// synced settings can never carry it.
+const AI_ENDPOINT_APPROVAL_KEY = "oofr.ai-endpoint-approved.v1";
+let approvedAiEndpoint = "";
 let coursePracticeIndex = 0;
 let coursePracticeRevealed = false;
 let phrasePracticeItems = [];
@@ -460,15 +473,18 @@ async function initApp() {
   loadVoices();
   updateStartupProgress("screen", "绘制课程、磁带和词句本", 72);
   renderAll();
-  const activeLesson = getActiveCourseLesson();
-  if (activeLesson && activeLesson.id !== "demo_lesson") scheduleCourseBackgroundEnrichment(activeLesson);
   updateStartupProgress("ready", "基础界面已就绪", 100);
   hideStartupLoader();
   registerServiceWorker();
   requestPersistentStorage();
   loadLexiconInBackground();
   void hydrateVocabularyFromStructuredDictionary();
-  void initializeRuntimeAi();
+  // Background AI work starts only once the local AI is known to be up
+  // (on the desktop it may still be starting Ollama).
+  void loadAiEndpointApproval()
+    .then(() => initializeRuntimeAi())
+    .catch((error) => console.error("OoFR AI start-up failed", error))
+    .finally(scheduleActiveLessonEnrichment);
 
   if (canSpeak()) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -1369,6 +1385,8 @@ function setCourseStage(stage) {
 
 function syncCourseComposer() {
   if (!courseDraft) return;
+  // A running analysis belongs to the previous draft; its result must not land here.
+  courseAnalysisRunId += 1;
   elements.courseTitleInput.value = courseDraft.title;
   elements.courseLanguageSelect.value = courseDraft.language;
   elements.courseExplainLanguageSelect.value = courseDraft.explainLanguage;
@@ -1496,6 +1514,7 @@ async function installDesktopAi() {
     persist();
     updateDesktopAiProgress({ percent: 100, message: "本地 AI 已准备好" });
     await testLocalAiConnection({ probe: true });
+    scheduleActiveLessonEnrichment();
     window.setTimeout(() => elements.desktopAiSetupDialog?.close(), 500);
   } catch (error) {
     elements.desktopAiSetupStatus.textContent = error?.message || "本地 AI 安装失败，请重试";
@@ -1509,27 +1528,110 @@ async function cancelDesktopAiSetup() {
   elements.desktopAiInstallBtn.disabled = !elements.desktopAiTermsCheck.checked;
 }
 
-function saveLocalAiSettings() {
+// `interactive` is false for the automatic check at startup, which must never
+// pop up a question.
+function saveLocalAiSettings({ interactive = true } = {}) {
   const previousKey = `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`;
   if (!isDesktopRuntime()) {
-    state.settings.localAiEndpoint = String(elements.localAiEndpointInput.value || "http://127.0.0.1:11434").trim().replace(/\/$/, "");
+    const entered = String(elements.localAiEndpointInput.value || "http://127.0.0.1:11434").trim().replace(/\/$/, "");
+    if (interactive && entered !== state.settings.localAiEndpoint && !isLoopbackEndpoint(entered) && entered !== approvedAiEndpoint) {
+      const approved = window.confirm(`这个地址不在本机：\n${entered}\n\n选用后，素材分析、翻译和讲解用到的文本会发送到这个地址，不再只在本机处理。只有你信任并自己管理那台服务器时才继续。`);
+      if (!approved) {
+        elements.localAiEndpointInput.value = state.settings.localAiEndpoint;
+        elements.localAiStatus.textContent = "已保留原来的地址";
+        return;
+      }
+      approvedAiEndpoint = entered;
+      void storageDriver.setLocal(AI_ENDPOINT_APPROVAL_KEY, entered).catch(() => {});
+    }
+    state.settings.localAiEndpoint = entered;
   }
   state.settings.localAiModel = String(elements.localAiModelInput.value || "auto").trim() || "auto";
   if (previousKey !== `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`) {
     localAiClient = null;
     localAiClientKey = "";
+    aiDownUntil = 0;
+    abortAiWork();
   }
   persist();
-  elements.localAiStatus.textContent = "设置已保存，尚未检测";
+  const remoteNotApproved = !isDesktopRuntime() && effectiveLocalAiEndpoint() !== state.settings.localAiEndpoint;
+  elements.localAiStatus.textContent = remoteNotApproved
+    ? "该地址不在本机且未经确认，已改用本机 127.0.0.1:11434；点“检测本地 AI”可确认使用"
+    : "设置已保存，尚未检测";
 }
 
-function createLocalAiClient(timeoutMs = 30000) {
+function findLiveLesson(lessonId) {
+  return state?.courseLessons.find((item) => item.id === lessonId) || null;
+}
+
+function aiSignalFor(lessonId) {
+  let controller = aiAbortControllers.get(lessonId);
+  if (!controller || controller.signal.aborted) {
+    controller = new AbortController();
+    aiAbortControllers.set(lessonId, controller);
+  }
+  return controller.signal;
+}
+
+// Cancels in-flight AI requests for some lessons (or all of them).
+function abortAiWork(lessonIds = null) {
+  [...(lessonIds || aiAbortControllers.keys())].forEach((id) => {
+    aiAbortControllers.get(id)?.abort();
+    aiAbortControllers.delete(id);
+  });
+}
+
+function noteAiFailure(error) {
+  if (error?.code === "timeout" || error?.code === "unreachable") aiDownUntil = Date.now() + AI_DOWN_COOLDOWN_MS;
+}
+
+function isAiAbort(error) {
+  return error?.code === "aborted";
+}
+
+function aiTemporarilyDown() {
+  return Date.now() < aiDownUntil;
+}
+
+function isLoopbackEndpoint(value) {
+  try {
+    const host = new URL(String(value)).hostname.replace(/^\[|\]$/g, "");
+    return host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".localhost");
+  } catch {
+    return false;
+  }
+}
+
+// The address requests really go to: the saved one if it is this machine or was
+// approved here, otherwise the default local Ollama address.
+function effectiveLocalAiEndpoint() {
+  const fallback = globalThis.OoFROllama?.DEFAULT_ENDPOINT || "http://127.0.0.1:11434";
+  if (isDesktopRuntime()) return fallback;
+  const wanted = String(state.settings.localAiEndpoint || "").trim().replace(/\/$/, "");
+  return wanted && (isLoopbackEndpoint(wanted) || wanted === approvedAiEndpoint) ? wanted : fallback;
+}
+
+async function loadAiEndpointApproval() {
+  try {
+    approvedAiEndpoint = String((await storageDriver.getLocal(AI_ENDPOINT_APPROVAL_KEY)) || "");
+  } catch {
+    approvedAiEndpoint = "";
+  }
+}
+
+// `force` is for actions the learner asked for (test connection, "AI 讲解"):
+// they should try even while background work is paused.
+function createLocalAiClient(timeoutMs = 30000, { force = false } = {}) {
   if (!localAiRuntimeEnabled()) throw new Error("在线 AI 暂未开放；请在 macOS 版生成后导入学习包");
   if (!globalThis.OoFROllama?.Client) throw new Error("Ollama client unavailable");
-  const key = `${state.settings.localAiEndpoint}|${state.settings.localAiModel}`;
+  if (!force && aiTemporarilyDown()) {
+    throw new globalThis.OoFROllama.OllamaError("unreachable", "本机 AI 暂时没有响应，稍后会自动重试");
+  }
+  const endpoint = effectiveLocalAiEndpoint();
+  const key = `${endpoint}|${state.settings.localAiModel}`;
   if (!localAiClient || localAiClientKey !== key) {
     localAiClient = new globalThis.OoFROllama.Client({
-      endpoint: state.settings.localAiEndpoint,
+      endpoint,
       model: state.settings.localAiModel,
       timeoutMs,
       keepAlive: "30m"
@@ -1550,10 +1652,11 @@ async function testLocalAiConnection(options = {}) {
     return;
   }
   const shouldProbe = options?.probe !== false;
-  saveLocalAiSettings();
+  // Only a click on the test button may ask about a remote address.
+  saveLocalAiSettings({ interactive: options?.probe !== false });
   elements.localAiStatus.textContent = "正在检测…";
   try {
-    const client = createLocalAiClient(6000);
+    const client = createLocalAiClient(6000, { force: true });
     const models = await client.listModels();
     const sortedModels = [...models].sort((left, right) => (left.size || Number.MAX_SAFE_INTEGER) - (right.size || Number.MAX_SAFE_INTEGER));
     if (elements.localAiModelOptions) {
@@ -1580,6 +1683,7 @@ async function testLocalAiConnection(options = {}) {
       if (probe.data?.ok !== true) throw new Error("模型未通过结构化输出测试");
     }
     lastLocalAiError = null;
+    aiDownUntil = 0;
     elements.localAiStatus.textContent = automatic
       ? `${shouldProbe ? "已连接并完成推理" : "已连接"} · 自动使用 ${selected}`
       : `${shouldProbe ? "已连接并完成推理" : "已连接"} · ${selected}`;
@@ -1595,6 +1699,8 @@ function scheduleCourseMaterialAnalysis({ deep = false, immediate = false } = {}
   courseAnalysisTimer = window.setTimeout(() => analyzeCourseMaterial({ deep }), delay);
 }
 
+const MAX_DEEP_ANALYSIS_CHARS = 2000;
+
 async function analyzeCourseMaterial({ deep = false } = {}) {
   const text = String(elements.courseMaterialInput.value || "").trim();
   if (!text || text.length < 4) {
@@ -1603,6 +1709,7 @@ async function analyzeCourseMaterial({ deep = false } = {}) {
     return;
   }
   const runId = ++courseAnalysisRunId;
+  const draftAtStart = courseDraft;
   const local = analyzeMaterialLocally(text);
   courseMaterialAnalysis = local;
   applyDetectedMaterialMetadata(local);
@@ -1612,10 +1719,16 @@ async function analyzeCourseMaterial({ deep = false } = {}) {
     elements.courseAnalysisStatus.textContent = "已使用本地规则；在线 AI 暂未开放，可在 macOS 版继续深度分析。";
     return;
   }
+  if (text.length > MAX_DEEP_ANALYSIS_CHARS) {
+    // The answer repeats the text several times and would be cut off by the model's output limit.
+    elements.courseAnalysisStatus.textContent = `素材较长（超过 ${MAX_DEEP_ANALYSIS_CHARS} 字），已使用本地规则；可以分段后再深度分析。`;
+    return;
+  }
 
   elements.courseAnalysisStatus.textContent = "本地规则已完成，正在尝试本机开源 AI…";
   const aiResult = await analyzeMaterialWithLocalAi(text, local);
-  if (runId !== courseAnalysisRunId) return;
+  // The learner may have closed the composer, opened another one or kept typing.
+  if (runId !== courseAnalysisRunId || courseDraft !== draftAtStart || String(elements.courseMaterialInput.value || "").trim() !== text) return;
   if (!aiResult) {
     elements.courseAnalysisStatus.textContent = `已使用本地规则；${describeLocalAiError(lastLocalAiError)}。`;
     return;
@@ -1700,11 +1813,23 @@ async function analyzeMaterialWithLocalAi(text, fallback) {
   }
 }
 
+// Text the model returns may only re-break or relabel the learner's text, never
+// change its words; compare ignoring whitespace and "Name:" / "A:" line labels.
+function sameWordsIgnoringLayout(a, b) {
+  const squash = (value) => String(value || "").replace(/^\s*[^:：\n]{1,24}[:：]\s*/gmu, "").replace(/\s+/g, "");
+  return squash(a) === squash(b);
+}
+
 function mergeMaterialAnalysis(local, ai) {
-  const dialogueLines = Array.isArray(ai.dialogueLines)
+  const aiLines = Array.isArray(ai.dialogueLines)
     ? ai.dialogueLines.filter((line) => line?.text).map((line, index) => ({ ...line, sourceSpeaker: local.dialogueLines[index]?.sourceSpeaker || "" }))
-    : local.dialogueLines;
-  const isDialogue = ai.isDialogue === true && ai.materialType === "情景对话" && new Set(dialogueLines.map((line) => line.speaker)).size >= 2;
+    : [];
+  // The model's dialogue lines are only trusted when they still hold the learner's words.
+  const aiKeepsWords = aiLines.length > 0 && sameWordsIgnoringLayout(aiLines.map((line) => line.text).join("\n"), local.correctedText);
+  const aiSaysDialogue = ai.isDialogue === true && ai.materialType === "情景对话";
+  const dialogueLines = aiKeepsWords ? aiLines : local.dialogueLines;
+  const isDialogue = aiSaysDialogue
+    && (aiKeepsWords ? new Set(dialogueLines.map((line) => line.speaker)).size >= 2 : local.isDialogue);
   return {
     ...local,
     ...ai,
@@ -1712,7 +1837,7 @@ function mergeMaterialAnalysis(local, ai) {
     isDialogue,
     dialogueLines: isDialogue ? dialogueLines : [],
     speakerText: isDialogue ? dialogueLines.map((line, index) => `${String(line.speaker || String.fromCharCode(65 + index)).toUpperCase()}: ${line.text}`).join("\n") : "",
-    sentenceText: String(ai.sentenceText || local.sentenceText),
+    sentenceText: ai.sentenceText && sameWordsIgnoringLayout(ai.sentenceText, local.correctedText) ? String(ai.sentenceText) : local.sentenceText,
     corrections: Array.isArray(ai.corrections) ? ai.corrections : local.corrections,
     lexicalUnits: Array.isArray(ai.lexicalUnits) ? ai.lexicalUnits : local.lexicalUnits
   };
@@ -1927,23 +2052,36 @@ function generateCourseTranslations(lesson, options = {}) {
     return Promise.resolve();
   }
   const existingRun = courseTranslationRuns.get(lesson.id);
-  if (existingRun) return existingRun;
-  const run = runCourseTranslationGeneration(lesson, options).finally(() => {
+  // A run is already going: run again afterwards, so a retry for other sentences
+  // (or newly added ones) is not silently dropped.
+  if (existingRun) return existingRun.then(() => generateCourseTranslations(lesson, options));
+  const run = runCourseTranslationGeneration(lesson.id, options).finally(() => {
     if (courseTranslationRuns.get(lesson.id) === run) courseTranslationRuns.delete(lesson.id);
   });
   courseTranslationRuns.set(lesson.id, run);
   return run;
 }
 
+function scheduleActiveLessonEnrichment() {
+  const activeLesson = getActiveCourseLesson();
+  if (activeLesson && activeLesson.id !== "demo_lesson") scheduleCourseBackgroundEnrichment(activeLesson);
+}
+
 function scheduleCourseBackgroundEnrichment(lesson) {
   if (!lesson?.id || !localAiRuntimeEnabled()) return;
   window.setTimeout(() => {
-    if (courseEnrichmentRuns.has(lesson.id)) return;
+    if (courseEnrichmentRuns.has(lesson.id)) {
+      // The lesson may have been replaced or extended since that run began: go again afterwards.
+      courseEnrichmentRerun.add(lesson.id);
+      return;
+    }
     const run = courseEnrichmentQueue
       .catch(() => undefined)
-      .then(() => runCourseBackgroundEnrichment(lesson))
+      .then(() => runCourseBackgroundEnrichment(lesson.id))
+      .catch((error) => console.error("OoFR background AI run failed", error))
       .finally(() => {
         if (courseEnrichmentRuns.get(lesson.id) === run) courseEnrichmentRuns.delete(lesson.id);
+        if (courseEnrichmentRerun.delete(lesson.id) && findLiveLesson(lesson.id)) scheduleCourseBackgroundEnrichment({ id: lesson.id });
       });
     courseEnrichmentQueue = run;
     courseEnrichmentRuns.set(lesson.id, run);
@@ -2035,19 +2173,22 @@ function detectKnownCourseLexicalUnits(lesson) {
     .map(([text, info]) => ({ text, lemma: info.lemma || text, type: "expression" }));
 }
 
-async function runCourseBackgroundEnrichment(lesson) {
+// Works on the lesson as it is *now*: the lesson object can be replaced while
+// the AI is busy (editing, re-opening, importing), so it is looked up again
+// after every await and results are written by turn id.
+async function runCourseBackgroundEnrichment(lessonId) {
+  let lesson = findLiveLesson(lessonId);
+  if (!lesson) return;
   let changed = mergeCourseLexicalUnits(lesson, detectKnownCourseLexicalUnits(lesson));
   if (changed) {
     lesson.updatedAt = nowIso();
     persist();
-    if (courseActiveLessonId === lesson.id) renderCoursePlayer();
+    if (courseActiveLessonId === lessonId) renderCoursePlayer();
   }
 
   if (lesson.turns.some(translationNeedsGeneration)) await generateCourseTranslations(lesson);
-
-  // If the learner opened another course while this job was translating,
-  // yield the expensive explanation phase to the currently visible material.
-  if (courseActiveLessonId && courseActiveLessonId !== lesson.id) return;
+  lesson = findLiveLesson(lessonId);
+  if (!lesson) return;
 
   const signature = courseAiSignature(lesson);
   const pending = lesson.turns.filter((turn) => aiExplanationNeedsGeneration(turn.aiExplanation, lesson));
@@ -2055,16 +2196,28 @@ async function runCourseBackgroundEnrichment(lesson) {
 
   let completed = true;
   for (let offset = 0; offset < pending.length; offset += 6) {
-    const chunk = pending.slice(offset, offset + 6);
-    const enrichment = await loadCourseBatchEnrichment(lesson, chunk);
-    if (!enrichment) {
+    // If the learner opened another course while this job was busy, yield the
+    // expensive explanation phase to the currently visible material.
+    if (courseActiveLessonId && courseActiveLessonId !== lessonId) return;
+    if (aiTemporarilyDown()) {
       completed = false;
       break;
     }
+    const chunk = pending.slice(offset, offset + 6);
+    const enrichment = await loadCourseBatchEnrichment(lesson, chunk);
+    lesson = findLiveLesson(lessonId);
+    if (!lesson) return;
+    if (!enrichment) {
+      // One bad batch must not block the rest, unless the AI itself is unreachable.
+      completed = false;
+      if (aiTemporarilyDown() || isAiAbort(lastLocalAiError)) break;
+      continue;
+    }
     const byId = new Map((enrichment.explanations || []).map((item) => [String(item.id || ""), item]));
-    chunk.forEach((turn) => {
-      const explanation = byId.get(turn.id);
-      if (!explanation || !aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) return;
+    chunk.forEach((oldTurn) => {
+      const turn = lesson.turns.find((item) => item.id === oldTurn.id);
+      const explanation = byId.get(oldTurn.id);
+      if (!turn || !explanation || !aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) return;
       const normalized = normalizeAiExplanation(explanation, enrichment.model, lesson.explainLanguage);
       if (!explanationLanguageMatches(normalized, lesson.explainLanguage)) {
         completed = false;
@@ -2077,17 +2230,18 @@ async function runCourseBackgroundEnrichment(lesson) {
     if (changed) {
       lesson.updatedAt = nowIso();
       persist();
-      if (courseActiveLessonId === lesson.id) renderCoursePlayer();
+      if (courseActiveLessonId === lessonId) renderCoursePlayer();
       changed = false;
     }
   }
 
-  if (completed && lesson.turns.every((turn) => !aiExplanationNeedsGeneration(turn.aiExplanation, lesson))) {
-    lesson.aiPreparedSignature = signature;
+  lesson = findLiveLesson(lessonId);
+  if (lesson && completed && lesson.turns.every((turn) => !aiExplanationNeedsGeneration(turn.aiExplanation, lesson))) {
+    lesson.aiPreparedSignature = courseAiSignature(lesson);
     lesson.aiPreparedAt = nowIso();
     lesson.updatedAt = nowIso();
     persist();
-    if (courseActiveLessonId === lesson.id && elements.coursePlaybackStatus) {
+    if (courseActiveLessonId === lessonId && elements.coursePlaybackStatus) {
       elements.coursePlaybackStatus.textContent = "本机 AI 已在后台准备好译文、固定表达与逐句讲解";
     }
   }
@@ -2175,6 +2329,7 @@ async function loadCourseBatchEnrichment(lesson, turns) {
       prompt,
       schema,
       timeoutMs: 180000,
+      signal: aiSignalFor(lesson.id),
       options: { num_predict: 1800 }
     });
     lastLocalAiError = null;
@@ -2187,11 +2342,16 @@ async function loadCourseBatchEnrichment(lesson, turns) {
     return { ...response.data, explanations, lexicalUnits, model: response.model };
   } catch (error) {
     lastLocalAiError = error;
+    noteAiFailure(error);
     return null;
   }
 }
 
-async function runCourseTranslationGeneration(lesson, { turnIds = null } = {}) {
+const TRANSLATION_CHUNK_SIZE = 8;
+
+async function runCourseTranslationGeneration(lessonId, { turnIds = null } = {}) {
+  let lesson = findLiveLesson(lessonId);
+  if (!lesson) return;
   let changed = false;
   const pendingTurns = [];
   const requestedIds = turnIds ? new Set(turnIds.map(String)) : null;
@@ -2226,28 +2386,47 @@ async function runCourseTranslationGeneration(lesson, { turnIds = null } = {}) {
   renderCoursePlayer();
   setStatus(`本机 AI 正在生成 ${pendingTurns.length} 句译文…`);
 
-  const aiTranslations = await translateCourseTurnsWithLocalAi(pendingTurns, lesson);
-  for (const turn of pendingTurns) {
-    let translation = aiTranslations.get(turn.id) || "";
-    if (!translation) {
-      translation = await translateText(turn.text, lesson.language, lesson.explainLanguage);
+  const signal = aiSignalFor(lessonId);
+  try {
+    // Small batches: a long lesson in one request is cut off by the model's output limit.
+    for (let offset = 0; offset < pendingTurns.length; offset += TRANSLATION_CHUNK_SIZE) {
+      lesson = findLiveLesson(lessonId);
+      if (!lesson || signal.aborted) break;
+      const chunk = pendingTurns.slice(offset, offset + TRANSLATION_CHUNK_SIZE);
+      const aiTranslations = await translateCourseTurnsWithLocalAi(chunk, lesson, signal);
+      lesson = findLiveLesson(lessonId);
+      if (!lesson || signal.aborted) break;
+      for (const turn of chunk) {
+        let translation = aiTranslations.get(turn.id) || "";
+        // Sentence-by-sentence retry only while the AI is answering at all.
+        if (!translation && !aiTemporarilyDown() && !signal.aborted) {
+          translation = await translateText(turn.text, lesson.language, lesson.explainLanguage, signal);
+          lesson = findLiveLesson(lessonId);
+          if (!lesson) break;
+        }
+        const target = lesson.turns.find((item) => item.id === turn.id);
+        if (translation && target) {
+          target.translation = translation;
+          changed = true;
+          courseTranslationErrorIds.delete(turn.id);
+        } else if (!translation) {
+          courseTranslationErrorIds.add(turn.id);
+        }
+        courseTranslationPendingIds.delete(turn.id);
+      }
+      if (courseActiveLessonId === lessonId) renderCoursePlayer();
     }
-    if (translation) {
-      turn.translation = translation;
-      changed = true;
-      courseTranslationErrorIds.delete(turn.id);
-    } else {
-      courseTranslationErrorIds.add(turn.id);
-    }
-    courseTranslationPendingIds.delete(turn.id);
-    renderCoursePlayer();
+  } finally {
+    pendingTurns.forEach((turn) => courseTranslationPendingIds.delete(turn.id));
   }
 
-  if (changed) {
+  lesson = findLiveLesson(lessonId);
+  if (changed && lesson) {
     lesson.updatedAt = nowIso();
     persist();
   }
-  renderCoursePlayer();
+  if (courseActiveLessonId === lessonId) renderCoursePlayer();
+  if (!lesson || signal.aborted) return;
   const failedCount = pendingTurns.filter((turn) => courseTranslationErrorIds.has(turn.id)).length;
   if (failedCount) {
     setStatus(`已生成 ${pendingTurns.length - failedCount}/${pendingTurns.length} 句译文；失败句可单独重试。`);
@@ -2261,7 +2440,7 @@ function translationNeedsGeneration(turn) {
   return !value || /待补充|待校对|生成失败|pending|needs review/i.test(value) || isSuspiciousTranslation(turn.text, value);
 }
 
-async function translateCourseTurnsWithLocalAi(turns, lesson) {
+async function translateCourseTurnsWithLocalAi(turns, lesson, signal) {
   const translations = new Map();
   if (!turns.length || lesson.language === lesson.explainLanguage) return translations;
   const targetNames = { zh: "Simplified Chinese", en: "English", fr: "French" };
@@ -2284,7 +2463,7 @@ async function translateCourseTurnsWithLocalAi(turns, lesson) {
   const material = turns.map((turn) => ({ id: turn.id, text: turn.text }));
   const prompt = `Translate every item from ${source} to ${target} for a language-learning course. Preserve names, tone and meaning. Do not explain, omit, merge or add information. Keep each id unchanged. Return only the required JSON.\n\nITEMS:\n${JSON.stringify(material)}`;
   try {
-    const response = await createLocalAiClient(150000).chatJson({ prompt, schema, timeoutMs: 150000, options: { num_predict: 1200 } });
+    const response = await createLocalAiClient(150000).chatJson({ prompt, schema, timeoutMs: 150000, signal, options: { num_predict: 1200 } });
     const knownIds = new Set(turns.map((turn) => turn.id));
     (response.data?.translations || []).forEach((item) => {
       const id = String(item?.id || "");
@@ -2296,6 +2475,7 @@ async function translateCourseTurnsWithLocalAi(turns, lesson) {
     lastLocalAiError = null;
   } catch (error) {
     lastLocalAiError = error;
+    noteAiFailure(error);
   }
   return translations;
 }
@@ -2861,27 +3041,21 @@ async function openCourseSentenceDetail(lesson, turnIndex) {
     elements.courseSentenceDetailStatus.textContent = "在线 AI 暂未开放；当前不会上传素材或消耗 token";
     return;
   }
-  const backgroundRun = courseEnrichmentRuns.get(lesson.id);
-  if (backgroundRun) {
-    elements.courseSentenceDetailStatus.textContent = "后台正在准备这节素材的讲解…";
-    await backgroundRun;
-    if (runId !== courseSentenceDetailRunId || !elements.courseSentenceDetailDialog.open) return;
-    if (!aiExplanationNeedsGeneration(turn.aiExplanation, lesson)) {
-      renderCourseSentenceExplanation(turn.aiExplanation);
-      elements.courseSentenceDetailStatus.textContent = courseExplanationCacheLabel(turn.aiExplanation);
-      return;
-    }
-  }
   elements.courseSentenceDetailStatus.textContent = "正在请本机 AI 结合前后文分析语法…";
   const explanation = await loadCourseSentenceExplanation(lesson, turnIndex);
+  // Keep the result even if the dialog was closed meanwhile: the work is done.
+  const liveLesson = findLiveLesson(lesson.id);
+  const liveTurn = liveLesson?.turns.find((item) => item.id === turn.id);
+  if (explanation && liveTurn && aiExplanationNeedsGeneration(liveTurn.aiExplanation, liveLesson)) {
+    liveTurn.aiExplanation = explanation;
+    liveLesson.updatedAt = nowIso();
+    persist();
+  }
   if (runId !== courseSentenceDetailRunId || !elements.courseSentenceDetailDialog.open) return;
   if (!explanation) {
     elements.courseSentenceDetailStatus.textContent = describeLocalAiError(lastLocalAiError);
     return;
   }
-  turn.aiExplanation = explanation;
-  lesson.updatedAt = nowIso();
-  persist();
   renderCourseSentenceExplanation(explanation);
   elements.courseSentenceDetailStatus.textContent = `本机开源 AI（${explanation.model}）· 已缓存到当前课程`;
 }
@@ -2935,11 +3109,13 @@ async function loadCourseSentenceExplanation(lesson, turnIndex) {
   };
   const prompt = `Explain the CURRENT ${lesson.language === "en" ? "English" : "French"} sentence for a language learner. Write explanations in ${explainNames[lesson.explainLanguage] || "Simplified Chinese"}. Use the surrounding sentences only to resolve context. Explain the sentence skeleton, grammar, conjugation or morphology, likely mistakes, and give 2 useful substitution examples. Be accurate and concise. Return only the required JSON.\n\nCONTEXT:\n${JSON.stringify(context)}`;
   try {
-    const response = await createLocalAiClient(120000).chatJson({
+    // The learner asked for this one, so it tries even while background work is paused.
+    const response = await createLocalAiClient(120000, { force: true }).chatJson({
       system: courseExplanationSystemInstruction(lesson.explainLanguage),
       prompt,
       schema,
       timeoutMs: 120000,
+      signal: aiSignalFor(lesson.id),
       options: { num_predict: 900 }
     });
     const normalized = normalizeAiExplanation(response.data, response.model, lesson.explainLanguage);
@@ -2948,6 +3124,7 @@ async function loadCourseSentenceExplanation(lesson, turnIndex) {
     return normalized;
   } catch (error) {
     lastLocalAiError = error;
+    noteAiFailure(error);
     return null;
   }
 }
@@ -3404,7 +3581,7 @@ function toSimplifiedDictionaryChinese(value) {
   return Array.from(result, (character) => characters[character] || character).join("");
 }
 
-async function translateText(text, sourceLanguage, targetLanguage) {
+async function translateText(text, sourceLanguage, targetLanguage, signal = undefined) {
   if (!String(text || "").trim()) return "";
   if (sourceLanguage === targetLanguage) return text;
   const localTranslation = getLocalTranslation(text, sourceLanguage, targetLanguage);
@@ -3424,6 +3601,7 @@ async function translateText(text, sourceLanguage, targetLanguage) {
       prompt: `Translate from ${source} to ${target}. Preserve meaning and tone. Return only the required JSON.\n\nTEXT:\n${text}`,
       schema,
       timeoutMs: 90000,
+      signal,
       options: { num_predict: 500 }
     });
     const result = String(response.data?.translation || "").trim();
@@ -3433,6 +3611,7 @@ async function translateText(text, sourceLanguage, targetLanguage) {
     return result;
   } catch (error) {
     lastLocalAiError = error;
+    noteAiFailure(error);
     return "";
   }
 }
@@ -4721,6 +4900,7 @@ function lessonRemovalSummary(lessonIds) {
 function removeLessons(lessonIds) {
   const ids = new Set([...lessonIds].filter(Boolean));
   if (!ids.size) return;
+  abortAiWork([...ids]);
   queueRecordingRelease(recordingKeysOfLessons(state.courseLessons.filter((lesson) => ids.has(lesson.id))));
   state.courseLessons = state.courseLessons.filter((lesson) => !ids.has(lesson.id));
   state.phraseItems.forEach((item) => {

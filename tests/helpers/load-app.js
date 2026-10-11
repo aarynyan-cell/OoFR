@@ -68,6 +68,7 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
     navigator: { language: "zh-CN", userAgent: "node-test" },
     location: { protocol, hostname },
     structuredClone, URL, URLSearchParams, Intl, JSON, Math, Date, Map, Set, Promise, TextEncoder, TextDecoder, Blob,
+    AbortController, AbortSignal, Response, Request, Headers,
     ...extra
   };
   sandbox.window = sandbox;
@@ -75,7 +76,7 @@ function loadApp({ store = {}, quotaChars, hostname = "example.github.io", proto
   sandbox.self = sandbox;
   const context = vm.createContext(sandbox);
   // The small shared scripts index.html loads before app.js.
-  ["version.js", "learning-package.js"].forEach((name) => {
+  ["version.js", "learning-package.js", "ollama-client.js"].forEach((name) => {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname, "../..", name), "utf8"), context, { filename: name });
   });
   vm.runInContext(source, context, { filename: "app.js" });
