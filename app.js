@@ -334,6 +334,8 @@ let storageNotice = null;
 let storageNoticeElement = null;
 // True while an unreadable original could not be set aside; blocks overwriting it.
 let persistLocked = false;
+// Moment of our own last write, to tell it apart from a change made in another window.
+let lastOwnWriteAt = 0;
 let syncSettingsTimer = 0;
 let cloudSyncTimer = 0;
 let cloudSyncState = { session: null, busy: false, lastSyncAt: null, configured: false };
@@ -1245,6 +1247,8 @@ function bindCourseEvents() {
   });
   document.addEventListener("click", closeCompactVoiceMenuOnOutsideClick);
   document.addEventListener("click", closeCourseCustomMenuOnOutsideClick);
+  window.addEventListener("storage", handleStorageEvent);
+  globalThis.chrome?.storage?.onChanged?.addListener?.(handleExtensionStorageChange);
   // Release the microphone (and keep the take so far) when the page is left or backgrounded.
   window.addEventListener("pagehide", stopCourseRecordingSession);
   document.addEventListener("visibilitychange", () => {
@@ -8154,6 +8158,7 @@ function persist({ skipCloud = false } = {}) {
     setStatus("原数据尚未处理，修改暂未保存");
   } else {
     let pending;
+    lastOwnWriteAt = Date.now();
     try {
       pending = storageDriver.setLocal(APP_STORAGE_KEY, state);
     } catch (error) {
@@ -8174,6 +8179,27 @@ function persist({ skipCloud = false } = {}) {
     writeCloudLocalMeta({ lastLocalChangeAt: new Date().toISOString() });
     queueCloudSync();
   }
+}
+
+// The whole state lives under one key, so two open windows would overwrite each
+// other's changes. When another window saved, say so and offer a reload.
+function handleExternalStateChange() {
+  showStorageNotice({
+    kind: "changed-elsewhere",
+    message: "这份数据刚刚在另一个窗口里被修改。继续在这里编辑可能会覆盖那边的修改，建议先刷新页面。",
+    actions: [{ label: "刷新页面", onClick: () => window.location.reload() }]
+  });
+}
+
+function handleStorageEvent(event) {
+  if (event.key === APP_STORAGE_KEY && event.newValue !== null && event.storageArea === window.localStorage) {
+    handleExternalStateChange();
+  }
+}
+
+function handleExtensionStorageChange(changes, area) {
+  // The extension's own writes also arrive here, just after we made them.
+  if (area === "local" && changes?.[APP_STORAGE_KEY] && Date.now() - lastOwnWriteAt > 3000) handleExternalStateChange();
 }
 
 function handleSaveFailure(error) {

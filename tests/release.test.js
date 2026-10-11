@@ -80,3 +80,18 @@ test("every script and file the page needs is cached, packaged for the extension
     assert.ok(fs.existsSync(path.join(root, asset)), `service worker caches a file that does not exist: ${asset}`);
   }
 });
+
+test("every icon the extension manifest and the page refer to exists at its stated size", () => {
+  const manifest = JSON.parse(read("manifest.json"));
+  const named = [
+    ...Object.entries(manifest.icons),
+    ...Object.entries(manifest.action.default_icon)
+  ];
+  for (const [size, file] of named) {
+    const png = fs.readFileSync(path.join(root, file));
+    assert.equal(png.readUInt32BE(16), Number(size), `${file} should be ${size}px wide`);
+    assert.equal(png.readUInt32BE(20), Number(size), `${file} should be ${size}px high`);
+  }
+  const touchIcon = read("index.html").match(/rel="apple-touch-icon" href="\.\/([^"]+)"/)?.[1];
+  assert.ok(touchIcon && fs.existsSync(path.join(root, touchIcon)));
+});

@@ -217,3 +217,21 @@ test("the Chrome/Edge extension storage driver keeps state and the import backup
   assert.equal(await app.run("storageDriver.hasLocal('oofr.app.v1.backup')"), true);
   assert.equal(bucket[BACKUP_KEY].currentText, "extension data");
 });
+
+test("a save made in another window raises a notice, a save of our own does not", () => {
+  const app = loadApp();
+  app.run("renderMy = function () {}; queueSyncedSettings = function () {}; state = createStarterState({});");
+  const other = (key) => app.run(`handleStorageEvent({ key: ${JSON.stringify(key)}, newValue: "{}", storageArea: window.localStorage })`);
+  other("unrelated.key");
+  assert.equal(app.run("storageNotice"), null);
+  other(APP_KEY);
+  assert.equal(app.run("storageNotice && storageNotice.kind"), "changed-elsewhere");
+
+  // chrome.storage reports our own write too; only changes well after it count.
+  app.run("hideStorageNotice(); lastOwnWriteAt = Date.now();");
+  app.run(`handleExtensionStorageChange({ "oofr.app.v1": {} }, "local")`);
+  assert.equal(app.run("storageNotice"), null);
+  app.run("lastOwnWriteAt = Date.now() - 10000;");
+  app.run(`handleExtensionStorageChange({ "oofr.app.v1": {} }, "local")`);
+  assert.equal(app.run("storageNotice && storageNotice.kind"), "changed-elsewhere");
+});

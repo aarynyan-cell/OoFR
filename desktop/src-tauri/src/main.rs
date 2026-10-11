@@ -17,7 +17,7 @@ use std::{
     },
     time::Duration,
 };
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
 
 const OLLAMA_VERSION: &str = "0.34.0";
 const OLLAMA_URL: &str =
@@ -25,11 +25,90 @@ const OLLAMA_URL: &str =
 const OLLAMA_SHA256: &str = "dd12b00bcce2d6551178e67ada90d5af9f75bdb54a118b96655250fa3e8ef734";
 const OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
 const REQUIRED_BYTES: u64 = 6 * 1024 * 1024 * 1024;
+/// The only model the app installs. The webview must not be able to make the
+/// app download arbitrary models.
+const ALLOWED_MODEL: &str = "gemma3:4b";
+const MAX_CHAT_REQUEST_BYTES: usize = 2 * 1024 * 1024;
+const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024;
 
 #[derive(Default)]
 struct AiState {
     owned_child: Mutex<Option<Child>>,
     cancel_setup: AtomicBool,
+    /// True while an install or model download is running (only one at a time).
+    setup_busy: AtomicBool,
+    client: reqwest::Client,
+}
+
+/// Marks setup as busy until dropped, so a failed or cancelled run always releases it.
+struct SetupGuard<'a>(&'a AtomicBool);
+
+impl<'a> SetupGuard<'a> {
+    fn acquire(flag: &'a AtomicBool) -> Result<Self, String> {
+        flag.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| SetupGuard(flag))
+            .map_err(|_| "另一个安装或下载任务正在进行，请等它结束".to_string())
+    }
+}
+
+impl Drop for SetupGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+fn validate_model(model: &str) -> Result<(), String> {
+    if model == ALLOWED_MODEL {
+        Ok(())
+    } else {
+        Err(format!("OoFR 只会安装 {ALLOWED_MODEL}，不能下载其他模型"))
+    }
+}
+
+/// Basic shape check for a chat request coming from the webview.
+fn validate_chat_request(request: &Value) -> Result<(), String> {
+    let object = request.as_object().ok_or("本地 AI 请求格式无效")?;
+    let model = object.get("model").and_then(Value::as_str).unwrap_or("");
+    if model.is_empty() || model.len() > 100 {
+        return Err("本地 AI 请求缺少有效的模型名".to_string());
+    }
+    if !object.get("messages").map(Value::is_array).unwrap_or(false) {
+        return Err("本地 AI 请求缺少 messages".to_string());
+    }
+    if request.to_string().len() > MAX_CHAT_REQUEST_BYTES {
+        return Err("本地 AI 请求过大".to_string());
+    }
+    Ok(())
+}
+
+/// Removes a child that has already exited, and says whether one is still running.
+fn child_is_running(slot: &mut Option<Child>) -> bool {
+    match slot {
+        Some(child) => match child.try_wait() {
+            Ok(None) => true,
+            _ => {
+                *slot = None;
+                false
+            }
+        },
+        None => false,
+    }
+}
+
+fn owned_child_running(state: &AiState) -> Result<bool, String> {
+    let mut guard = state.owned_child.lock().map_err(|_| "AI 进程状态不可用".to_string())?;
+    Ok(child_is_running(&mut guard))
+}
+
+fn stop_owned_child(state: &AiState) -> bool {
+    if let Ok(mut guard) = state.owned_child.lock() {
+        if let Some(mut child) = guard.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return true;
+        }
+    }
+    false
 }
 
 #[derive(Serialize, Clone)]
@@ -92,7 +171,13 @@ fn find_named_file(root: &Path, name: &str, depth: usize) -> Option<PathBuf> {
         if path.is_file() && path.file_name().and_then(|value| value.to_str()) == Some(name) {
             return Some(path);
         }
-        if path.is_dir() {
+        // Hidden directories hold a half-finished extraction; never use them.
+        let hidden = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .map(|value| value.starts_with('.'))
+            .unwrap_or(false);
+        if path.is_dir() && !hidden {
             if let Some(found) = find_named_file(&path, name, depth - 1) {
                 return Some(found);
             }
@@ -192,7 +277,7 @@ fn emit_progress(app: &AppHandle, stage: &str, message: &str, completed: u64, to
 
 #[tauri::command]
 async fn ai_status(state: State<'_, AiState>) -> Result<AiStatus, String> {
-    let client = reqwest::Client::new();
+    let client = state.client.clone();
     let running = server_version(&client).await.is_some();
     let models = if running {
         model_list(&client).await
@@ -203,11 +288,7 @@ async fn ai_status(state: State<'_, AiState>) -> Result<AiStatus, String> {
     let data_dir = support_dir()?;
     let free = available_space(&data_dir).map_err(|error| format!("无法读取磁盘空间：{error}"))?;
     let version = macos_version();
-    let managed_process = state
-        .owned_child
-        .lock()
-        .map_err(|_| "AI 进程状态不可用")?
-        .is_some();
+    let managed_process = owned_child_running(&state)?;
     Ok(AiStatus {
         runtime_installed: runtime.is_some(),
         runtime_path: runtime
@@ -227,11 +308,51 @@ async fn ai_status(state: State<'_, AiState>) -> Result<AiStatus, String> {
     })
 }
 
+/// Unpacks the Ollama archive into a hidden temporary directory next to the
+/// final one, checks that it contains an `ollama` executable, and only then
+/// moves it into place. A failed or interrupted extraction therefore never
+/// leaves something that `find_ollama` could mistake for a working install.
+fn extract_runtime(archive_path: &Path, root: &Path) -> Result<PathBuf, String> {
+    let staging = root.join(format!(".unpack-{OLLAMA_VERSION}"));
+    let final_dir = root.join(format!("ollama-{OLLAMA_VERSION}"));
+    let _ = fs::remove_dir_all(&staging);
+    let outcome = (|| -> Result<PathBuf, String> {
+        let file = File::open(archive_path).map_err(|error| format!("无法打开 Ollama 安装包：{error}"))?;
+        let mut archive = tar::Archive::new(GzDecoder::new(file));
+        archive
+            .unpack(&staging)
+            .map_err(|error| format!("Ollama 解压失败：{error}"))?;
+        let executable = find_named_file(&staging, "ollama", 4)
+            .ok_or_else(|| "安装包中没有找到 Ollama 可执行文件".to_string())?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut permissions = fs::metadata(&executable)
+                .map_err(|error| error.to_string())?
+                .permissions();
+            permissions.set_mode(0o755);
+            fs::set_permissions(&executable, permissions).map_err(|error| error.to_string())?;
+        }
+        let relative = executable
+            .strip_prefix(&staging)
+            .map_err(|error| error.to_string())?
+            .to_path_buf();
+        let _ = fs::remove_dir_all(&final_dir);
+        fs::rename(&staging, &final_dir).map_err(|error| format!("无法完成安装：{error}"))?;
+        Ok(final_dir.join(relative))
+    })();
+    if outcome.is_err() {
+        let _ = fs::remove_dir_all(&staging);
+    }
+    outcome
+}
+
 #[tauri::command]
 async fn ai_install_runtime(app: AppHandle, state: State<'_, AiState>) -> Result<Value, String> {
     if let Some((path, source)) = find_ollama() {
         return Ok(json!({ "path": path, "source": source, "reused": true }));
     }
+    let _busy = SetupGuard::acquire(&state.setup_busy)?;
     let root = private_runtime_dir()?;
     let free = available_space(&root).map_err(|error| format!("无法读取磁盘空间：{error}"))?;
     if free < REQUIRED_BYTES {
@@ -240,7 +361,8 @@ async fn ai_install_runtime(app: AppHandle, state: State<'_, AiState>) -> Result
     state.cancel_setup.store(false, Ordering::SeqCst);
     let archive_path = root.join(format!("ollama-{OLLAMA_VERSION}.tgz.part"));
     emit_progress(&app, "runtime", "正在下载 Ollama 运行时…", 0, 0);
-    let response = reqwest::Client::new()
+    let response = state
+        .client
         .get(OLLAMA_URL)
         .send()
         .await
@@ -279,37 +401,38 @@ async fn ai_install_runtime(app: AppHandle, state: State<'_, AiState>) -> Result
     emit_progress(&app, "runtime", "正在解压 Ollama 运行时…", total, total);
     let archive_for_extract = archive_path.clone();
     let root_for_extract = root.clone();
-    tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let file = File::open(&archive_for_extract)
-            .map_err(|error| format!("无法打开 Ollama 安装包：{error}"))?;
-        let decoder = GzDecoder::new(file);
-        let mut archive = tar::Archive::new(decoder);
-        archive
-            .unpack(&root_for_extract)
-            .map_err(|error| format!("Ollama 解压失败：{error}"))?;
-        Ok(())
-    })
-    .await
-    .map_err(|error| format!("Ollama 解压任务失败：{error}"))??;
+    let executable = tokio::task::spawn_blocking(move || extract_runtime(&archive_for_extract, &root_for_extract))
+        .await
+        .map_err(|error| format!("Ollama 解压任务失败：{error}"))??;
     let _ = tokio::fs::remove_file(&archive_path).await;
-    let executable = find_ollama()
-        .ok_or_else(|| "安装包中没有找到 Ollama 可执行文件".to_string())?
-        .0;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = fs::metadata(&executable)
-            .map_err(|error| error.to_string())?
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&executable, permissions).map_err(|error| error.to_string())?;
-    }
     Ok(json!({ "path": executable, "source": "private", "reused": false }))
+}
+
+/// Keeps the log from growing without bound: the previous run's log is kept as `.1`.
+fn open_log(path: &Path) -> Result<File, String> {
+    if fs::metadata(path).map(|meta| meta.len() > MAX_LOG_BYTES).unwrap_or(false) {
+        let _ = fs::rename(path, path.with_extension("log.1"));
+    }
+    fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|error| error.to_string())
+}
+
+async fn wait_for_server(client: &reqwest::Client, attempts: u32) -> Option<Value> {
+    for _ in 0..attempts {
+        if let Some(version) = server_version(client).await {
+            return Some(version);
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+    None
 }
 
 #[tauri::command]
 async fn ai_start(app: AppHandle, state: State<'_, AiState>) -> Result<Value, String> {
-    let client = reqwest::Client::new();
+    let client = state.client.clone();
     if let Some(version) = server_version(&client).await {
         return Ok(json!({ "started": false, "reused": true, "version": version }));
     }
@@ -318,6 +441,15 @@ async fn ai_start(app: AppHandle, state: State<'_, AiState>) -> Result<Value, St
         return Err(format!(
             "OoFR Desktop 需要 macOS 14 或更高版本；当前为 {version}"
         ));
+    }
+    // A second call while our own Ollama is still starting waits for it
+    // instead of mistaking it for a foreign program on the port.
+    let already_starting = owned_child_running(&state)?;
+    if already_starting {
+        return wait_for_server(&client, 80)
+            .await
+            .map(|version| json!({ "started": false, "reused": true, "version": version }))
+            .ok_or_else(|| "Ollama 启动超时，请查看 OoFR 日志".to_string());
     }
     if TcpStream::connect_timeout(
         &SocketAddr::from(([127, 0, 0, 1], 11434)),
@@ -332,7 +464,7 @@ async fn ai_start(app: AppHandle, state: State<'_, AiState>) -> Result<Value, St
         .0;
     let log_dir = support_dir()?.join("logs");
     fs::create_dir_all(&log_dir).map_err(|error| format!("无法创建日志目录：{error}"))?;
-    let stdout = File::create(log_dir.join("ollama.log")).map_err(|error| error.to_string())?;
+    let stdout = open_log(&log_dir.join("ollama.log"))?;
     let stderr = stdout.try_clone().map_err(|error| error.to_string())?;
     let child = Command::new(executable)
         .arg("serve")
@@ -345,21 +477,10 @@ async fn ai_start(app: AppHandle, state: State<'_, AiState>) -> Result<Value, St
         .map_err(|error| format!("Ollama 启动失败：{error}"))?;
     *state.owned_child.lock().map_err(|_| "AI 进程状态不可用")? = Some(child);
     emit_progress(&app, "start", "正在启动本地 AI…", 0, 0);
-    for _ in 0..80 {
-        if let Some(version) = server_version(&client).await {
-            return Ok(json!({ "started": true, "reused": false, "version": version }));
-        }
-        tokio::time::sleep(Duration::from_millis(250)).await;
+    if let Some(version) = wait_for_server(&client, 80).await {
+        return Ok(json!({ "started": true, "reused": false, "version": version }));
     }
-    if let Some(mut child) = state
-        .owned_child
-        .lock()
-        .map_err(|_| "AI 进程状态不可用")?
-        .take()
-    {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
+    stop_owned_child(&state);
     Err("Ollama 启动超时，请查看 OoFR 日志".to_string())
 }
 
@@ -369,8 +490,11 @@ async fn ai_pull_model(
     state: State<'_, AiState>,
     model: String,
 ) -> Result<Value, String> {
+    validate_model(&model)?;
+    let _busy = SetupGuard::acquire(&state.setup_busy)?;
     state.cancel_setup.store(false, Ordering::SeqCst);
-    let response = reqwest::Client::new()
+    let response = state
+        .client
         .post(format!("{OLLAMA_ENDPOINT}/api/pull"))
         .json(&json!({ "model": &model, "stream": true }))
         .send()
@@ -404,13 +528,15 @@ async fn ai_pull_model(
             }
         }
     }
-    emit_progress(&app, "ready", "gemma3:4b 已安装", 1, 1);
+    emit_progress(&app, "ready", &format!("{model} 已安装"), 1, 1);
     Ok(json!({ "model": model, "ready": true }))
 }
 
 #[tauri::command]
-async fn ai_chat(request: Value) -> Result<Value, String> {
-    reqwest::Client::new()
+async fn ai_chat(state: State<'_, AiState>, request: Value) -> Result<Value, String> {
+    validate_chat_request(&request)?;
+    state
+        .client
         .post(format!("{OLLAMA_ENDPOINT}/api/chat"))
         .timeout(Duration::from_secs(240))
         .json(&request)
@@ -432,17 +558,8 @@ fn ai_cancel_setup(state: State<'_, AiState>) -> Value {
 
 #[tauri::command]
 fn ai_stop(state: State<'_, AiState>) -> Result<Value, String> {
-    if let Some(mut child) = state
-        .owned_child
-        .lock()
-        .map_err(|_| "AI 进程状态不可用")?
-        .take()
-    {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Ok(json!({ "stopped": true, "managed": true }));
-    }
-    Ok(json!({ "stopped": false, "managed": false }))
+    let managed = stop_owned_child(&state);
+    Ok(json!({ "stopped": managed, "managed": managed }))
 }
 
 fn main() {
@@ -459,21 +576,24 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
-                if let Ok(mut guard) = window.state::<AiState>().owned_child.lock() {
-                    if let Some(mut child) = guard.take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                    }
-                }
+                stop_owned_child(&window.state::<AiState>());
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running OoFR Desktop");
+        .build(tauri::generate_context!())
+        .expect("error while building OoFR Desktop")
+        .run(|app, event| {
+            // Cmd+Q and other exits may skip window events; never leave our Ollama behind.
+            if matches!(event, RunEvent::Exit) {
+                stop_owned_child(&app.state::<AiState>());
+            }
+        });
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use flate2::{write::GzEncoder, Compression};
+    use std::io::Write;
 
     #[test]
     fn supports_sonoma_and_newer() {
@@ -494,5 +614,108 @@ mod tests {
     #[test]
     fn reserves_space_for_runtime_and_model() {
         assert_eq!(REQUIRED_BYTES, 6 * 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn only_the_bundled_model_can_be_downloaded() {
+        assert!(validate_model("gemma3:4b").is_ok());
+        for model in ["", "llama3", "gemma3:27b", "gemma3:4b ", "gemma3:4b;rm", "../gemma3:4b"] {
+            assert!(validate_model(model).is_err(), "{model:?} must be refused");
+        }
+    }
+
+    #[test]
+    fn chat_requests_need_a_model_and_messages_and_a_sane_size() {
+        let ok = json!({ "model": "gemma3:4b", "messages": [{ "role": "user", "content": "hi" }], "stream": false });
+        assert!(validate_chat_request(&ok).is_ok());
+        assert!(validate_chat_request(&json!("text")).is_err());
+        assert!(validate_chat_request(&json!({ "messages": [] })).is_err());
+        assert!(validate_chat_request(&json!({ "model": "", "messages": [] })).is_err());
+        assert!(validate_chat_request(&json!({ "model": "gemma3:4b" })).is_err());
+        let huge = json!({ "model": "gemma3:4b", "messages": ["x".repeat(MAX_CHAT_REQUEST_BYTES + 1)] });
+        assert!(validate_chat_request(&huge).is_err());
+    }
+
+    #[test]
+    fn only_one_setup_task_runs_at_a_time_and_it_is_released_afterwards() {
+        let flag = AtomicBool::new(false);
+        let first = SetupGuard::acquire(&flag).expect("first task starts");
+        assert!(SetupGuard::acquire(&flag).is_err());
+        drop(first);
+        assert!(SetupGuard::acquire(&flag).is_ok());
+    }
+
+    fn scratch_dir(name: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("oofr-test-{name}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_archive(path: &Path, files: &[(&str, &[u8])]) {
+        let encoder = GzEncoder::new(File::create(path).unwrap(), Compression::fast());
+        let mut builder = tar::Builder::new(encoder);
+        for (name, content) in files {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            builder.append_data(&mut header, name, *content).unwrap();
+        }
+        builder.into_inner().unwrap().finish().unwrap().flush().unwrap();
+    }
+
+    #[test]
+    fn a_good_archive_is_installed_in_one_step_and_made_executable() {
+        let root = scratch_dir("good");
+        let archive = root.join("ollama.tgz");
+        write_archive(&archive, &[("bin/ollama", b"#!/bin/sh\n"), ("lib/helper.txt", b"x")]);
+        let executable = extract_runtime(&archive, &root).expect("installs");
+        assert!(executable.is_file());
+        assert!(executable.starts_with(root.join(format!("ollama-{OLLAMA_VERSION}"))));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(fs::metadata(&executable).unwrap().permissions().mode() & 0o111, 0o111);
+        }
+        assert!(!root.join(format!(".unpack-{OLLAMA_VERSION}")).exists(), "staging directory is gone");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_archive_without_ollama_leaves_nothing_that_looks_installed() {
+        let root = scratch_dir("bad");
+        let archive = root.join("broken.tgz");
+        write_archive(&archive, &[("readme.txt", b"no binary here")]);
+        assert!(extract_runtime(&archive, &root).is_err());
+        assert!(!root.join(format!(".unpack-{OLLAMA_VERSION}")).exists());
+        assert!(!root.join(format!("ollama-{OLLAMA_VERSION}")).exists());
+        assert!(find_named_file(&root, "ollama", 4).is_none());
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_half_finished_extraction_is_never_picked_up() {
+        let root = scratch_dir("hidden");
+        fs::create_dir_all(root.join(".unpack-leftover")).unwrap();
+        fs::write(root.join(".unpack-leftover").join("ollama"), b"partial").unwrap();
+        assert!(find_named_file(&root, "ollama", 4).is_none());
+        fs::create_dir_all(root.join("ollama-real")).unwrap();
+        fs::write(root.join("ollama-real").join("ollama"), b"ok").unwrap();
+        assert_eq!(find_named_file(&root, "ollama", 4), Some(root.join("ollama-real").join("ollama")));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_child_that_already_exited_is_not_reported_as_running() {
+        let mut slot = Command::new("/usr/bin/true").spawn().ok();
+        if let Some(child) = slot.as_mut() {
+            let _ = child.wait();
+        }
+        assert!(!child_is_running(&mut slot));
+        assert!(slot.is_none());
     }
 }
