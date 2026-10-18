@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "oofr-v2-phone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:phone", "--prefix", "v2", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
+    },
+    {
       "name": "oofr-v2-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--prefix", "v2", "--", "--port", "4173", "--strictPort"],
