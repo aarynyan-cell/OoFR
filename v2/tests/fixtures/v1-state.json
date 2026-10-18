@@ -1,0 +1,444 @@
+{
+  "version": 1,
+  "currentText": "Bonjour ! Je m'appelle Camille, et j'apprends le français tous les jours.\nAujourd'hui, je voudrais pratiquer les liaisons : les amis, vous avez, nous allons.\nEst-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.",
+  "activeEntryId": null,
+  "ui": {
+    "activeView": "course",
+    "selectedAlbumId": "album_mve8hllo_aw1a40v",
+    "selectedTapeId": "tape_mve8hllo_lxowacg",
+    "selectedWordbookId": "all"
+  },
+  "settings": {
+    "rate": "0.75",
+    "pause": "1.2",
+    "repeat": "2",
+    "voice": "Thomas|fr-FR",
+    "voiceLocked": true,
+    "systemLanguage": "zh",
+    "localAiEndpoint": "http://127.0.0.1:11434",
+    "localAiModel": "auto"
+  },
+  "albums": [
+    {
+      "id": "album_mve8hllo_aw1a40v",
+      "title": "入门练习",
+      "description": "从 v0.0 延续来的第一盘磁带",
+      "coverColor": "#0a5f59",
+      "courseLessonId": "demo_lesson",
+      "createdAt": "2026-10-18T19:44:07.064Z",
+      "updatedAt": "2026-10-18T19:44:07.064Z"
+    },
+    {
+      "id": "album_mve8hllq_2n53mbl",
+      "title": "旅行用语",
+      "description": "出门在外",
+      "coverColor": "#7CC1B6",
+      "courseLessonId": "course_album_mve8hllq_2n53mbl",
+      "createdAt": "2026-10-18T19:44:07.070Z",
+      "updatedAt": "2026-10-18T19:44:07.070Z"
+    }
+  ],
+  "tapes": [
+    {
+      "id": "tape_mve8hllo_lxowacg",
+      "albumId": "album_mve8hllo_aw1a40v",
+      "title": "发音母带",
+      "description": "常用句子和联诵练习",
+      "createdAt": "2026-10-18T19:44:07.064Z",
+      "updatedAt": "2026-10-18T19:44:07.064Z"
+    },
+    {
+      "id": "tape_mve8hllq_y2g5a16",
+      "albumId": "album_mve8hllq_2n53mbl",
+      "title": "默认分轨",
+      "description": "",
+      "createdAt": "2026-10-18T19:44:07.070Z",
+      "updatedAt": "2026-10-18T19:44:07.070Z"
+    }
+  ],
+  "entries": [
+    {
+      "id": "entry_mve8hllo_kfpuocd",
+      "tapeId": "tape_mve8hllo_lxowacg",
+      "title": "示例段落",
+      "text": "Bonjour ! Je m'appelle Camille, et j'apprends le français tous les jours.\nAujourd'hui, je voudrais pratiquer les liaisons : les amis, vous avez, nous allons.\nEst-ce que tu peux répéter cette phrase plus lentement ? Merci beaucoup.",
+      "notes": "",
+      "language": "fr",
+      "materialType": "文章",
+      "courseLessonId": "",
+      "practiceCount": 0,
+      "lastPracticedAt": null,
+      "createdAt": "2026-10-18T19:44:07.064Z",
+      "updatedAt": "2026-10-18T19:44:07.064Z"
+    },
+    {
+      "id": "entry_mve8hllq_robwskb",
+      "tapeId": "tape_mve8hllq_y2g5a16",
+      "title": "在咖啡馆点单",
+      "text": "A: Bonjour, je voudrais un café, s'il vous plaît.\nB: Bien sûr. Sur place ou à emporter ?",
+      "notes": "",
+      "language": "fr",
+      "materialType": "情景对话",
+      "courseLessonId": "",
+      "practiceCount": 0,
+      "lastPracticedAt": null,
+      "createdAt": "2026-10-18T19:44:07.070Z",
+      "updatedAt": "2026-10-18T19:44:07.070Z"
+    },
+    {
+      "id": "entry_mve8hllr_8e1rx9y",
+      "tapeId": "tape_mve8hllq_y2g5a16",
+      "title": "问路",
+      "text": "Excusez-moi, où est la gare ? C'est tout droit, puis à gauche.",
+      "notes": "记住 tout droit",
+      "language": "fr",
+      "materialType": "笔记",
+      "courseLessonId": "",
+      "practiceCount": 0,
+      "lastPracticedAt": null,
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z"
+    }
+  ],
+  "wordbooks": [
+    {
+      "id": "wordbook_food",
+      "title": "吃饭",
+      "description": "",
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z"
+    }
+  ],
+  "vocabulary": [
+    {
+      "id": "word_cafe",
+      "word": "café",
+      "surface": "café",
+      "lemma": "café",
+      "normalized": "café",
+      "partOfSpeech": "noun",
+      "language": "fr",
+      "ipa": "/ka.fe/",
+      "zh": "咖啡",
+      "en": "",
+      "status": "new",
+      "wordbookIds": [
+        "wordbook_food"
+      ],
+      "seenForms": [
+        {
+          "form": "café",
+          "normalized": "café",
+          "count": 2
+        }
+      ],
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z"
+    },
+    {
+      "id": "word_pratiquer",
+      "word": "pratiquer",
+      "surface": "pratiquer",
+      "lemma": "pratiquer",
+      "normalized": "pratiquer",
+      "partOfSpeech": "verb",
+      "language": "fr",
+      "ipa": "",
+      "zh": "",
+      "en": "",
+      "status": "got",
+      "wordbookIds": [],
+      "seenForms": [],
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z"
+    }
+  ],
+  "activeCourseId": "demo_lesson",
+  "courseLessons": [
+    {
+      "id": "demo_lesson",
+      "title": "每天十分钟法语",
+      "language": "fr",
+      "explainLanguage": "zh",
+      "materialType": "情景对话",
+      "description": "用一段轻量对话练习问候、重复和时间表达。",
+      "createdAt": "2026-10-18T19:44:07.068Z",
+      "updatedAt": "2026-10-18T19:44:07.068Z",
+      "aiPreparedAt": null,
+      "aiPreparedSignature": "",
+      "turns": [
+        {
+          "id": "demo_turn_1",
+          "text": "Bonjour, comment allez-vous aujourd'hui ?",
+          "translation": "你好，今天过得怎么样？",
+          "speakerId": "a",
+          "speakerLabel": "A · Camille",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "demo_turn_2",
+          "text": "Je vais bien, merci. Et vous ?",
+          "translation": "我很好，谢谢。你呢？",
+          "speakerId": "b",
+          "speakerLabel": "B · Alex",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "demo_turn_3",
+          "text": "Je voudrais pratiquer le français pendant dix minutes.",
+          "translation": "我想练习十分钟法语。",
+          "speakerId": "a",
+          "speakerLabel": "A · Camille",
+          "aiExplanation": {
+            "summary": "委婉地说想做某事",
+            "structure": "Je + voudrais + 动词原形",
+            "grammarPoints": [
+              "vouloir 的条件式表示礼貌"
+            ],
+            "morphology": "",
+            "pitfalls": [
+              "voudrais 后面不加 de"
+            ],
+            "examples": [
+              "Je voudrais apprendre l'italien."
+            ],
+            "model": "gemma3:4b",
+            "language": "zh",
+            "version": "2",
+            "cacheSource": "desktop",
+            "generatedAt": "2026-10-01T10:00:00.000Z"
+          },
+          "recording": {
+            "status": "recorded",
+            "durationMs": 2300,
+            "mediaKey": "rec_demo_turn_3",
+            "mimeType": "audio/mp4",
+            "size": 4
+          }
+        },
+        {
+          "id": "demo_turn_4",
+          "text": "Bien sûr, on peut commencer quand vous voulez.",
+          "translation": "当然，你想什么时候开始都可以。",
+          "speakerId": "b",
+          "speakerLabel": "B · Alex",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "demo_turn_5",
+          "text": "Pouvez-vous répéter cette phrase plus lentement ?",
+          "translation": "你可以把这句话说慢一点吗？",
+          "speakerId": "a",
+          "speakerLabel": "A · Camille",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "demo_turn_6",
+          "text": "Bien sûr. À tout à l'heure !",
+          "translation": "当然。待会儿见！",
+          "speakerId": "b",
+          "speakerLabel": "B · Alex",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        }
+      ],
+      "lexicalUnits": [],
+      "practice": {
+        "completed": 0,
+        "correct": 0
+      }
+    },
+    {
+      "id": "course_album_mve8hllq_2n53mbl",
+      "title": "旅行用语",
+      "language": "fr",
+      "explainLanguage": "zh",
+      "materialType": "磁带素材",
+      "description": "从「旅行用语」的 1 个自建段落转换而来",
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z",
+      "aiPreparedAt": null,
+      "aiPreparedSignature": "",
+      "turns": [
+        {
+          "id": "entry_mve8hllq_robwskb_turn_1",
+          "text": "Bonjour, je voudrais un café, s'il vous plaît.",
+          "translation": "",
+          "speakerId": "a",
+          "speakerLabel": "A",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "entry_mve8hllq_robwskb_turn_2",
+          "text": "Bien sûr.",
+          "translation": "",
+          "speakerId": "b",
+          "speakerLabel": "B",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        },
+        {
+          "id": "entry_mve8hllq_robwskb_turn_3",
+          "text": "Sur place ou à emporter ?",
+          "translation": "",
+          "speakerId": "b",
+          "speakerLabel": "B",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        }
+      ],
+      "lexicalUnits": [],
+      "practice": {
+        "completed": 0,
+        "correct": 0
+      }
+    },
+    {
+      "id": "course_imported",
+      "title": "导入的课程",
+      "language": "fr",
+      "explainLanguage": "zh",
+      "materialType": "文章",
+      "description": "",
+      "createdAt": "2026-10-18T19:44:07.071Z",
+      "updatedAt": "2026-10-18T19:44:07.071Z",
+      "aiPreparedAt": null,
+      "aiPreparedSignature": "",
+      "turns": [
+        {
+          "id": "t1",
+          "text": "Paris est une belle ville.",
+          "translation": "巴黎是一座美丽的城市。",
+          "speakerId": "narrator",
+          "speakerLabel": "旁白",
+          "aiExplanation": null,
+          "recording": {
+            "status": "none",
+            "durationMs": 0,
+            "mediaKey": "",
+            "mimeType": "",
+            "size": 0
+          }
+        }
+      ],
+      "lexicalUnits": [],
+      "practice": {
+        "completed": 0,
+        "correct": 0
+      }
+    }
+  ],
+  "phraseItems": [
+    {
+      "id": "demo_phrase_1",
+      "type": "phrase",
+      "text": "Bonjour, comment allez-vous aujourd'hui ?",
+      "translation": "你好，今天过得怎么样？",
+      "sourceLessonId": "demo_lesson",
+      "sourceTitle": "每天十分钟法语",
+      "language": "fr",
+      "status": "learning",
+      "wordbookIds": [],
+      "createdAt": "2026-10-18T19:44:07.068Z",
+      "updatedAt": "2026-10-18T19:44:07.068Z",
+      "lastPracticedAt": null,
+      "dueDate": null,
+      "practiceCount": 0
+    },
+    {
+      "id": "demo_phrase_2",
+      "type": "phrase",
+      "text": "Pouvez-vous répéter cette phrase plus lentement ?",
+      "translation": "你可以把这句话说慢一点吗？",
+      "sourceLessonId": "demo_lesson",
+      "sourceTitle": "每天十分钟法语",
+      "language": "fr",
+      "status": "new",
+      "wordbookIds": [],
+      "createdAt": "2026-10-18T19:44:07.068Z",
+      "updatedAt": "2026-10-18T19:44:07.068Z",
+      "lastPracticedAt": null,
+      "dueDate": null,
+      "practiceCount": 0
+    },
+    {
+      "id": "demo_word_1",
+      "type": "word",
+      "text": "pratiquer",
+      "translation": "练习；实践",
+      "sourceLessonId": "demo_lesson",
+      "sourceTitle": "每天十分钟法语",
+      "language": "fr",
+      "status": "got",
+      "wordbookIds": [],
+      "createdAt": "2026-10-18T19:44:07.068Z",
+      "updatedAt": "2026-10-18T19:44:07.068Z",
+      "lastPracticedAt": null,
+      "dueDate": null,
+      "practiceCount": 0
+    }
+  ],
+  "dictionaryEntries": {},
+  "study": {
+    "cardsReviewed": 0,
+    "cardsKnown": 0,
+    "checkins": 0,
+    "streak": 4,
+    "lastStudyDate": "2026-10-17",
+    "dailyGoal": 3,
+    "achievements": []
+  }
+}

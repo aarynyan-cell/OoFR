@@ -110,6 +110,7 @@ http://localhost:4173/
 | `ollama-client.js`、`desktop-ai.js` | Ollama 客户端、macOS 桌面桥接 |
 | `sw.js`、`extension-service-worker.js` | PWA 离线缓存、插件后台脚本 |
 | `desktop/` | Tauri 桌面版（Rust） |
+| `v2/` | 正在开发的 2.0（独立项目，见 `v2/README.md`）；不影响 1.0 的任何文件和数据 |
 
 新增脚本时，需要同时加进 `index.html`、`sw.js`、`scripts/package_extension.sh` 和 `desktop/scripts/prepare-desktop.mjs`；`tests/release.test.js` 会检查是否漏了。
 

@@ -1,0 +1,73 @@
+/* Design tokens from the 2.0 design spec (canvas row 5). 夜读 is the default;
+   日间 is the same rules in light colours. */
+:root,
+[data-theme="night"] {
+  color-scheme: dark;
+  --bg: #16191a;
+  --surface: #1e2223;
+  --surface-2: #262b2c;
+  --raised: #212627;
+  --line: #2e3334;
+  --line-strong: #3a4041;
+  --divider: #2a2f30;
+  --text: #eceae4;
+  --text-strong: #f6f3ea;
+  --text-2: #b3b0a7;
+  --text-3: #8e918d;
+  --text-dim: #6e716f;
+  --accent: #e9c46a;
+  --accent-ink: #16191a;
+  --accent-text: #e9c46a;
+  --accent-soft: rgba(233, 196, 106, 0.14);
+  --accent-line: rgba(233, 196, 106, 0.5);
+  --ok: #7cc1b6;
+  --ok-soft: rgba(124, 193, 182, 0.16);
+  --tape-brown: #5b4634;
+  --reel-hub: #eceae4;
+  --tape-window: #16191a;
+  --tabbar: #1a1d1e;
+  --overlay: rgba(8, 10, 10, 0.6);
+  --shadow: none;
+}
+
+[data-theme="day"] {
+  color-scheme: light;
+  --bg: #f4f1e9;
+  --surface: #ffffff;
+  --surface-2: #f1ede3;
+  --raised: #ffffff;
+  --line: #ddd8cc;
+  --line-strong: #cfc9bb;
+  --divider: #e8e3d7;
+  --text: #1c1f20;
+  --text-strong: #1c1f20;
+  --text-2: #55585a;
+  --text-3: #686b69;
+  --text-dim: #686b69;
+  --accent: #e9c46a;
+  --accent-ink: #1c1f20;
+  --accent-text: #8a5f00;
+  --accent-soft: rgba(185, 138, 30, 0.14);
+  --accent-line: rgba(138, 95, 0, 0.45);
+  --ok: #2f7a70;
+  --ok-soft: rgba(47, 122, 112, 0.12);
+  --tape-brown: #5b4634;
+  --reel-hub: #ffffff;
+  --tape-window: #1c1f20;
+  --tabbar: #ffffff;
+  --overlay: rgba(28, 24, 12, 0.35);
+  --shadow: 0 4px 16px rgba(40, 32, 12, 0.06);
+}
+
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-fr: "Literata", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius-card: 18px;
+  --radius-button: 14px;
+  --radius-tag: 9px;
+  --gutter: 20px;
+  --tabbar-height: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

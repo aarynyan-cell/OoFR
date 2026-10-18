@@ -1,0 +1,16 @@
+{
+  "name": "OoFR 法语磁带",
+  "short_name": "法语磁带",
+  "description": "把法语文本变成可朗读、可跟读、可复习的磁带课程。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16191A",
+  "theme_color": "#16191A",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
