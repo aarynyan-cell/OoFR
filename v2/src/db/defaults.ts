@@ -8,7 +8,8 @@ export const DEFAULT_SETTINGS: Settings = {
   playMode: "all",
   showTranslation: true,
   theme: "night",
-  systemLanguage: "zh"
+  systemLanguage: "zh",
+  lastBackupAt: ""
 };
 
 export const DEFAULT_STUDY: StudyStats = {

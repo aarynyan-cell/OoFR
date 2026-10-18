@@ -46,15 +46,10 @@ export async function detectV1(env?: V1Environment): Promise<V1Detection> {
   }
 }
 
-export async function importV1Bundle(
-  bundle: V1Bundle,
-  source: MigrationRecord["source"],
-  recordings: Map<string, Blob> = new Map()
-): Promise<ImportCounts> {
-  const previous = await getMigrationRecord();
+// Adds whatever 2.0 does not have yet (shared by the 1.0 import and learning packages).
+export async function addV1Bundle(bundle: V1Bundle, recordings: Map<string, Blob> = new Map()): Promise<ImportCounts> {
   const added: ImportCounts = { tapes: 0, materials: 0, cards: 0, wordbooks: 0, recordings: 0 };
-
-  await db.transaction("rw", [db.tapes, db.materials, db.cards, db.wordbooks, db.recordings, db.dictionary, db.kv], async () => {
+  await db.transaction("rw", [db.tapes, db.materials, db.cards, db.wordbooks, db.recordings, db.dictionary], async () => {
     const tapeIds = new Set(await db.tapes.toCollection().primaryKeys());
     const existingTapeCount = tapeIds.size;
     const newTapes = bundle.tapes
@@ -90,6 +85,18 @@ export async function importV1Bundle(
       .map(([key, blob]) => ({ key, blob, mimeType: blob.type, durationMs: durations.get(key) || 0, createdAt: nowIso() }));
     await db.recordings.bulkAdd(newRecordings);
     added.recordings = newRecordings.length;
+  });
+  return added;
+}
+
+export async function importV1Bundle(
+  bundle: V1Bundle,
+  source: MigrationRecord["source"],
+  recordings: Map<string, Blob> = new Map()
+): Promise<ImportCounts> {
+  const previous = await getMigrationRecord();
+  return db.transaction("rw", [db.tapes, db.materials, db.cards, db.wordbooks, db.recordings, db.dictionary, db.kv], async () => {
+    const added = await addV1Bundle(bundle, recordings);
 
     // Playback settings and study stats come over once, on the first import only,
     // so later imports never undo changes made in 2.0.
@@ -115,9 +122,8 @@ export async function importV1Bundle(
       counts: previous ? addCounts(previous.counts, added) : added
     };
     await db.kv.put({ key: MIGRATION_KEY, value: record });
+    return added;
   });
-
-  return added;
 }
 
 function addCounts(left: ImportCounts, right: ImportCounts): ImportCounts {

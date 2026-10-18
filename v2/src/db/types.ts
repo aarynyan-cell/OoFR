@@ -147,6 +147,7 @@ export interface Settings {
   showTranslation: boolean;
   theme: ThemeChoice;
   systemLanguage: "zh" | "en" | "fr";
+  lastBackupAt: string;
 }
 
 export interface StudyStats {

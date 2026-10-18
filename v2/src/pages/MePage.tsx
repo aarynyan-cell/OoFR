@@ -4,10 +4,11 @@ import { useV1Migration } from "../app/migration";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { currentStreak, getSettings, getStudy, saveSettings } from "../db/repo";
+import { currentStreak, getSettings, getStudy, saveSettings, shadowedThisWeek } from "../db/repo";
 import type { ThemeChoice } from "../db/types";
-import { importV1File } from "../migrate/v1-import";
-import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel } from "../speech/voices";
+import { backupFileName, createBackup, importAnyFile, restoreSnapshot, snapshotInfo } from "../backup/backup";
+import { shareOrDownload } from "../app/download";
+import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
 
 const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "night", label: "夜读" },
@@ -15,16 +16,23 @@ const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "system", label: "跟随系统" }
 ];
 
+function relativeDays(iso: string): string {
+  const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  return days <= 0 ? "今天" : days === 1 ? "昨天" : `${days} 天前`;
+}
+
 export function MePage() {
   const settings = useLive(() => getSettings(), []);
   const study = useLive(() => getStudy(), []);
-  const materialCount = useLive(() => db.materials.count(), []);
   const knownCount = useLive(() => db.cards.where("status").equals("got").count(), []);
   const voices = useVoices();
   const { detection, busy, importNow, refresh } = useV1Migration();
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const undoInfo = useLive(() => snapshotInfo(), []);
 
-  const french = frenchVoices(voices);
+  // The joke voices (Grandma, Eddy…) stay out of the list unless one is already chosen.
+  const french = frenchVoices(voices).filter((voice) => voiceQuality(voice) !== "novelty" || voiceId(voice) === settings?.voice);
   const active = settings ? pickVoice(voices, settings.voice) : null;
 
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -33,14 +41,38 @@ export function MePage() {
     if (!file) return;
     setImporting(true);
     try {
-      const added = await importV1File(await file.text());
-      toast(added.materials || added.cards ? `已导入 ${added.materials} 条素材、${added.cards} 个词句` : "文件里的内容都已经在这里了");
+      const { kind, added, updated } = await importAnyFile(await file.text());
+      const parts = [added.materials && `${added.materials} 条素材`, added.cards && `${added.cards} 个词句`, added.recordings && `${added.recordings} 段录音`, updated && `更新 ${updated} 项`].filter(Boolean);
+      const what = kind === "package" ? "学习包" : kind === "v1" ? "1.0 备份" : "备份";
+      toast(parts.length ? `${what}已导入：${parts.join("、")}` : `${what}里的内容都已经在这里了`);
       refresh();
     } catch (error) {
       toast(error instanceof Error ? error.message : "导入失败");
     } finally {
       setImporting(false);
     }
+  };
+
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const backup = await createBackup(__APP_VERSION__);
+      const blob = new Blob([JSON.stringify(backup)], { type: "application/json" });
+      const outcome = await shareOrDownload(blob, backupFileName());
+      if (outcome !== "cancelled") {
+        await saveSettings({ lastBackupAt: new Date().toISOString() });
+        toast(`备份已生成（${(blob.size / 1024 / 1024).toFixed(1)} MB），请存到安全的地方`);
+      }
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "备份没能生成");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const undoImport = async () => {
+    if (!undoInfo || !window.confirm(`把素材和词句本恢复到 ${new Date(undoInfo.at).toLocaleString("zh-CN")} 导入之前的样子？之后新增的内容会一起撤回。`)) return;
+    toast((await restoreSnapshot()) ? "已恢复到导入之前" : "没有可以恢复的数据");
   };
 
   const migrationNote =
@@ -58,7 +90,7 @@ export function MePage() {
 
       <section className="stats" aria-label="学习统计">
         <div className="stat"><b className="mono accent-text">{study ? currentStreak(study) : 0}</b><span>连续学习天数</span></div>
-        <div className="stat"><b className="mono">{materialCount ?? 0}</b><span>素材</span></div>
+        <div className="stat"><b className="mono">{study ? shadowedThisWeek(study) : 0}</b><span>本周跟读句数</span></div>
         <div className="stat"><b className="mono ok-text">{knownCount ?? 0}</b><span>已掌握词句</span></div>
       </section>
 
@@ -69,13 +101,22 @@ export function MePage() {
             <span className="grow stack-2"><span>从 1.0 搬过来</span><span className="dim small">{migrationNote}</span></span>
             <span className="muted small">{busy ? "正在搬…" : ""}</span>
           </button>
+          <button type="button" className="list-row list-button" onClick={exportAll} disabled={exporting}>
+            <span className="grow stack-2"><span>导出完整备份</span><span className="dim small">素材、词句本、复习进度和录音都在里面</span></span>
+            <span className="muted small">{exporting ? "正在生成…" : settings?.lastBackupAt ? `上次 ${relativeDays(settings.lastBackupAt)}` : "还没备份过"}</span>
+          </button>
           <label className="list-row list-button">
-            <span className="grow stack-2"><span>导入 1.0 备份文件</span><span className="dim small">1.0 网页版、插件或 Mac 版导出的 .json</span></span>
+            <span className="grow stack-2"><span>导入备份或学习包</span><span className="dim small">2.0 备份、1.0 备份、电脑做好的学习包都可以</span></span>
             <span className="muted small">{importing ? "正在导入…" : ""}</span>
             <input type="file" accept=".json,application/json" className="visually-hidden" onChange={importFile} disabled={importing} />
           </label>
+          {undoInfo && (
+            <button type="button" className="list-row list-button" onClick={undoImport}>
+              <span className="grow stack-2"><span>恢复导入前的数据</span><span className="dim small">撤回 {new Date(undoInfo.at).toLocaleString("zh-CN")} 的导入</span></span>
+            </button>
+          )}
         </div>
-        <p className="dim small note">搬运只会复制，不会改动或删除 1.0 里的任何内容。</p>
+        <p className="dim small note">导入只会添加或补全，不会删除；搬运 1.0 只是复制，1.0 里的内容不会改动。</p>
       </section>
 
       <section className="stack-6">
