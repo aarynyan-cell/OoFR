@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { materialKey, playMaterial, speakOnce, togglePause, usePlayer } from "../app/audio";
+import { useCardIndex } from "../app/cards";
+import { materialKey, playMaterial, togglePause, toggleSpeech, usePlayer } from "../app/audio";
 import { type LessonMode, href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { cardKey, getSettings, materialsOfTape, saveSentence, saveSettings, setPosition, trackLabel } from "../db/repo";
+import { getSettings, materialsOfTape, saveSettings, setPosition, toggleSentence, trackLabel } from "../db/repo";
 import type { Explanation, Material, Settings } from "../db/types";
 import { player } from "../speech/player";
-import { groupWords, lookupText, tokenize } from "../text/tokens";
-import { frenchSpacing } from "../text/typography";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
+import { SaveToggle } from "../ui/SaveToggle";
+import { SentenceText, type TappedWord } from "../ui/SentenceText";
 import { type WordTarget, WordSheet } from "../ui/WordSheet";
 import { LessonTop } from "./LessonTop";
 import { PracticeMode } from "./PracticeMode";
 import { ShadowMode } from "./ShadowMode";
-import { BookmarkIcon, MicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, ReplayIcon, SparkleIcon } from "../ui/icons";
+import { BookmarkFilledIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, SparkleIcon } from "../ui/icons";
 
 const RATES = [0.7, 0.85, 1, 1.15];
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -50,15 +51,18 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   const total = material.sentences.length;
   const index = running ? state.index : Math.min(Math.max(0, material.position), total - 1);
   const sentence = material.sentences[index];
-  const savedCard = useLive(() => db.cards.where("normalized").equals(cardKey("phrase", sentence?.text ?? "")).first(), [sentence?.text]);
+  const cards = useCardIndex();
+  const savedCard = sentence ? cards.phrase(sentence.text) : undefined;
   const [explaining, setExplaining] = useState<Explanation | null>(null);
   const [word, setWord] = useState<WordTarget | null>(null);
   const currentRef = useRef<HTMLElement>(null);
+  const sentenceKey = `sentence:${material.id}:${sentence?.id}`;
+  const sentenceState = state.key === sentenceKey ? state.status : "idle";
 
   // Looking a word up pauses the lesson; closing the card does not resume it on its own.
-  const openWord = (text: string, occurrence: number) => {
+  const openWord = (tapped: TappedWord) => {
     if (running && state.status === "playing") player.pause();
-    setWord({ text, occurrence, context: sentence.text, translation: sentence.translation });
+    setWord({ ...tapped, context: sentence.text });
   };
 
   useEffect(() => {
@@ -98,9 +102,10 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const replay = () => {
+  // Plays just this sentence; the same button pauses and resumes it.
+  const playSentence = () => {
     void setPosition(material.id, index);
-    speakOnce(sentence.text, settings, material.language);
+    toggleSpeech(sentenceKey, sentence.text, settings, material.language);
   };
 
   const explain = () => {
@@ -108,11 +113,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     else toast("这句还没有讲解。下一步会加入一键 AI：电脑上自动生成，手机也能看");
   };
 
-  const save = async () => {
-    const before = await db.cards.where("normalized").equals(cardKey("phrase", sentence.text)).count();
-    await saveSentence(material, sentence);
-    toast(before ? "这句已经在词句本里了" : "已收藏到词句本");
-  };
+  const save = async () => toast((await toggleSentence(material, sentence)) ? "已收藏到词句本" : "已取消收藏");
 
   const cycleRate = () => {
     const next = RATES[(RATES.indexOf(settings.rate) + 1) % RATES.length] ?? 0.85;
@@ -138,36 +139,16 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
             <article key={item.id} className="current" aria-current="true" ref={currentRef}>
               <span className="mono current-label"><ReelIcon size={14} />{pad(itemIndex + 1)}{speakerLabel(item.speakerLabel)}</span>
               <p className="fr current-text" lang={material.language}>
-                {groupWords(tokenize(item.text)).map((group, groupIndex) =>
-                  group[0].word ? (
-                    // "allez" + "-vous" are two buttons that must stay on one line.
-                    <span key={groupIndex} className="nowrap">
-                      {group.map((token, tokenIndex) =>
-                        token.word ? (
-                          <button
-                            key={tokenIndex}
-                            type="button"
-                            className={`word${word?.text === lookupText(token) && word.occurrence === token.occurrence ? " word-on" : ""}`}
-                            onClick={() => openWord(lookupText(token), token.occurrence)}
-                          >
-                            {token.text}
-                          </button>
-                        ) : (
-                          <span key={tokenIndex}>{frenchSpacing(token.text)}</span>
-                        )
-                      )}
-                    </span>
-                  ) : (
-                    <span key={groupIndex}>{frenchSpacing(group[0].text)}</span>
-                  )
-                )}
+                <SentenceText text={item.text} cards={cards} onWord={openWord} active={word} />
               </p>
               {settings.showTranslation && item.translation && <p className="current-translation">{item.translation}</p>}
-              <div className="actions-4">
-                <button type="button" className="action" onClick={replay}><ReplayIcon size={20} />重听</button>
+              <div className="actions-3">
+                <button type="button" className={`action${sentenceState === "idle" ? "" : " action-on"}`} onClick={playSentence} aria-label={sentenceState === "playing" ? "暂停这一句" : "播放这一句"}>
+                  {sentenceState === "playing" ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
+                  {sentenceState === "playing" ? "暂停" : sentenceState === "paused" ? "继续" : "播放"}
+                </button>
                 <button type="button" className={`action${item.explanation ? "" : " action-muted"}`} onClick={explain}><SparkleIcon size={20} />讲解</button>
-                <a className="action" href={href({ name: "lesson", id: material.id, mode: "shadow" })}><MicIcon size={20} />跟读</a>
-                <button type="button" className={`action${savedCard ? " action-on" : ""}`} onClick={save} aria-pressed={Boolean(savedCard)}><BookmarkIcon size={20} />{savedCard ? "已收藏" : "收藏"}</button>
+                <SaveToggle variant="action" saved={Boolean(savedCard)} tone={savedCard?.status} onToggle={() => void save()} />
               </div>
             </article>
           ) : (
@@ -179,7 +160,10 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
               onClick={() => playMaterial(material, itemIndex, settings)}
               aria-label={`从第 ${itemIndex + 1} 句开始播放：${item.text}`}
             >
-              {frenchSpacing(item.text)}
+              <SentenceText text={item.text} cards={cards} />
+              {cards.phrase(item.text) && (
+                <span className={`saved-mark tone-${cards.phrase(item.text)!.status}`} aria-label="已收藏"><BookmarkFilledIcon size={14} /></span>
+              )}
             </button>
           )
         )}

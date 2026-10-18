@@ -55,7 +55,7 @@ export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; 
         </label>
 
         <div className="segmented segmented-2" role="group" aria-label="掌握情况">
-          <button type="button" className="segment" aria-pressed={card.status !== "got"} onClick={() => void updateCard(card.id, { status: "learning" })}>还在学</button>
+          <button type="button" className="segment" aria-pressed={card.status !== "got"} onClick={() => void updateCard(card.id, { status: "learning" })}>{card.status === "new" ? "待学" : "学习中"}</button>
           <button type="button" className="segment" aria-pressed={card.status === "got"} onClick={() => void updateCard(card.id, { status: "got" })}>已掌握</button>
         </div>
 

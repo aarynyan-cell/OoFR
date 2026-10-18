@@ -4,7 +4,7 @@ import { href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { type CardFilter, createWordbook, deleteWordbook, filterCards, getSettings, reviewQueue, setCardStatus } from "../db/repo";
+import { type CardFilter, TONE_LABEL, createWordbook, deleteWordbook, filterCards, getSettings, reviewQueue, setCardStatus } from "../db/repo";
 import type { Card } from "../db/types";
 import { frenchSpacing } from "../text/typography";
 import { CardSheet } from "../ui/CardSheet";
@@ -36,7 +36,7 @@ export function PhrasebookPage() {
   const toggleStatus = (card: Card) => {
     const next = card.status === "got" ? "learning" : "got";
     void setCardStatus(card.id, next);
-    toast(next === "got" ? "标记为已掌握" : "移回待学");
+    toast(next === "got" ? "标记为已掌握" : "移回学习中");
   };
 
   const removeBook = async () => {
@@ -86,15 +86,15 @@ export function PhrasebookPage() {
               </button>
               <button type="button" className="grow stack-2 row-open" onClick={() => setOpenId(card.id)} aria-label={`打开 ${card.text}`}>
                 <b className={`fr ${card.kind === "word" ? "card-word" : "card-phrase"}`} lang={card.language}>{frenchSpacing(card.text)}</b>
-                <span className="muted small">{card.kind === "word" ? "单词" : "句子"} · {card.translation || "释义待补充"}</span>
+                <span className="muted small">{card.kind === "word" ? "单词" : "句子"} · {card.translation || <span className="accent-text">释义待补充</span>}</span>
               </button>
               <button
                 type="button"
-                className={`tag tag-button ${card.status === "got" ? "tag-ok" : card.translation ? "" : "tag-todo"}`}
+                className={`tag tag-button tone-${card.status}`}
                 onClick={() => toggleStatus(card)}
-                aria-label={`${card.text}：${card.status === "got" ? "已掌握，点一下移回待学" : "待学，点一下标记为已掌握"}`}
+                aria-label={`${card.text}：${TONE_LABEL[card.status]}，点一下${card.status === "got" ? "移回学习中" : "标记为已掌握"}`}
               >
-                {card.status === "got" ? "已掌握" : card.translation ? "待学" : "待补充"}
+                {TONE_LABEL[card.status]}
               </button>
             </li>
           ))}

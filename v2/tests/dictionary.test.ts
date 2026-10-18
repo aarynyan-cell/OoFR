@@ -22,6 +22,12 @@ function miniDictionary(failFirst = false) {
   put("forms", "marche", ["marcher", "verb", "indicative · present · third person · singular", "/maʁʃ/"]);
   put("forms", "ai", ["avoir", "verb", "indicative · present · first person · singular", "/e/"]);
   put("aliases", "ecole", ["école"]);
+  put("entries", "bien sûr", ["bien sûr", "/bjɛ̃ syʁ/", "", "of course", "adv", "", ""]);
+  put("entries", "sûr", ["sûr", "/syʁ/", "确定的", "sure", "adj", "", ""]);
+  put("zh", "pratiquer", [{ pos: "verb", gender: "", zh: ["练习", "从事"] }]);
+  put("zh", "marche", [{ pos: "noun", gender: "feminine", zh: ["步行", "台阶"] }]);
+  put("zh", "bien sûr", [{ pos: "adverb", gender: "", zh: ["当然"] }]);
+  files["fr/expressions.json"] = ["bien sûr", "tout à fait"] as unknown as Record<string, unknown>;
   put("aliases", "a", ["a", "à"]);
   const curated = {
     fr: {
@@ -97,6 +103,30 @@ describe("looking up words (same rules as 1.0)", () => {
     expect(senseList("a. 肯定的；积极的\\n[医] 正的；加油；加油")).toEqual(["肯定的", "积极的", "正的", "加油"]);
     expect(posLabel(["noun", "adjective"])).toBe("名词 / 形容词");
     expect(featuresLabel("indicative · R @ t E · plural · present")).toBe("直陈式 · 现在时 · 复数");
+  });
+});
+
+describe("Chinese meanings and fixed expressions", () => {
+  it("prefers hand-reviewed meanings, then the AI translation, and marks 1.0's machine column", async () => {
+    const { dictionary } = miniDictionary();
+    expect((await dictionary.lookup("il", "fr"))?.meaningSource).toBe("curated");
+    const practise = await dictionary.lookup("pratiquer", "fr");
+    expect(practise?.meaningSource).toBe("ai");
+    expect(practise?.meanings).toEqual([{ pos: "动词", gender: "", senses: ["练习", "从事"] }]);
+    const noun = await dictionary.lookup("marche", "fr", { context: "Une marche rapide." });
+    expect(noun?.meanings[0]).toMatchObject({ pos: "名词", gender: "feminine" });
+    expect((await dictionary.lookup("école", "fr"))?.meaningSource).toBe("machine");
+  });
+
+  it("finds the fixed expression a tapped word belongs to", async () => {
+    const { dictionary, requests } = miniDictionary();
+    const expression = await dictionary.findExpression(["Bien", "sûr", "on", "commence"], 1);
+    expect(expression?.word).toBe("bien sûr");
+    expect(expression?.meanings[0].senses).toEqual(["当然"]);
+    requests.length = 0;
+    expect(await dictionary.findExpression(["on", "commence"], 0)).toBeNull();
+    // Unknown word pairs cost no shard downloads.
+    expect(requests.filter((path) => path.includes("entries"))).toEqual([]);
   });
 });
 

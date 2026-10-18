@@ -50,6 +50,14 @@ describe("practice questions", () => {
     expect(isCorrect(listen, listen.sentence)).toBe(true);
   });
 
+  it("uses only the kinds the learner picked", () => {
+    expect(new Set(buildExercises(lesson, seeded(), ["cloze"]).map((exercise) => exercise.kind))).toEqual(new Set(["cloze"]));
+    const orderOnly = buildExercises({ ...lesson, sentences: [...lesson.sentences, { ...lesson.sentences[0], id: "short", text: "Merci." }] }, seeded(), ["order"]);
+    expect(orderOnly.every((exercise) => exercise.kind === "order")).toBe(true);
+    expect(orderOnly.map((exercise) => exercise.sentence)).not.toContain(6);
+    expect(buildExercises(lesson, seeded(), [])).toEqual([]);
+  });
+
   it("still works for a one-sentence material", () => {
     const single = { ...lesson, sentences: lesson.sentences.slice(2, 3) };
     const exercises = buildExercises(single, seeded());

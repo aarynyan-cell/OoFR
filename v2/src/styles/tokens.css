@@ -28,6 +28,13 @@
   --tabbar: #1a1d1e;
   --overlay: rgba(8, 10, 10, 0.6);
   --shadow: none;
+  /* Phrasebook states, the same everywhere: 待学 yellow, 学习中 orange, 已掌握 green. */
+  --st-new: #e9c46a;
+  --st-new-soft: rgba(233, 196, 106, 0.24);
+  --st-learning: #f0a062;
+  --st-learning-soft: rgba(240, 160, 98, 0.24);
+  --st-got: #7cc1b6;
+  --st-got-soft: rgba(124, 193, 182, 0.24);
 }
 
 [data-theme="day"] {
@@ -57,6 +64,12 @@
   --tabbar: #ffffff;
   --overlay: rgba(28, 24, 12, 0.35);
   --shadow: 0 4px 16px rgba(40, 32, 12, 0.06);
+  --st-new: #8a5f00;
+  --st-new-soft: rgba(233, 196, 106, 0.42);
+  --st-learning: #a4520f;
+  --st-learning-soft: rgba(240, 150, 80, 0.3);
+  --st-got: #2f7a70;
+  --st-got-soft: rgba(124, 193, 182, 0.38);
 }
 
 :root {

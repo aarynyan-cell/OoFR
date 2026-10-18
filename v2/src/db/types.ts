@@ -37,6 +37,15 @@ export interface Sentence {
   // Key in the recordings table; "" when the learner has not recorded this sentence.
   recordingKey: string;
   recordingMs: number;
+  // How the latest shadowing take went (score is null where speech recognition is missing).
+  shadow?: ShadowResult;
+}
+
+export interface ShadowResult {
+  score: number | null;
+  missed: string[];
+  heard: string;
+  at: string;
 }
 
 export interface LexicalUnit {
@@ -148,6 +157,7 @@ export interface Settings {
   theme: ThemeChoice;
   systemLanguage: "zh" | "en" | "fr";
   lastBackupAt: string;
+  practiceKinds: ("listen" | "cloze" | "order")[];
 }
 
 export interface StudyStats {

@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { speakOnce } from "../app/audio";
 import { href } from "../app/router";
 import { toast } from "../app/toast";
-import { markStudiedToday, saveSentence } from "../db/repo";
-import type { Material, Settings } from "../db/types";
-import { type Exercise, buildExercises, isCorrect } from "../practice/exercises";
+import { useCardIndex } from "../app/cards";
+import { markStudiedToday, saveSettings, toggleSentence } from "../db/repo";
+import type { Material, Sentence, Settings } from "../db/types";
+import { EXERCISE_KINDS, type Exercise, type ExerciseKind, buildExercises, isCorrect } from "../practice/exercises";
 import { tokenize } from "../text/tokens";
 import { frenchSpacing } from "../text/typography";
-import { PlayIcon } from "../ui/icons";
+import { SaveToggle } from "../ui/SaveToggle";
+import { CheckIcon, PlayIcon } from "../ui/icons";
 import { LessonTop } from "./LessonTop";
 
 const PROMPTS: Record<Exercise["kind"], string> = {
@@ -16,28 +18,64 @@ const PROMPTS: Record<Exercise["kind"], string> = {
   order: "按顺序点出这句话"
 };
 
+const KIND_INFO: Record<ExerciseKind, { label: string; hint: string }> = {
+  listen: { label: "听音选句", hint: "听一句，选出听到的是哪句" },
+  cloze: { label: "选词填空", hint: "句子里缺一个词，从四个里选" },
+  order: { label: "连词成句", hint: "把打乱的词按顺序点回来" }
+};
+
 export function PracticeMode({ material, settings, trackName, tapeTitle }: { material: Material; settings: Settings; trackName: string; tapeTitle: string }) {
   const [round, setRound] = useState(0);
-  // A new set of questions each round; the material's sentences are read once per round.
-  const exercises = useMemo(() => buildExercises(material), [round, material.id]);
+  const [phase, setPhase] = useState<"setup" | "running">("setup");
+  const kinds = settings.practiceKinds.length ? settings.practiceKinds : EXERCISE_KINDS;
+  // A new set of questions each round, from the kinds chosen on the setup screen.
+  const exercises = useMemo(() => buildExercises(material, Math.random, kinds), [round, material.id, kinds.join()]);
   const [position, setPosition] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
 
   const exercise = exercises[position];
   const finished = position >= exercises.length;
 
-  const restart = () => {
+  const start = () => {
     setRound((value) => value + 1);
     setPosition(0);
     setResults([]);
+    setPhase("running");
+  };
+
+  const toggleKind = (kind: ExerciseKind) => {
+    const next = kinds.includes(kind) ? kinds.filter((item) => item !== kind) : [...kinds, kind];
+    if (!next.length) {
+      toast("至少选一种题型");
+      return;
+    }
+    void saveSettings({ practiceKinds: EXERCISE_KINDS.filter((item) => next.includes(item)) });
   };
 
   return (
     <main className="page page-lesson">
       <LessonTop material={material} mode="practice" trackName={trackName} tapeTitle={tapeTitle} />
       <div className="practice-body">
-        {finished ? (
-          <Summary material={material} exercises={exercises} results={results} onRestart={restart} />
+        {phase === "setup" ? (
+          <section className="stack-16">
+            <h2 className="section-title">选择题型</h2>
+            <div className="kind-list" role="group" aria-label="题型">
+              {EXERCISE_KINDS.map((kind) => (
+                <button key={kind} type="button" className="kind-card" aria-pressed={kinds.includes(kind)} onClick={() => toggleKind(kind)}>
+                  <span className="kind-check" aria-hidden="true">{kinds.includes(kind) && <CheckIcon size={16} />}</span>
+                  <span className="grow stack-2">
+                    <b>{KIND_INFO[kind].label}</b>
+                    <span className="muted small">{KIND_INFO[kind].hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="button button-primary button-block" onClick={start} disabled={!exercises.length}>
+              {exercises.length ? `开始练习 · ${exercises.length} 题` : "这条素材出不了这些题型"}
+            </button>
+          </section>
+        ) : finished ? (
+          <Summary material={material} exercises={exercises} results={results} onRestart={start} onChangeKinds={() => setPhase("setup")} />
         ) : exercise ? (
           <>
             <div className="practice-progress">
@@ -56,9 +94,7 @@ export function PracticeMode({ material, settings, trackName, tapeTitle }: { mat
               onNext={() => setPosition((current) => current + 1)}
             />
           </>
-        ) : (
-          <p className="empty">这条素材太短，还出不了题。</p>
-        )}
+        ) : null}
       </div>
     </main>
   );
@@ -158,13 +194,17 @@ function Question({ exercise, material, settings, onAnswered, onNext }: {
   );
 }
 
-function Summary({ material, exercises, results, onRestart }: { material: Material; exercises: Exercise[]; results: boolean[]; onRestart: () => void }) {
+function Summary({ material, exercises, results, onRestart, onChangeKinds }: {
+  material: Material;
+  exercises: Exercise[];
+  results: boolean[];
+  onRestart: () => void;
+  onChangeKinds: () => void;
+}) {
+  const cards = useCardIndex();
   const right = results.filter(Boolean).length;
   const missed = exercises.filter((_, index) => results[index] === false).map((exercise) => material.sentences[exercise.sentence]);
-  const save = async (index: number) => {
-    await saveSentence(material, missed[index]);
-    toast("已收藏到词句本，会在复习里再见到它");
-  };
+  const toggle = async (sentence: Sentence) => toast((await toggleSentence(material, sentence)) ? "已收藏，会在复习里再见到它" : "已取消收藏");
   return (
     <section className="stack-16">
       <div className="card stack-8 center">
@@ -173,18 +213,22 @@ function Summary({ material, exercises, results, onRestart }: { material: Materi
       </div>
       {missed.length > 0 && (
         <ul className="list list-plain">
-          {missed.map((sentence, index) => (
-            <li key={sentence.id} className="list-row">
-              <span className="grow fr" lang={material.language}>{frenchSpacing(sentence.text)}</span>
-              <button type="button" className="button button-outline button-small" onClick={() => save(index)}>收藏</button>
-            </li>
-          ))}
+          {missed.map((sentence) => {
+            const card = cards.phrase(sentence.text);
+            return (
+              <li key={sentence.id} className="list-row">
+                <span className="grow fr" lang={material.language}>{frenchSpacing(sentence.text)}</span>
+                <SaveToggle variant="small" saved={Boolean(card)} tone={card?.status} onToggle={() => void toggle(sentence)} />
+              </li>
+            );
+          })}
         </ul>
       )}
       <div className="grid-2">
-        <button type="button" className="button button-outline" onClick={onRestart}>再练一次</button>
-        <a className="button button-primary" href={href({ name: "lesson", id: material.id })}>回到听读</a>
+        <button type="button" className="button button-outline" onClick={onChangeKinds}>换题型</button>
+        <button type="button" className="button button-primary" onClick={onRestart}>再练一次</button>
       </div>
+      <a className="text-button align-center" href={href({ name: "lesson", id: material.id })}>回到听读</a>
     </section>
   );
 }

@@ -137,7 +137,15 @@ function sanitizeSentence(raw: unknown, index: number, materialId: string): Sent
     speakerLabel: text(raw.speakerLabel, 60),
     explanation,
     recordingKey: text(raw.recordingKey, 300),
-    recordingMs: count(raw.recordingMs)
+    recordingMs: count(raw.recordingMs),
+    shadow: isObject(raw.shadow)
+      ? {
+          score: typeof raw.shadow.score === "number" && raw.shadow.score >= 0 && raw.shadow.score <= 1 ? raw.shadow.score : null,
+          missed: strings(raw.shadow.missed).slice(0, 50),
+          heard: text(raw.shadow.heard, 2000),
+          at: stamp(raw.shadow.at)
+        }
+      : undefined
   };
 }
 

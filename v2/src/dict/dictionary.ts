@@ -28,6 +28,17 @@ export interface FormInfo {
   ipa: string;
 }
 
+export interface MeaningGroup {
+  pos: string;
+  gender: string;
+  senses: string[];
+}
+
+// Where the Chinese meanings come from, from most to least reliable:
+// hand-reviewed, the local AI's translation of the Wiktionary senses, or 1.0's
+// machine-matched column (often wrong, shown only as a hint).
+export type MeaningSource = "curated" | "ai" | "machine" | "none";
+
 export interface LookupResult extends DictEntry {
   surface: string;
   lemma: string;
@@ -37,7 +48,11 @@ export interface LookupResult extends DictEntry {
   lookupKey: string;
   curated?: boolean;
   fuzzy?: boolean;
+  meanings: MeaningGroup[];
+  meaningSource: MeaningSource;
 }
+
+type Resolved = Omit<LookupResult, "meanings" | "meaningSource">;
 
 export interface LookupOptions {
   context?: string;
@@ -297,7 +312,7 @@ export class Dictionary {
     return this.curated;
   }
 
-  private loadShard(language: Language, kind: "entries" | "forms" | "aliases", key: string): Promise<Shard> {
+  private loadShard(language: Language, kind: "entries" | "forms" | "aliases" | "zh", key: string): Promise<Shard> {
     const cacheKey = `${language}:${kind}:${shardFor(key)}`;
     let pending = this.shards.get(cacheKey);
     if (!pending) {
@@ -374,6 +389,58 @@ export class Dictionary {
   }
 
   async lookup(surface: string, language: Language = "fr", options: LookupOptions = {}): Promise<LookupResult | null> {
+    const resolved = await this.resolve(surface, language, options);
+    return resolved ? this.withMeanings(resolved, language) : null;
+  }
+
+  private async withMeanings(result: Resolved, language: Language): Promise<LookupResult> {
+    if (result.curated) {
+      return { ...result, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "curated" };
+    }
+    const rows = language === "fr" ? ((await this.loadShard(language, "zh", normalize(result.lemma)))[normalize(result.lemma)] as { pos: string; gender: string; zh: string[] }[] | undefined) : undefined;
+    if (rows?.length) {
+      return { ...result, meanings: rows.map((row) => ({ pos: posLabel(canonicalPosList(row.pos)), gender: row.gender, senses: row.zh })), meaningSource: "ai" };
+    }
+    if (result.zhSenses.length) {
+      return { ...result, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "machine" };
+    }
+    return { ...result, meanings: [], meaningSource: "none" };
+  }
+
+  private expressionKeys: Promise<Set<string>> | null = null;
+
+  private loadExpressions(): Promise<Set<string>> {
+    if (!this.expressionKeys) {
+      this.expressionKeys = this.fetchJson("fr/expressions.json")
+        .then((value) => new Set(Array.isArray(value) ? value.map(String) : []))
+        .catch(() => {
+          this.expressionKeys = null;
+          return new Set<string>();
+        });
+    }
+    return this.expressionKeys;
+  }
+
+  // A fixed expression the tapped word belongs to ("bien sûr", "tout à l'heure",
+  // "s'il vous plaît"): the longest one in the sentence that the dictionary knows.
+  // Only expressions listed in expressions.json are fetched, so a tap costs at most one shard.
+  async findExpression(words: string[], index: number, language: Language = "fr"): Promise<LookupResult | null> {
+    if (language !== "fr" || index < 0 || index >= words.length) return null;
+    const known = await this.loadExpressions();
+    const curatedTable = (await this.loadCurated())[language] ?? {};
+    for (let size = Math.min(5, words.length); size >= 2; size -= 1) {
+      for (let start = Math.max(0, index - size + 1); start <= index && start + size <= words.length; start += 1) {
+        const phrase = words.slice(start, start + size).join(" ");
+        const key = normalize(phrase);
+        if (!known.has(key) && !Object.prototype.hasOwnProperty.call(curatedTable, key)) continue;
+        const entry = await this.headword(key, language);
+        if (entry) return this.withMeanings({ ...entry, surface: phrase, lemma: entry.word, isInflected: false, lookupKey: key }, language);
+      }
+    }
+    return null;
+  }
+
+  private async resolve(surface: string, language: Language, options: LookupOptions): Promise<Resolved | null> {
     const originalKey = normalize(surface);
     if (!originalKey) return null;
     const core = language === "fr" ? frenchElision(originalKey) : "";
@@ -440,6 +507,8 @@ export class Dictionary {
 // working offline; the version in the address keeps those copies current.
 export const dictionary = new Dictionary(async (path) => {
   const response = await fetch(`./dictionary/${path}?v=${encodeURIComponent(__DICTIONARY_VERSION__)}`);
+  // A shard that does not exist (no AI meanings in it yet) is simply empty.
+  if (response.status === 404) return {};
   if (!response.ok) throw new Error(`Dictionary ${path}: ${response.status}`);
   return response.json();
 });

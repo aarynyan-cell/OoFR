@@ -2,7 +2,7 @@
 
 import { db } from "./database";
 import { DEFAULT_SETTINGS, DEFAULT_STUDY, TAPE_COLORS, localDateKey, makeId, nowIso } from "./defaults";
-import type { Card, CardStatus, Material, Sentence, Settings, StudyStats, Tape, Wordbook } from "./types";
+import type { Card, CardStatus, Material, Sentence, Settings, ShadowResult, StudyStats, Tape, Wordbook } from "./types";
 import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
@@ -240,7 +240,12 @@ export function recordingKeyFor(materialId: string, sentenceId: string): string 
 }
 
 // Keeps the learner's latest take of a sentence (an earlier take is replaced).
-export async function saveRecording(materialId: string, sentenceId: string, take: { blob: Blob; durationMs: number; mimeType: string }): Promise<string> {
+export async function saveRecording(
+  materialId: string,
+  sentenceId: string,
+  take: { blob: Blob; durationMs: number; mimeType: string },
+  result?: Omit<ShadowResult, "at">
+): Promise<string> {
   const key = recordingKeyFor(materialId, sentenceId);
   await db.transaction("rw", db.recordings, db.materials, db.kv, async () => {
     const material = await db.materials.get(materialId);
@@ -249,7 +254,9 @@ export async function saveRecording(materialId: string, sentenceId: string, take
     if (previous && previous !== key) await db.recordings.delete(previous);
     await db.recordings.put({ key, blob: take.blob, mimeType: take.mimeType, durationMs: take.durationMs, createdAt: nowIso() });
     await db.materials.update(materialId, {
-      sentences: material.sentences.map((sentence) => (sentence.id === sentenceId ? { ...sentence, recordingKey: key, recordingMs: take.durationMs } : sentence)),
+      sentences: material.sentences.map((sentence) =>
+        sentence.id === sentenceId ? { ...sentence, recordingKey: key, recordingMs: take.durationMs, shadow: result ? { ...result, at: nowIso() } : undefined } : sentence
+      ),
       lastStudiedAt: nowIso()
     });
     const study = await getStudy();
@@ -397,6 +404,31 @@ export async function gradeCard(cardId: string, grade: Grade, now = new Date()):
   });
   await markStudiedToday(now);
   return updated;
+}
+
+// The three states shown everywhere (text highlights, phrasebook tags, word card).
+export type Tone = CardStatus;
+export const TONE_LABEL: Record<Tone, string> = { new: "待学", learning: "学习中", got: "已掌握" };
+
+// 收藏 / 取消收藏 with one tap; returns whether the item is saved afterwards.
+export async function toggleSentence(material: Material, sentence: Sentence): Promise<boolean> {
+  const existing = await findCard("phrase", sentence.text);
+  if (existing) {
+    await db.cards.delete(existing.id);
+    return false;
+  }
+  await saveSentence(material, sentence);
+  return true;
+}
+
+export async function toggleWord(word: WordToSave, material: Material): Promise<boolean> {
+  const existing = await findCard("word", word.lemma);
+  if (existing) {
+    await db.cards.delete(existing.id);
+    return false;
+  }
+  await saveWord(word, material);
+  return true;
 }
 
 export async function updateCard(cardId: string, changes: { translation?: string; wordbookIds?: string[]; status?: CardStatus }): Promise<void> {

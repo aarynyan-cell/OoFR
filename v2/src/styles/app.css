@@ -1089,10 +1089,10 @@ p {
   color: var(--text-2);
 }
 
-.actions-4 {
+.actions-3 {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   padding-top: 4px;
 }
 
@@ -1677,4 +1677,194 @@ mark.missed {
   background: var(--surface);
   color: var(--text);
   font-size: 16px;
+}
+
+/* ---------- Phrasebook states (shared) ---------- */
+
+.mark-new,
+.mark-learning,
+.mark-got {
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.mark-new { background: var(--st-new-soft); }
+.mark-learning { background: var(--st-learning-soft); }
+.mark-got { background: var(--st-got-soft); }
+
+.tone-new { color: var(--st-new); }
+.tone-learning { color: var(--st-learning); }
+.tone-got { color: var(--st-got); }
+
+.tag.tone-new { background: var(--st-new-soft); }
+.tag.tone-learning { background: var(--st-learning-soft); }
+.tag.tone-got { background: var(--st-got-soft); }
+
+.save-toggle.is-saved {
+  border-color: currentColor;
+}
+
+.action.save-toggle.is-saved.tone-new { background: var(--st-new-soft); }
+.action.save-toggle.is-saved.tone-learning { background: var(--st-learning-soft); }
+.action.save-toggle.is-saved.tone-got { background: var(--st-got-soft); }
+
+.saved-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: 6px;
+}
+
+/* ---------- Word card (compact) ---------- */
+
+.modal-compact {
+  max-width: 440px;
+  gap: 8px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+
+@media (min-width: 720px) {
+  .modal-compact {
+    max-width: 420px;
+  }
+}
+
+.word-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.word-sheet .word-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.word-sheet .word-title {
+  font-size: 26px;
+}
+
+.word-sheet .round-outline {
+  width: 40px;
+  height: 40px;
+}
+
+.meanings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meaning-row {
+  display: flex;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.meaning-pos {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding-top: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.word-sheet .senses {
+  font-size: 15px;
+}
+
+.expression {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.word-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.word-actions .button {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.tiny {
+  font-size: 11px;
+}
+
+.kind-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kind-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.kind-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.kind-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.kind-card[aria-pressed="true"] .kind-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+/* ---------- Shadowing summary ---------- */
+
+.summary-card p {
+  line-height: 1.6;
+}
+
+.summary-score {
+  font-size: 30px;
+  color: var(--accent-text);
+}
+
+.summary-score small {
+  font-size: 13px;
+  margin-left: 2px;
+}
+
+.summary-row .round-outline {
+  width: 40px;
+  height: 40px;
+}
+
+.summary-row.is-playing {
+  background: var(--accent-soft);
 }

@@ -3,14 +3,20 @@ import { speakOnce } from "../app/audio";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { markStudiedToday, saveRecording, setPosition } from "../db/repo";
+import { useCardIndex } from "../app/cards";
+import { stopRecordingAudio, toggleRecordings, useRecordingPlayback } from "../app/recordings";
+import { markStudiedToday, saveRecording, setPosition, toggleSentence } from "../db/repo";
 import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
 import { type Listening, canRecognize, listen } from "../speech/recognizer";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
 import { frenchSpacing } from "../text/typography";
-import { MicIcon, PlayIcon, SpeakerIcon } from "../ui/icons";
+import { SaveToggle } from "../ui/SaveToggle";
+import { SentenceText } from "../ui/SentenceText";
+import { type WordTarget, WordSheet } from "../ui/WordSheet";
+import { MicIcon, PlayIcon, SpeakerIcon, StopIcon } from "../ui/icons";
+import { ShadowSummary } from "./ShadowSummary";
 import { LessonTop } from "./LessonTop";
 
 interface Attempt {
@@ -29,10 +35,16 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
   const [phase, setPhase] = useState<"idle" | "recording" | "checking">("idle");
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [view, setView] = useState<"read" | "summary">("read");
+  const [word, setWord] = useState<WordTarget | null>(null);
   const session = useRef<RecordingSession | null>(null);
   const listening = useRef<Listening | null>(null);
-  const audio = useRef<HTMLAudioElement | null>(null);
   const recording = useLive(async () => (sentence.recordingKey ? db.recordings.get(sentence.recordingKey) : undefined), [sentence.recordingKey]);
+  const cards = useCardIndex();
+  const savedCard = cards.phrase(sentence.text);
+  const playback = useRecordingPlayback();
+  const mineKey = `shadow:${material.id}:${sentence.id}`;
+  const anyTakes = material.sentences.some((item) => item.recordingKey);
   const problem = recordingProblem();
 
   // A new sentence starts with a clean slate; leaving stops the microphone.
@@ -47,7 +59,7 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     };
   }, [sentence.id]);
 
-  useEffect(() => () => stopMine(), []);
+  useEffect(() => () => stopRecordingAudio(), []);
 
   useEffect(() => {
     if (phase !== "recording") return;
@@ -56,26 +68,11 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     return () => clearInterval(timer);
   }, [phase]);
 
-  function stopMine() {
-    if (!audio.current) return;
-    audio.current.pause();
-    URL.revokeObjectURL(audio.current.src);
-    audio.current = null;
-  }
-
-  const playMine = () => {
-    if (!recording) return;
-    player.stop();
-    stopMine();
-    const element = new Audio(URL.createObjectURL(recording.blob));
-    element.onended = stopMine;
-    audio.current = element;
-    void element.play().catch(() => toast("这段录音播放不了"));
-  };
+  const playMine = () => recording && toggleRecordings(mineKey, [recording.blob]);
 
   const begin = async () => {
     player.stop();
-    stopMine();
+    stopRecordingAudio();
     setAttempt(null);
     try {
       session.current = await startRecording();
@@ -98,9 +95,10 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
       const heard = (await listening.current?.finish()) ?? "";
       listening.current = null;
       const bars = await waveform(take.blob);
-      await saveRecording(material.id, sentence.id, take);
+      const check = heard ? compareSpeech(sentence.text, heard) : null;
+      await saveRecording(material.id, sentence.id, take, { score: check ? check.score : null, missed: check?.missed ?? [], heard });
       void markStudiedToday();
-      setAttempt({ heard, bars, check: heard ? compareSpeech(sentence.text, heard) : null });
+      setAttempt({ heard, bars, check });
     } catch (error) {
       listening.current?.cancel();
       listening.current = null;
@@ -111,9 +109,11 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
   };
 
   const goTo = (next: number) => {
-    stopMine();
+    stopRecordingAudio();
     void setPosition(material.id, Math.min(Math.max(0, next), total - 1));
   };
+
+  const toggleSave = async () => toast((await toggleSentence(material, sentence)) ? "已收藏到词句本" : "已取消收藏");
 
   const recordLabel = phase === "recording" ? `读完点一下 · ${seconds(elapsed)}` : phase === "checking" ? "正在对比…" : "按一下开始跟读";
 
@@ -121,72 +121,94 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     <main className="page page-lesson">
       <LessonTop material={material} mode="shadow" trackName={trackName} tapeTitle={tapeTitle} />
 
-      <div className="shadow-body">
-        <section className="card stack-10 shadow-sentence">
-          <span className="mono eyebrow">{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
-          <p className="fr shadow-text" lang={material.language}>{frenchSpacing(sentence.text)}</p>
-          {sentence.translation && <p className="muted small">{sentence.translation}</p>}
-        </section>
-
-        <section className="record-row" aria-label="录音控制">
-          <button type="button" className="record-side" onClick={() => speakOnce(sentence.text, settings, material.language)}>
-            <span className="round-button round-outline round-medium"><PlayIcon size={22} /></span>听原声
-          </button>
-          <button
-            type="button"
-            className={`record-main${phase === "recording" ? " is-recording" : ""}`}
-            onClick={phase === "recording" ? finish : begin}
-            disabled={phase === "checking" || Boolean(problem)}
-            aria-label={recordLabel}
-          >
-            <span className="record-button"><MicIcon size={32} /></span>
-            {recordLabel}
-          </button>
-          <button type="button" className="record-side" onClick={playMine} disabled={!recording}>
-            <span className="round-button round-outline round-medium"><SpeakerIcon size={22} /></span>听我的
-          </button>
-        </section>
-        <p className="dim small center">
-          {problem || (recording ? `上一遍录音 ${seconds(recording.durationMs)}${canRecognize() ? " · 读完会自动和原句对比" : ""}` : canRecognize() ? "读完会自动和原句对比" : "读完可以回放，对比自己和原声")}
-        </p>
-
-        {attempt && (
-          <section className="card stack-10" aria-live="polite">
-            {attempt.bars.length > 0 && (
-              <div className="wave-row">
-                <span className="dim small">我的</span>
-                <span className="wave" aria-hidden="true">
-                  {attempt.bars.map((bar, barIndex) => (
-                    <span key={barIndex} className={attempt.check && !attempt.check.missed.length ? "wave-ok" : ""} style={{ height: `${4 + Math.round(bar * 24)}px` }} />
-                  ))}
-                </span>
+      {view === "summary" ? (
+        <div className="shadow-body">
+          <button type="button" className="text-button" onClick={() => setView("read")}>‹ 回到跟读</button>
+          <ShadowSummary material={material} settings={settings} onRestart={() => setView("read")} />
+        </div>
+      ) : (
+        <>
+          <div className="shadow-body">
+            <section className="card stack-10 shadow-sentence">
+              <div className="row-between">
+                <span className="mono eyebrow">{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
+                {anyTakes && <button type="button" className="text-button" onClick={() => setView("summary")}>跟读总结 ›</button>}
               </div>
-            )}
-            {attempt.check ? (
-              <>
-                <p className="fr shadow-check" lang={material.language}>
-                  {attempt.check.tokens.map((token, tokenIndex) =>
-                    token.word && !token.ok ? <mark key={tokenIndex} className="missed">{token.text}</mark> : <span key={tokenIndex}>{frenchSpacing(token.text)}</span>
-                  )}
-                </p>
-                <p className="muted small">
-                  {attempt.check.missed.length === 0
-                    ? "每个词都读出来了，很好！"
-                    : `有 ${attempt.check.missed.length} 个词可能没读准：${attempt.check.missed.join("、")}。点“听原声”再对比一下。`}
-                </p>
-                <p className="dim small">听到的是：{attempt.heard}</p>
-              </>
-            ) : (
-              <p className="muted small">{canRecognize() ? "没有听清这一遍，可以再读一次，或者回放自己的录音听一听。" : "这台设备不能自动对比，可以回放自己的录音和原声比一比。"}</p>
-            )}
-          </section>
-        )}
-      </div>
+              <p className="fr shadow-text" lang={material.language}>
+                <SentenceText text={sentence.text} cards={cards} onWord={(tapped) => setWord({ ...tapped, context: sentence.text })} active={word} />
+              </p>
+              {sentence.translation && <p className="muted small">{sentence.translation}</p>}
+            </section>
 
-      <div className="bottom-actions">
-        <button type="button" className="button button-outline" onClick={() => goTo(index - 1)} disabled={index === 0 || phase !== "idle"}>上一句</button>
-        <button type="button" className="button button-primary" onClick={() => goTo(index + 1)} disabled={index >= total - 1 || phase !== "idle"}>下一句</button>
-      </div>
+            <section className="record-row" aria-label="录音控制">
+              <button type="button" className="record-side" onClick={() => speakOnce(sentence.text, settings, material.language)}>
+                <span className="round-button round-outline round-medium"><PlayIcon size={22} /></span>听原声
+              </button>
+              <button
+                type="button"
+                className={`record-main${phase === "recording" ? " is-recording" : ""}`}
+                onClick={phase === "recording" ? finish : begin}
+                disabled={phase === "checking" || Boolean(problem)}
+                aria-label={recordLabel}
+              >
+                <span className="record-button"><MicIcon size={32} /></span>
+                {recordLabel}
+              </button>
+              <button type="button" className="record-side" onClick={playMine} disabled={!recording}>
+                <span className="round-button round-outline round-medium">{playback.key === mineKey && playback.status === "playing" ? <StopIcon size={20} /> : <SpeakerIcon size={22} />}</span>听我的
+              </button>
+            </section>
+            <p className="dim small center">
+              {problem || (recording ? `上一遍录音 ${seconds(recording.durationMs)}${canRecognize() ? " · 读完会自动和原句对比" : ""}` : canRecognize() ? "读完会自动和原句对比" : "读完可以回放，对比自己和原声")}
+            </p>
+
+            {attempt && (
+              <section className="card stack-10" aria-live="polite">
+                {attempt.bars.length > 0 && (
+                  <div className="wave-row">
+                    <span className="dim small">我的</span>
+                    <span className="wave" aria-hidden="true">
+                      {attempt.bars.map((bar, barIndex) => (
+                        <span key={barIndex} className={attempt.check && !attempt.check.missed.length ? "wave-ok" : ""} style={{ height: `${4 + Math.round(bar * 24)}px` }} />
+                      ))}
+                    </span>
+                  </div>
+                )}
+                {attempt.check ? (
+                  <>
+                    <p className="fr shadow-check" lang={material.language}>
+                      {attempt.check.tokens.map((token, tokenIndex) =>
+                        token.word && !token.ok ? <mark key={tokenIndex} className="missed">{token.text}</mark> : <span key={tokenIndex}>{frenchSpacing(token.text)}</span>
+                      )}
+                    </p>
+                    <p className="muted small">
+                      {attempt.check.missed.length === 0
+                        ? "每个词都读出来了，很好！"
+                        : `有 ${attempt.check.missed.length} 个词可能没读准：${attempt.check.missed.join("、")}。点“听原声”再对比一下。`}
+                    </p>
+                    <p className="dim small">听到的是：{attempt.heard}</p>
+                    {attempt.check.missed.length > 0 && (
+                      <SaveToggle variant="small" saved={Boolean(savedCard)} tone={savedCard?.status} onToggle={() => void toggleSave()} label="收藏这句，复习时再练" />
+                    )}
+                  </>
+                ) : (
+                  <p className="muted small">{canRecognize() ? "没有听清这一遍，可以再读一次，或者回放自己的录音听一听。" : "这台设备不能自动对比，可以回放自己的录音和原声比一比。"}</p>
+                )}
+              </section>
+            )}
+          </div>
+
+          <div className="bottom-actions">
+            <button type="button" className="button button-outline" onClick={() => goTo(index - 1)} disabled={index === 0 || phase !== "idle"}>上一句</button>
+            {index >= total - 1 ? (
+              <button type="button" className="button button-primary" onClick={() => setView("summary")} disabled={phase !== "idle" || !anyTakes}>完成，看总结</button>
+            ) : (
+              <button type="button" className="button button-primary" onClick={() => goTo(index + 1)} disabled={phase !== "idle"}>下一句</button>
+            )}
+          </div>
+        </>
+      )}
+      {word && <WordSheet target={word} material={material} settings={settings} onClose={() => setWord(null)} />}
     </main>
   );
 }

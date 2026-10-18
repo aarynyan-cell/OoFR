@@ -3,6 +3,7 @@ import { markFinished, markStudiedToday, setPosition } from "../db/repo";
 import type { Material, Settings } from "../db/types";
 import { type PlayerState, loadVoices, player } from "../speech/player";
 import { pickVoice } from "../speech/voices";
+import { stopRecordingAudio } from "./recordings";
 
 let voices: SpeechSynthesisVoice[] = [];
 const voiceListeners = new Set<() => void>();
@@ -45,6 +46,7 @@ function options(settings: Settings, mode = settings.playMode) {
 // Plays a lesson from one sentence on, remembering where the learner is.
 export function playMaterial(material: Material, startIndex: number, settings: Settings): void {
   const key = materialKey(material);
+  stopRecordingAudio();
   const items = material.sentences.map((sentence) => ({ text: sentence.text, lang: material.language === "en" ? "en-US" : "fr-FR" }));
   void markStudiedToday();
   void setPosition(material.id, startIndex);
@@ -64,9 +66,18 @@ export function playMaterial(material: Material, startIndex: number, settings: S
     .finally(unsubscribe);
 }
 
-// A single sentence or word, outside a lesson run (词句本, 讲解).
-export function speakOnce(text: string, settings: Settings, language: "fr" | "en" = "fr"): void {
-  void player.play(`once:${text}`, [{ text, lang: language === "en" ? "en-US" : "fr-FR" }], 0, { ...options(settings, "all"), repeat: 1 });
+// A single sentence or word, outside a lesson run (词句本, word card, review).
+export function speakOnce(text: string, settings: Settings, language: "fr" | "en" = "fr", key = `once:${text}`): void {
+  stopRecordingAudio();
+  void player.play(key, [{ text, lang: language === "en" ? "en-US" : "fr-FR" }], 0, { ...options(settings, "all"), repeat: 1 });
+}
+
+// One button that plays a sentence, pauses it, and resumes it.
+export function toggleSpeech(key: string, text: string, settings: Settings, language: "fr" | "en" = "fr"): void {
+  const state = player.getState();
+  if (state.key === key && state.status === "playing") player.pause();
+  else if (state.key === key && state.status === "paused") player.resume();
+  else speakOnce(text, settings, language, key);
 }
 
 export function togglePause(): void {

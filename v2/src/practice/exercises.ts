@@ -73,9 +73,15 @@ function listenFor(material: Material, sentence: number, random: Random): Exerci
   return { kind: "listen", sentence, options: shuffle([sentence, ...shuffle(others, random).slice(0, 2)], random) };
 }
 
-// One question per sentence, rotating through the three kinds.
-export function buildExercises(material: Material, random: Random = Math.random): Exercise[] {
-  const builders = [listenFor, clozeFor, orderFor];
+export type ExerciseKind = Exercise["kind"];
+export const EXERCISE_KINDS: ExerciseKind[] = ["listen", "cloze", "order"];
+
+// One question per sentence, rotating through the chosen kinds; a sentence that
+// suits none of them (too short to reorder, say) is left out.
+export function buildExercises(material: Material, random: Random = Math.random, kinds: ExerciseKind[] = EXERCISE_KINDS): Exercise[] {
+  const all = { listen: listenFor, cloze: clozeFor, order: orderFor };
+  const builders = EXERCISE_KINDS.filter((kind) => kinds.includes(kind)).map((kind) => all[kind]);
+  if (!builders.length) return [];
   return material.sentences.flatMap((_, sentence) => {
     for (let offset = 0; offset < builders.length; offset += 1) {
       const exercise = builders[(sentence + offset) % builders.length](material, sentence, random);

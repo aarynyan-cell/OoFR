@@ -1,118 +1,134 @@
 import { useEffect, useState } from "react";
+import { useCardIndex } from "../app/cards";
 import { speakOnce } from "../app/audio";
 import { toast } from "../app/toast";
-import { db } from "../db/database";
-import { useLive } from "../db/live";
-import { cardKey, saveWord } from "../db/repo";
+import { toggleWord } from "../db/repo";
 import type { Material, Settings } from "../db/types";
-import { type LookupResult, dictionary, featuresLabel, posLabel } from "../dict/dictionary";
+import { type LookupResult, type MeaningGroup, dictionary, featuresLabel, posLabel } from "../dict/dictionary";
 import { Modal } from "./Modal";
-import { BookmarkIcon, SpeakerIcon } from "./icons";
+import { SaveToggle } from "./SaveToggle";
+import { SpeakerIcon } from "./icons";
 
 export interface WordTarget {
   text: string;
   occurrence: number;
   context: string;
-  translation: string;
+  // The sentence's words and which one was tapped, to find fixed expressions.
+  words: string[];
+  index: number;
 }
 
-type State = { status: "loading" } | { status: "found"; result: LookupResult } | { status: "missing" };
+type State = { status: "loading" } | { status: "ready"; word: LookupResult | null; expression: LookupResult | null };
 
+const GENDER = { masculine: "阳性", feminine: "阴性" } as Record<string, string>;
+
+function meaningsText(entry: LookupResult): string {
+  return (entry.meanings[0]?.senses ?? entry.enSenses).slice(0, 3).join("；");
+}
+
+// A compact card for a tapped word: it speaks the word, shows its meanings
+// (and the fixed expression it belongs to), and saves or unsaves with one tap.
 export function WordSheet({ target, material, settings, onClose }: { target: WordTarget; material: Material; settings: Settings; onClose: () => void }) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const index = useCardIndex();
 
   useEffect(() => {
+    speakOnce(target.text, settings, material.language);
     let current = true;
     setState({ status: "loading" });
-    dictionary
-      .lookup(target.text, material.language, { context: target.context, occurrence: target.occurrence })
-      .then((result) => current && setState(result ? { status: "found", result } : { status: "missing" }))
-      .catch(() => current && setState({ status: "missing" }));
+    Promise.all([
+      dictionary.lookup(target.text, material.language, { context: target.context, occurrence: target.occurrence }).catch(() => null),
+      dictionary.findExpression(target.words, target.index, material.language).catch(() => null)
+    ]).then(([word, expression]) => current && setState({ status: "ready", word, expression }));
     return () => {
       current = false;
     };
-  }, [target.text, target.context, target.occurrence, material.language]);
+    // Look up and speak once per tapped word.
+  }, [target.text, target.context, target.occurrence, target.index, material.language]);
 
-  const lemma = state.status === "found" ? state.result.lemma : target.text;
-  const saved = useLive(() => db.cards.where("normalized").equals(cardKey("word", lemma)).first(), [lemma]);
-
-  const save = async () => {
-    if (state.status !== "found") return;
-    const { result } = state;
-    const { added } = await saveWord(
-      {
-        lemma: result.lemma,
-        surface: target.text,
-        translation: (result.zhSenses.length ? result.zhSenses : result.enSenses).slice(0, 3).join("；"),
-        ipa: result.ipa,
-        partOfSpeech: posLabel(result.posList)
-      },
+  const toggle = async (entry: LookupResult) => {
+    const saved = await toggleWord(
+      { lemma: entry.lemma, surface: entry.surface, translation: meaningsText(entry), ipa: entry.ipa, partOfSpeech: posLabel(entry.posList) },
       material
     );
-    toast(added ? `已收藏 ${result.lemma}` : `${result.lemma} 已在词句本里，记下了这个词形`);
+    toast(saved ? `已收藏 ${entry.lemma}` : `已取消收藏 ${entry.lemma}`);
   };
 
-  const wiktionary = `https://fr.wiktionary.org/wiki/${encodeURIComponent(lemma)}`;
+  const word = state.status === "ready" ? state.word : null;
+  const expression = state.status === "ready" ? state.expression : null;
+  const wordCard = word ? index.word(word.lemma) : index.word(target.text);
+  const expressionCard = expression ? index.word(expression.lemma) : undefined;
+  const meta = word
+    ? [word.formIpa || word.ipa, posLabel(word.posList), GENDER[word.meanings.find((group) => group.gender)?.gender ?? ""] ?? "", word.form ? featuresLabel(word.form.features) : ""].filter(Boolean)
+    : [];
 
   return (
-    <Modal title={`${target.text} 的释义`} onClose={onClose}>
-      <div className="stack-16 sheet-scroll">
-        <div className="row-between word-head">
-          <div className="stack-6 grow">
-            <p className="word-title-row">
-              <b className="fr word-title" lang={material.language}>{target.text}</b>
-              {state.status === "found" && state.result.isInflected && (
-                <span className="muted">原形 <b className="fr accent-text" lang={material.language}>{state.result.lemma}</b></span>
-              )}
-            </p>
-            {state.status === "found" && (
-              <p className="dim small">
-                {(state.result.formIpa || state.result.ipa) && <span className="ipa">{state.result.formIpa || state.result.ipa} · </span>}
-                {[posLabel(state.result.posList), state.result.form ? featuresLabel(state.result.form.features) : ""].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button type="button" className="button button-outline button-small align-start" onClick={() => speakOnce(target.text, settings, material.language)}>
-          <SpeakerIcon size={18} />发音
-        </button>
-
-        {state.status === "loading" && <p className="dim">正在查离线词典…</p>}
-        {state.status === "missing" && (
-          <p className="muted">离线词典里没有找到这个词。可以打开完整词典看看。</p>
-        )}
-        {state.status === "found" && (
-          <section className="stack-6">
-            <h3 className="sheet-subtitle">释义</h3>
-            <ol className="senses">
-              {(state.result.zhSenses.length ? state.result.zhSenses : state.result.enSenses).slice(0, 5).map((sense) => <li key={sense}>{sense}</li>)}
-            </ol>
-          </section>
-        )}
-        {/* The English meanings (Wiktionary) are the accurate reference while the Chinese layer is being rebuilt. */}
-        {state.status === "found" && !state.result.curated && state.result.zhSenses.length > 0 && state.result.enSenses.length > 0 && (
-          <section className="stack-4">
-            <h3 className="sheet-subtitle">英文释义</h3>
-            <p className="muted small" lang="en">{state.result.enSenses.slice(0, 3).join("; ")}</p>
-          </section>
-        )}
-
-        {target.translation && (
-          <section className="soft-box stack-4">
-            <h3 className="sheet-subtitle accent-text">这句的意思</h3>
-            <p>{target.translation}</p>
-          </section>
-        )}
-
-        <div className="grid-2">
-          <button type="button" className={`button ${saved ? "button-outline" : "button-primary"}`} onClick={save} disabled={state.status !== "found"}>
-            <BookmarkIcon size={18} />{saved ? "已在词句本" : "收藏到词句本"}
+    <Modal title={`${target.text} 的释义`} onClose={onClose} compact>
+      <div className="word-sheet">
+        <div className="word-head">
+          <p className="word-title-row grow">
+            <b className="fr word-title" lang={material.language}>{target.text}</b>
+            {word?.isInflected && <span className="muted small">原形 <b className="fr accent-text" lang={material.language}>{word.lemma}</b></span>}
+          </p>
+          <button type="button" className="round-button round-outline" onClick={() => speakOnce(target.text, settings, material.language)} aria-label={`朗读 ${target.text}`}>
+            <SpeakerIcon size={20} />
           </button>
-          <a className="button button-outline" href={wiktionary} target="_blank" rel="noreferrer">完整词典</a>
         </div>
-        {state.status === "found" && <p className="dim small">来源：{state.result.curated ? "OoFR 人工校订" : state.result.source}</p>}
+        {meta.length > 0 && (
+          <p className="dim small">
+            {meta.map((part, partIndex) => (
+              <span key={part} className={partIndex === 0 && part.startsWith("/") ? "ipa" : undefined}>{partIndex ? " · " : ""}{part}</span>
+            ))}
+          </p>
+        )}
+
+        {expression && (
+          <section className="expression">
+            <div className="grow stack-2">
+              <span className="dim small">固定搭配</span>
+              <b className="fr" lang={material.language}>{expression.word}</b>
+              <span className="small">{meaningsText(expression)}</span>
+            </div>
+            <SaveToggle variant="small" saved={Boolean(expressionCard)} tone={expressionCard?.status} onToggle={() => void toggle(expression)} />
+          </section>
+        )}
+
+        {state.status === "loading" && <p className="dim small">正在查离线词典…</p>}
+        {state.status === "ready" && !word && <p className="muted small">离线词典里没有这个词，可以打开完整词典看看。</p>}
+        {word && <Meanings word={word} />}
+
+        <div className="word-actions">
+          <SaveToggle saved={Boolean(wordCard)} tone={wordCard?.status} onToggle={() => word && void toggle(word)} label={word && word.lemma !== target.text ? `收藏 ${word.lemma}` : "收藏"} />
+          <a className="text-button" href={`https://fr.wiktionary.org/wiki/${encodeURIComponent(word?.lemma ?? target.text)}`} target="_blank" rel="noreferrer">完整词典 ›</a>
+        </div>
+        {word && (
+          <p className="dim tiny">
+            {word.meaningSource === "curated" ? "释义：OoFR 人工校订" : word.meaningSource === "ai" ? "释义：本机 AI 依据维基词典英文释义翻译" : `来源：${word.source}`}
+          </p>
+        )}
       </div>
     </Modal>
+  );
+}
+
+function Meanings({ word }: { word: LookupResult }) {
+  // 1.0's machine-matched Chinese is often wrong: the accurate English senses come first.
+  if (word.meaningSource === "machine" || word.meaningSource === "none") {
+    return (
+      <section className="stack-6">
+        <ol className="senses" lang="en">{word.enSenses.slice(0, 4).map((sense) => <li key={sense}>{sense}</li>)}</ol>
+        {word.meaningSource === "machine" && <p className="dim tiny">机器对照中文（可能不准）：{word.zhSenses.slice(0, 3).join("；")}</p>}
+      </section>
+    );
+  }
+  return (
+    <section className="meanings">
+      {word.meanings.slice(0, 3).map((group: MeaningGroup) => (
+        <p key={group.pos} className="meaning-row">
+          <span className="meaning-pos">{group.pos}{GENDER[group.gender] ? ` · ${GENDER[group.gender]}` : ""}</span>
+          <span>{group.senses.slice(0, 4).join("；")}</span>
+        </p>
+      ))}
+    </section>
   );
 }
