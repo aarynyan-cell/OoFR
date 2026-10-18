@@ -79,3 +79,28 @@ describe("managing tapes", () => {
     expect(await db.tapes.count()).toBe(1);
   });
 });
+
+describe("phrasebook entries and wordbooks", () => {
+  it("fills in a meaning, sorts into wordbooks and keeps cards when a wordbook goes", async () => {
+    const { createWordbook, deleteWordbook, updateCard } = await import("../src/db/repo");
+    const tape = await createTape("旅行");
+    const material = await createMaterial({ title: "t", tapeId: tape.id, text: "Bonne journée !" });
+    const card = await saveSentence(material, material.sentences[0]);
+    const book = await createWordbook(" 问候 ");
+    await updateCard(card.id, { translation: " 祝你今天愉快！ ", wordbookIds: [book.id, book.id], status: "got" });
+    expect(await db.cards.get(card.id)).toMatchObject({ translation: "祝你今天愉快！", wordbookIds: [book.id], status: "got" });
+    expect(book.title).toBe("问候");
+    await deleteWordbook(book.id);
+    expect((await db.cards.get(card.id))?.wordbookIds).toEqual([]);
+    expect(await db.wordbooks.count()).toBe(0);
+  });
+});
+
+describe("tape label colours", () => {
+  it("uses dark text on light labels and light text on dark ones", async () => {
+    const { inkFor } = await import("../src/ui/color");
+    expect(["#E9C46A", "#7CC1B6", "#D8D3C4"].map(inkFor)).toEqual(["#16191A", "#16191A", "#16191A"]);
+    expect(["#0a5f59", "#123"].map(inkFor)).toEqual(["#F6F3EA", "#F6F3EA"]);
+    expect(inkFor("not a colour")).toBe("#16191A");
+  });
+});

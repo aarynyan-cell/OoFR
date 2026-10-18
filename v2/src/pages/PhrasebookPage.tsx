@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { speakOnce } from "../app/audio";
+import { href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { href } from "../app/router";
-import { type CardFilter, filterCards, getSettings, removeCard, reviewQueue, setCardStatus } from "../db/repo";
+import { type CardFilter, createWordbook, deleteWordbook, filterCards, getSettings, reviewQueue, setCardStatus } from "../db/repo";
 import type { Card } from "../db/types";
 import { frenchSpacing } from "../text/typography";
-import { CloseIcon, PlayIcon, SearchIcon } from "../ui/icons";
+import { CardSheet } from "../ui/CardSheet";
+import { Modal } from "../ui/Modal";
+import { PlayIcon, SearchIcon } from "../ui/icons";
 
 const FILTERS: { value: CardFilter; label: string }[] = [
   { value: "all", label: "全部" },
@@ -23,9 +25,13 @@ export function PhrasebookPage() {
   const [filter, setFilter] = useState<CardFilter>("all");
   const [wordbookId, setWordbookId] = useState("");
   const [query, setQuery] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creatingBook, setCreatingBook] = useState(false);
 
   const shown = filterCards(cards ?? [], filter, query, wordbookId);
   const dueCount = cards ? reviewQueue(cards).length : 0;
+  const open = cards?.find((card) => card.id === openId);
+  const selectedBook = wordbooks?.find((book) => book.id === wordbookId);
 
   const toggleStatus = (card: Card) => {
     const next = card.status === "got" ? "learning" : "got";
@@ -33,10 +39,11 @@ export function PhrasebookPage() {
     toast(next === "got" ? "标记为已掌握" : "移回待学");
   };
 
-  const remove = (card: Card) => {
-    if (!window.confirm(`从词句本删除「${card.text}」？`)) return;
-    void removeCard(card.id);
-    toast("已删除");
+  const removeBook = async () => {
+    if (!selectedBook || !window.confirm(`删除词本「${selectedBook.title}」？里面的词句不会删除。`)) return;
+    await deleteWordbook(selectedBook.id);
+    setWordbookId("");
+    toast("词本已删除");
   };
 
   return (
@@ -54,21 +61,15 @@ export function PhrasebookPage() {
         ))}
       </div>
 
-      {wordbooks && wordbooks.length > 0 && (
-        <div className="chips chips-scroll" role="group" aria-label="词本">
-          {wordbooks.map((wordbook) => (
-            <button
-              key={wordbook.id}
-              type="button"
-              className="chip"
-              aria-pressed={wordbookId === wordbook.id}
-              onClick={() => setWordbookId(wordbookId === wordbook.id ? "" : wordbook.id)}
-            >
-              {wordbook.title} · {(cards ?? []).filter((card) => card.wordbookIds.includes(wordbook.id)).length}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="chips chips-scroll" role="group" aria-label="词本">
+        {wordbooks?.map((wordbook) => (
+          <button key={wordbook.id} type="button" className="chip" aria-pressed={wordbookId === wordbook.id} onClick={() => setWordbookId(wordbookId === wordbook.id ? "" : wordbook.id)}>
+            {wordbook.title} · {(cards ?? []).filter((card) => card.wordbookIds.includes(wordbook.id)).length}
+          </button>
+        ))}
+        <button type="button" className="chip chip-dashed" onClick={() => setCreatingBook(true)}>＋ 新词本</button>
+        {selectedBook && <button type="button" className="text-button" onClick={removeBook}>删除这个词本</button>}
+      </div>
 
       <label className="search">
         <SearchIcon size={18} />
@@ -83,15 +84,17 @@ export function PhrasebookPage() {
               <button type="button" className="round-button round-outline" aria-label={`播放 ${card.text}`} onClick={() => settings && speakOnce(card.text, settings, card.language)}>
                 <PlayIcon size={16} />
               </button>
-              <span className="grow stack-2">
+              <button type="button" className="grow stack-2 row-open" onClick={() => setOpenId(card.id)} aria-label={`打开 ${card.text}`}>
                 <b className={`fr ${card.kind === "word" ? "card-word" : "card-phrase"}`} lang={card.language}>{frenchSpacing(card.text)}</b>
                 <span className="muted small">{card.kind === "word" ? "单词" : "句子"} · {card.translation || "释义待补充"}</span>
-              </span>
-              <button type="button" className={`tag tag-button ${card.status === "got" ? "tag-ok" : card.translation ? "" : "tag-todo"}`} onClick={() => toggleStatus(card)} aria-label={`${card.text}：${card.status === "got" ? "已掌握，点一下移回待学" : "待学，点一下标记为已掌握"}`}>
-                {card.status === "got" ? "已掌握" : card.translation ? "待学" : "待补充"}
               </button>
-              <button type="button" className="icon-button icon-button-small" aria-label={`删除 ${card.text}`} onClick={() => remove(card)}>
-                <CloseIcon size={16} />
+              <button
+                type="button"
+                className={`tag tag-button ${card.status === "got" ? "tag-ok" : card.translation ? "" : "tag-todo"}`}
+                onClick={() => toggleStatus(card)}
+                aria-label={`${card.text}：${card.status === "got" ? "已掌握，点一下移回待学" : "待学，点一下标记为已掌握"}`}
+              >
+                {card.status === "got" ? "已掌握" : card.translation ? "待学" : "待补充"}
               </button>
             </li>
           ))}
@@ -99,6 +102,34 @@ export function PhrasebookPage() {
       ) : (
         <p className="empty">{cards?.length ? "没有符合条件的词句" : "还没有收藏。上课时点“收藏”，好句子会来到这里。"}</p>
       )}
+
+      {open && settings && <CardSheet card={open} wordbooks={wordbooks ?? []} settings={settings} onClose={() => setOpenId(null)} />}
+      {creatingBook && <NewWordbookSheet onClose={() => setCreatingBook(false)} />}
     </main>
+  );
+}
+
+function NewWordbookSheet({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const book = await createWordbook(title);
+    toast(`已新建词本「${book.title}」，打开词句就能放进去`);
+    onClose();
+  };
+  return (
+    <Modal title="新建词本" onClose={onClose}>
+      <form className="stack-16" onSubmit={submit}>
+        <h2 className="sheet-title">新建词本</h2>
+        <label className="field">
+          名字
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="比如：旅行用语" maxLength={30} />
+        </label>
+        <div className="row-12">
+          <button type="button" className="button button-outline grow" onClick={onClose}>取消</button>
+          <button type="submit" className="button button-primary grow">新建</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

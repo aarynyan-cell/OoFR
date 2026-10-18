@@ -7,6 +7,7 @@ import { useLive } from "../db/live";
 import { createTape, deleteTape, listTapes, materialsOfTape, progressOf, trackLabel, updateTape } from "../db/repo";
 import type { Material, Tape } from "../db/types";
 import { Modal } from "../ui/Modal";
+import { inkFor } from "../ui/color";
 import { ChevronIcon, SearchIcon } from "../ui/icons";
 
 export function TapesPage({ tapeId }: { tapeId?: string }) {
@@ -43,7 +44,7 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
             className="shelf-tape"
             href={href({ name: "tapes", tapeId: tape.id })}
             aria-current={tape.id === selected?.id && !needle ? "true" : undefined}
-            style={{ "--tape-color": tape.color } as CSSProperties}
+            style={{ "--tape-color": tape.color, "--tape-ink": inkFor(tape.color) } as CSSProperties}
           >
             <span className="shelf-label">
               <b>{tape.title}</b>

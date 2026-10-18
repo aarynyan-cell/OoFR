@@ -2,7 +2,7 @@
 
 import { db } from "./database";
 import { DEFAULT_SETTINGS, DEFAULT_STUDY, TAPE_COLORS, localDateKey, makeId, nowIso } from "./defaults";
-import type { Card, CardStatus, Material, Sentence, Settings, StudyStats, Tape } from "./types";
+import type { Card, CardStatus, Material, Sentence, Settings, StudyStats, Tape, Wordbook } from "./types";
 import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
@@ -397,6 +397,30 @@ export async function gradeCard(cardId: string, grade: Grade, now = new Date()):
   });
   await markStudiedToday(now);
   return updated;
+}
+
+export async function updateCard(cardId: string, changes: { translation?: string; wordbookIds?: string[]; status?: CardStatus }): Promise<void> {
+  await db.cards.update(cardId, {
+    ...(changes.translation !== undefined ? { translation: changes.translation.trim() } : {}),
+    ...(changes.wordbookIds ? { wordbookIds: [...new Set(changes.wordbookIds)] } : {}),
+    ...(changes.status ? { status: changes.status } : {}),
+    updatedAt: nowIso()
+  });
+}
+
+export async function createWordbook(title: string): Promise<Wordbook> {
+  const wordbook: Wordbook = { id: makeId("wordbook"), title: title.trim() || "新词本", description: "", createdAt: nowIso(), updatedAt: nowIso() };
+  await db.wordbooks.add(wordbook);
+  return wordbook;
+}
+
+// Removing a wordbook keeps its cards; they just leave that wordbook.
+export async function deleteWordbook(wordbookId: string): Promise<void> {
+  await db.transaction("rw", db.wordbooks, db.cards, async () => {
+    await db.wordbooks.delete(wordbookId);
+    const cards = await db.cards.filter((card) => card.wordbookIds.includes(wordbookId)).toArray();
+    for (const card of cards) await db.cards.update(card.id, { wordbookIds: card.wordbookIds.filter((id) => id !== wordbookId), updatedAt: nowIso() });
+  });
 }
 
 export async function removeCard(cardId: string): Promise<void> {

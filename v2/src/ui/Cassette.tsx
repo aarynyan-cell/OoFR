@@ -1,6 +1,7 @@
 // The cassette elements from the design spec: a cover for the lesson being
 // studied, a small cassette for lists, and the reels next to the player counter.
 import type { CSSProperties } from "react";
+import { inkFor } from "./color";
 
 // Reel sizes follow progress: the right reel fills up as the tape plays.
 function reelSizes(progress: number, small: number, large: number): [number, number] {
@@ -15,7 +16,7 @@ function Reel({ size, ring }: { size: number; ring: number }) {
 export function CassetteCover({ color, title, side, counter, progress }: { color: string; title: string; side: string; counter: string; progress: number }) {
   const [left, right] = reelSizes(progress, 26, 34);
   return (
-    <div className="cassette-cover" style={{ "--tape-color": color } as CSSProperties}>
+    <div className="cassette-cover" style={{ "--tape-color": color, "--tape-ink": inkFor(color) } as CSSProperties}>
       <div className="cassette-label">
         <span className="cassette-side">{side}</span>
         <b className="cassette-title">{title}</b>
@@ -32,7 +33,7 @@ export function CassetteCover({ color, title, side, counter, progress }: { color
 
 export function MiniCassette({ color }: { color: string }) {
   return (
-    <span className="mini-cassette" style={{ background: color }} aria-hidden="true">
+    <span className="mini-cassette" style={{ background: color, "--tape-ink": inkFor(color) } as CSSProperties} aria-hidden="true">
       <span />
       <span />
     </span>

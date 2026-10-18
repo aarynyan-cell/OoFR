@@ -527,7 +527,7 @@ p {
   padding: 10px 12px 12px;
   background: var(--tape-color);
   border-radius: 14px;
-  color: #16191a;
+  color: var(--tape-ink, #16191a);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -544,7 +544,7 @@ p {
   font-size: 11px;
   font-weight: 600;
   padding: 1px 6px;
-  border: 1.5px solid #16191a;
+  border: 1.5px solid currentColor;
   border-radius: 4px;
 }
 
@@ -610,7 +610,7 @@ p {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #16191a;
+  background: var(--tape-ink, #16191a);
 }
 
 .tape-swatch {
@@ -663,7 +663,7 @@ p {
   padding: 8px 8px 10px;
   background: var(--tape-color);
   border-radius: 9px;
-  color: #16191a;
+  color: var(--tape-ink, #16191a);
 }
 
 .shelf-label b {
@@ -1649,4 +1649,32 @@ mark.missed {
   background: transparent;
   border-color: var(--line-strong);
   color: var(--accent-text);
+}
+
+.row-open {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chip-dashed {
+  border-style: dashed;
+  color: var(--text-3);
+}
+
+.segmented-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.row-8 > input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
 }
