@@ -37,9 +37,10 @@ LEXICON = ROOT / "lexicon.js"
 PROGRESS = ROOT / ".lexicon-cache" / "zh-glosses.jsonl"
 OUT_DIR = ROOT / "dictionary"
 SHARD_COUNT = 128
-# gemma4:26b gave the best Chinese senses in a comparison with gemma3:4b and gpt-oss:20b;
-# a 4k context keeps it fast enough on a 24 GB Mac (about 2 s per word).
-MODEL = "gemma4:26b"
+# qwen3.5:9b: accurate senses in the comparison with gemma3:4b (v2/docs/ai-model-choice.md)
+# while using about 6 GB, so it can run in the background without slowing the Mac.
+# gemma4:26b is as good but needs ~20 GB, too much for a 24 GB machine in use.
+MODEL = "qwen3.5:9b"
 OLLAMA = "http://127.0.0.1:11434/api/chat"
 
 POS_NAMES = {
@@ -120,11 +121,16 @@ def load_words() -> dict[str, dict]:
                 continue
             key = normalize_key(word)
             record = words.setdefault(key, {"word": word, "groups": [], "score": 0.0})
-            if any(group["pos"] == pos for group in record["groups"]):
-                continue
-            # Four senses per part of speech, each trimmed: shorter prompts translate much faster.
+            gender = gender if pos == "noun" else ""
+            # Four senses per group, each trimmed: shorter prompts translate much faster.
             senses = [re.sub(r"\s+", " ", sense)[:90] for sense in senses[:4]]
-            record["groups"].append({"pos": pos, "gender": gender if pos == "noun" else "", "senses": senses})
+            # Wiktionary lists homographs separately: le tour (turn) and la tour (tower)
+            # stay two groups told apart by gender; same-gender entries are merged.
+            existing = next((group for group in record["groups"] if group["pos"] == pos and group["gender"] == gender), None)
+            if existing:
+                existing["senses"] = (existing["senses"] + [sense for sense in senses if sense not in existing["senses"]])[:6]
+            else:
+                record["groups"].append({"pos": pos, "gender": gender, "senses": senses})
             # Rough commonness among the frequent lemmas (no frequency list is kept locally):
             # short words with several senses, a recorded pronunciation and many derived
             # words come first; hyphenated and long words later.
@@ -135,8 +141,22 @@ def load_words() -> dict[str, dict]:
     return words
 
 
+def label(group: dict) -> str:
+    """The part-of-speech name the model sees and copies back ("noun (feminine)" when a word has both genders)."""
+    return f"{group['pos']} ({group['gender']})" if group.get("label_gender") else group["pos"]
+
+
+def prepare(batch: list[dict]) -> list[dict]:
+    for item in batch:
+        nouns = [group for group in item["groups"] if group["pos"] == "noun"]
+        for group in item["groups"]:
+            group["label_gender"] = len(nouns) > 1 and group in nouns
+    return batch
+
+
 def ask(batch: list[dict]) -> str:
-    payload = [{"word": item["word"], "groups": [{"pos": group["pos"], "senses": group["senses"]} for group in item["groups"]]} for item in batch]
+    prepare(batch)
+    payload = [{"word": item["word"], "groups": [{"pos": label(group), "senses": group["senses"]} for group in item["groups"]]} for item in batch]
     body = {
         # This Mac's Ollama keeps a model loaded for 30 minutes by default; let it go
         # two minutes after the last batch so it never sits in memory unused.
@@ -150,24 +170,48 @@ def ask(batch: list[dict]) -> str:
     return result["message"]["content"]
 
 
+POS_ZH = {"动词": "verb", "名词": "noun", "形容词": "adjective", "副词": "adverb", "代词": "pronoun", "介词": "preposition",
+          "连词": "conjunction", "感叹词": "interjection", "叹词": "interjection", "限定词": "determiner", "冠词": "article",
+          "数词": "numeral", "短语": "phrase", "固定表达": "phrase"}
+
+
+def split_senses(text: str) -> list[str]:
+    """Senses are separated by "；"; a model that used "、" between senses (and no "；") is read the same way."""
+    parts = re.split(r"[；;]", text) if re.search(r"[；;]", text) else re.split(r"[、，,]", text)
+    senses = [sense.strip(" ，,。.") for sense in parts if sense.strip(" ，,。.")]
+    return [sense for sense in senses if CJK.search(sense) and not LATIN.search(sense) and len(sense) <= 24]
+
+
 def parse(answer: str, batch: list[dict]) -> dict[str, list[dict]]:
     """Reads the model's lines back and keeps only well-formed senses.
-    A line that names one of the words starts that word; "pos: …" lines follow
-    (blank lines in between are tolerated)."""
+    Expected: a line with the word, then "pos: …" lines (blank lines tolerated).
+    Also accepted: Chinese part-of-speech names ("动词：…") and "word: …" on one
+    line for a word with a single part of speech."""
     expected = {normalize_key(item["word"]): item for item in batch}
     results: dict[str, list[dict]] = {}
     current = None
+
+    def add(item: dict, pos: str, text: str) -> None:
+        source = next((group for group in prepare([item])[0]["groups"] if label(group) == pos), None)
+        senses = split_senses(text)
+        done = results.get(normalize_key(item["word"]), [])
+        if source and senses and not any(group["pos"] == source["pos"] and group["gender"] == source["gender"] for group in done):
+            results.setdefault(normalize_key(item["word"]), []).append({"pos": source["pos"], "gender": source["gender"], "zh": senses[: len(source["senses"]) + 1]})
+
     for raw in answer.splitlines():
         line = raw.strip().strip("*").strip()
         if not line:
             continue
-        match = re.match(r"^([a-z ]+)\s*[:：]\s*(.+)$", line)
-        if match and current and match.group(1).strip() in {group["pos"] for group in current["groups"]}:
-            source = next(group for group in current["groups"] if group["pos"] == match.group(1).strip())
-            senses = [sense.strip(" ，,。.") for sense in re.split(r"[；;]", match.group(2)) if sense.strip()]
-            senses = [sense for sense in senses if CJK.search(sense) and not LATIN.search(sense) and len(sense) <= 24]
-            if senses:
-                results.setdefault(normalize_key(current["word"]), []).append({"pos": source["pos"], "gender": source["gender"], "zh": senses[: len(source["senses"]) + 1]})
+        match = re.match(r"^([^:：]{1,40})\s*[:：]\s*(.+)$", line)
+        name = match.group(1).strip().strip("*").strip() if match else ""
+        pos = POS_ZH.get(name, name)
+        if match and current and pos in {label(group) for group in prepare([current])[0]["groups"]}:
+            add(current, pos, match.group(2))
+            continue
+        word = expected.get(normalize_key(name)) if match else None
+        if word and len(word["groups"]) == 1:
+            add(word, label(word["groups"][0]), match.group(2))
+            current = word
             continue
         current = expected.get(normalize_key(line), current if match else None)
     return results
