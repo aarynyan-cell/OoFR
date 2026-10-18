@@ -156,6 +156,8 @@ export interface StudyStats {
   cardsReviewed: number;
   cardsKnown: number;
   shadowedThisWeek: number;
+  // Week ("2026-W42") the shadowing count belongs to.
+  shadowWeek: string;
 }
 
 export interface MigrationRecord {

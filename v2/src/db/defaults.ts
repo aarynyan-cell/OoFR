@@ -17,7 +17,8 @@ export const DEFAULT_STUDY: StudyStats = {
   dailyGoal: 3,
   cardsReviewed: 0,
   cardsKnown: 0,
-  shadowedThisWeek: 0
+  shadowedThisWeek: 0,
+  shadowWeek: ""
 };
 
 // Label colours for tapes (see the design spec: amber, teal, cream).

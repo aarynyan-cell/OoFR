@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { materialKey, playMaterial, speakOnce, togglePause, usePlayer } from "../app/audio";
-import { href } from "../app/router";
+import { type LessonMode, href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
@@ -11,12 +11,15 @@ import { groupWords, lookupText, tokenize } from "../text/tokens";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
 import { type WordTarget, WordSheet } from "../ui/WordSheet";
-import { BackIcon, BookmarkIcon, MicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, ReplayIcon, SparkleIcon } from "../ui/icons";
+import { LessonTop } from "./LessonTop";
+import { PracticeMode } from "./PracticeMode";
+import { ShadowMode } from "./ShadowMode";
+import { BookmarkIcon, MicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, ReplayIcon, SparkleIcon } from "../ui/icons";
 
 const RATES = [0.7, 0.85, 1, 1.15];
 const pad = (value: number) => String(value).padStart(2, "0");
 
-export function LessonPage({ id }: { id: string }) {
+export function LessonPage({ id, mode = "listen" }: { id: string; mode?: LessonMode }) {
   // null: not found; undefined: still loading.
   const material = useLive(async () => (await db.materials.get(id)) ?? null, [id]);
   const settings = useLive(() => getSettings(), []);
@@ -33,7 +36,10 @@ export function LessonPage({ id }: { id: string }) {
     );
   }
   const track = siblings ? siblings.findIndex((item) => item.id === material.id) : -1;
-  return <Lesson material={material} settings={settings} trackName={track >= 0 ? trackLabel(track) : ""} tapeTitle={tape?.title ?? ""} />;
+  const info = { material, settings, trackName: track >= 0 ? trackLabel(track) : "", tapeTitle: tape?.title ?? "" };
+  if (mode === "shadow") return <ShadowMode {...info} />;
+  if (mode === "practice") return <PracticeMode {...info} />;
+  return <Lesson {...info} />;
 }
 
 function Lesson({ material, settings, trackName, tapeTitle }: { material: Material; settings: Settings; trackName: string; tapeTitle: string }) {
@@ -119,26 +125,11 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     toast(next === "one" ? "单句循环：一直重复当前这句" : "全文播放：从当前句播到最后");
   };
 
-  const comingSoon = (what: string) => toast(`${what}正在制作中，下一步上线`);
   const speakerLabel = (label: string) => (label && label !== "旁白" ? ` · ${label.replace(/^[AB]\s*·\s*/, "").toLocaleUpperCase("fr-FR")}` : "");
 
   return (
     <main className="page page-lesson">
-      <div className="lesson-top">
-        <header className="lesson-head">
-          <a className="icon-button" href={href({ name: "tapes", tapeId: material.tapeId })} aria-label="返回磁带"><BackIcon /></a>
-          <div className="grow stack-2">
-            <h1 className="lesson-title">{material.title}</h1>
-            <span className="mono eyebrow">{[tapeTitle, "SIDE A", trackName].filter(Boolean).join(" · ")}</span>
-          </div>
-        </header>
-
-        <nav className="segmented lesson-modes" aria-label="学习模式">
-          <a className="segment" aria-current="page" href={href({ name: "lesson", id: material.id })}>听读</a>
-          <button type="button" className="segment" onClick={() => comingSoon("跟读")}>跟读</button>
-          <button type="button" className="segment" onClick={() => comingSoon("练习")}>练习</button>
-        </nav>
-      </div>
+      <LessonTop material={material} mode="listen" trackName={trackName} tapeTitle={tapeTitle} />
 
       <div className="reading">
         {material.sentences.map((item, itemIndex) =>
@@ -170,7 +161,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
               <div className="actions-4">
                 <button type="button" className="action" onClick={replay}><ReplayIcon size={20} />重听</button>
                 <button type="button" className={`action${item.explanation ? "" : " action-muted"}`} onClick={explain}><SparkleIcon size={20} />讲解</button>
-                <button type="button" className="action action-muted" onClick={() => comingSoon("跟读")}><MicIcon size={20} />跟读</button>
+                <a className="action" href={href({ name: "lesson", id: material.id, mode: "shadow" })}><MicIcon size={20} />跟读</a>
                 <button type="button" className={`action${savedCard ? " action-on" : ""}`} onClick={save} aria-pressed={Boolean(savedCard)}><BookmarkIcon size={20} />{savedCard ? "已收藏" : "收藏"}</button>
               </div>
             </article>

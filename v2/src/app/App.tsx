@@ -32,7 +32,7 @@ export function App() {
     <div className={`app${withTabs ? " app-with-tabs" : ""}`}>
       {route.name === "today" && <TodayPage />}
       {route.name === "tapes" && <TapesPage tapeId={route.tapeId} />}
-      {route.name === "lesson" && <LessonPage key={route.id} id={route.id} />}
+      {route.name === "lesson" && <LessonPage key={route.id} id={route.id} mode={route.mode} />}
       {route.name === "add" && <AddMaterialPage tapeId={route.tapeId} />}
       {route.name === "phrases" && <PhrasebookPage />}
       {route.name === "me" && <MePage />}

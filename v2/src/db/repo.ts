@@ -155,6 +155,47 @@ export async function markFinished(materialId: string): Promise<void> {
   });
 }
 
+export function recordingKeyFor(materialId: string, sentenceId: string): string {
+  return `rec:${materialId}:${sentenceId}`;
+}
+
+// Keeps the learner's latest take of a sentence (an earlier take is replaced).
+export async function saveRecording(materialId: string, sentenceId: string, take: { blob: Blob; durationMs: number; mimeType: string }): Promise<string> {
+  const key = recordingKeyFor(materialId, sentenceId);
+  await db.transaction("rw", db.recordings, db.materials, db.kv, async () => {
+    const material = await db.materials.get(materialId);
+    if (!material) throw new Error("找不到这条素材");
+    const previous = material.sentences.find((sentence) => sentence.id === sentenceId)?.recordingKey;
+    if (previous && previous !== key) await db.recordings.delete(previous);
+    await db.recordings.put({ key, blob: take.blob, mimeType: take.mimeType, durationMs: take.durationMs, createdAt: nowIso() });
+    await db.materials.update(materialId, {
+      sentences: material.sentences.map((sentence) => (sentence.id === sentenceId ? { ...sentence, recordingKey: key, recordingMs: take.durationMs } : sentence)),
+      lastStudiedAt: nowIso()
+    });
+    const study = await getStudy();
+    const week = weekKey(new Date());
+    await db.kv.put({
+      key: "study",
+      value: { ...study, shadowWeek: week, shadowedThisWeek: study.shadowWeek === week ? study.shadowedThisWeek + 1 : 1 }
+    });
+  });
+  return key;
+}
+
+// "2026-W42": the Monday-based week a date falls in.
+export function weekKey(date: Date): string {
+  const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const weekday = day.getUTCDay() || 7;
+  day.setUTCDate(day.getUTCDate() + 4 - weekday);
+  const yearStart = new Date(Date.UTC(day.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((day.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${day.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+export function shadowedThisWeek(study: StudyStats, today = new Date()): number {
+  return study.shadowWeek === weekKey(today) ? study.shadowedThisWeek : 0;
+}
+
 function phraseKey(text: string): string {
   return text.toLocaleLowerCase("fr-FR").replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
 }

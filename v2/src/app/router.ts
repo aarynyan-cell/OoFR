@@ -1,11 +1,13 @@
 import { useSyncExternalStore } from "react";
 
+export type LessonMode = "listen" | "shadow" | "practice";
+
 // Hash routes ("#/lesson/abc") work the same from a GitHub Pages sub-folder,
 // the Mac app's local files and a dev server, with no server-side rewrites.
 export type Route =
   | { name: "today" }
   | { name: "tapes"; tapeId?: string }
-  | { name: "lesson"; id: string }
+  | { name: "lesson"; id: string; mode?: LessonMode }
   | { name: "add"; tapeId?: string }
   | { name: "phrases" }
   | { name: "me" };
@@ -24,7 +26,8 @@ export function parseRoute(hash: string): Route {
     case "tapes":
       return { name: "tapes", tapeId: parts[1] };
     case "lesson":
-      return parts[1] ? { name: "lesson", id: parts[1] } : { name: "tapes" };
+      if (!parts[1]) return { name: "tapes" };
+      return { name: "lesson", id: parts[1], mode: parts[2] === "shadow" || parts[2] === "practice" ? parts[2] : "listen" };
     case "add":
       return { name: "add", tapeId: params.get("tape") ?? undefined };
     case "phrases":
@@ -41,7 +44,7 @@ export function href(route: Route): string {
     case "tapes":
       return route.tapeId ? `#/tapes/${encodeURIComponent(route.tapeId)}` : "#/tapes";
     case "lesson":
-      return `#/lesson/${encodeURIComponent(route.id)}`;
+      return `#/lesson/${encodeURIComponent(route.id)}${route.mode && route.mode !== "listen" ? `/${route.mode}` : ""}`;
     case "add":
       return route.tapeId ? `#/add?tape=${encodeURIComponent(route.tapeId)}` : "#/add";
     case "phrases":
