@@ -138,7 +138,9 @@ def load_words() -> dict[str, dict]:
 def ask(batch: list[dict]) -> str:
     payload = [{"word": item["word"], "groups": [{"pos": group["pos"], "senses": group["senses"]} for group in item["groups"]]} for item in batch]
     body = {
-        "model": MODEL, "stream": False, "think": False, "options": {"temperature": 0.1, "num_ctx": 4096},
+        # This Mac's Ollama keeps a model loaded for 30 minutes by default; let it go
+        # two minutes after the last batch so it never sits in memory unused.
+        "model": MODEL, "stream": False, "think": False, "keep_alive": "2m", "options": {"temperature": 0.1, "num_ctx": 4096},
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
     }
     request = urllib.request.Request(OLLAMA, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
