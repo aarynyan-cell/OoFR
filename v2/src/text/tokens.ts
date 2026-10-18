@@ -51,11 +51,19 @@ export function tokenize(sentence: string): Token[] {
   return tokens;
 }
 
-// Words with nothing between them ("allez", "-vous") form one group.
+// Words with nothing between them ("allez", "-vous") form one group, and so
+// does closing punctuation ("aujourd'hui ?"), so a line never breaks inside it.
 export function groupWords(tokens: Token[]): Token[][] {
   return tokens.reduce<Token[][]>((groups, token) => {
     const last = groups.at(-1);
-    if (token.word && last?.[0].word) last.push(token);
+    const lastIsWords = Boolean(last?.[0].word);
+    const closing = !token.word && /^[\s ]?[?!:;»…,.)]/.test(token.text);
+    if (lastIsWords && closing) {
+      // The punctuation joins the words; the space after it may still break the line.
+      const [, head, tail] = token.text.match(/^(.*?)(\s*)$/s) ?? [, token.text, ""];
+      last!.push({ ...token, text: head ?? "" });
+      if (tail) groups.push([{ ...token, text: tail }]);
+    } else if (lastIsWords && token.word && last!.at(-1)!.word) last!.push(token);
     else groups.push([token]);
     return groups;
   }, []);

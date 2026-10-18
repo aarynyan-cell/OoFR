@@ -8,6 +8,7 @@ import { cardKey, getSettings, materialsOfTape, saveSentence, saveSettings, setP
 import type { Explanation, Material, Settings } from "../db/types";
 import { player } from "../speech/player";
 import { groupWords, lookupText, tokenize } from "../text/tokens";
+import { frenchSpacing } from "../text/typography";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
 import { type WordTarget, WordSheet } from "../ui/WordSheet";
@@ -141,19 +142,23 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
                   group[0].word ? (
                     // "allez" + "-vous" are two buttons that must stay on one line.
                     <span key={groupIndex} className="nowrap">
-                      {group.map((token, tokenIndex) => (
-                        <button
-                          key={tokenIndex}
-                          type="button"
-                          className={`word${word?.text === lookupText(token) && word.occurrence === token.occurrence ? " word-on" : ""}`}
-                          onClick={() => openWord(lookupText(token), token.occurrence)}
-                        >
-                          {token.text}
-                        </button>
-                      ))}
+                      {group.map((token, tokenIndex) =>
+                        token.word ? (
+                          <button
+                            key={tokenIndex}
+                            type="button"
+                            className={`word${word?.text === lookupText(token) && word.occurrence === token.occurrence ? " word-on" : ""}`}
+                            onClick={() => openWord(lookupText(token), token.occurrence)}
+                          >
+                            {token.text}
+                          </button>
+                        ) : (
+                          <span key={tokenIndex}>{frenchSpacing(token.text)}</span>
+                        )
+                      )}
                     </span>
                   ) : (
-                    <span key={groupIndex}>{group[0].text}</span>
+                    <span key={groupIndex}>{frenchSpacing(group[0].text)}</span>
                   )
                 )}
               </p>
@@ -174,7 +179,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
               onClick={() => playMaterial(material, itemIndex, settings)}
               aria-label={`从第 ${itemIndex + 1} 句开始播放：${item.text}`}
             >
-              {item.text}
+              {frenchSpacing(item.text)}
             </button>
           )
         )}

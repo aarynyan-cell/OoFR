@@ -7,6 +7,10 @@ import {
   currentStreak,
   filterCards,
   getSettings,
+  getStudy,
+  gradeCard,
+  NEW_CARDS_PER_DAY,
+  reviewQueue,
   markFinished,
   markStudiedToday,
   progressOf,
@@ -83,6 +87,39 @@ describe("phrasebook", () => {
     expect(filterCards(all, "incomplete").map((card) => card.text)).toEqual(["Bonjour."]);
     expect(filterCards(all, "all", "谢谢").map((card) => card.text)).toEqual(["Merci."]);
     expect(filterCards(all, "all", "", "wb").map((card) => card.text)).toEqual(["Merci."]);
+  });
+});
+
+describe("today's reviews", () => {
+  it("puts due cards first, then new ones, and skips cards 1.0 marked as known", async () => {
+    const tape = await createTape("旅行");
+    const material = await createMaterial({ title: "t", tapeId: tape.id, text: "Un. Deux. Trois." });
+    const [one, two, three] = await Promise.all(material.sentences.map((sentence) => saveSentence(material, sentence)));
+    const now = new Date("2026-10-18T09:00:00Z");
+    await db.cards.update(two.id, { review: { due: "2026-10-17T09:00:00Z", stability: 3, difficulty: 5, reps: 1, lapses: 0, lastReview: "2026-10-14T09:00:00Z" } });
+    await db.cards.update(three.id, { status: "got" });
+    const queue = reviewQueue(await db.cards.toArray(), now);
+    expect(queue.map((card) => card.id)).toEqual([two.id, one.id]);
+  });
+
+  it("introduces at most the daily number of new cards", async () => {
+    const tape = await createTape("旅行");
+    const text = Array.from({ length: NEW_CARDS_PER_DAY + 5 }, (_, index) => `Phrase ${index}.`).join(" ");
+    const material = await createMaterial({ title: "t", tapeId: tape.id, text });
+    for (const sentence of material.sentences) await saveSentence(material, sentence);
+    expect(reviewQueue(await db.cards.toArray())).toHaveLength(NEW_CARDS_PER_DAY);
+  });
+
+  it("schedules a card and counts the review", async () => {
+    const tape = await createTape("旅行");
+    const material = await createMaterial({ title: "t", tapeId: tape.id, text: "Merci." });
+    const card = await saveSentence(material, material.sentences[0]);
+    const now = new Date();
+    const graded = await gradeCard(card.id, 3, now);
+    expect(graded?.status).toBe("learning");
+    expect(Date.parse(graded!.review!.due)).toBeGreaterThan(now.getTime());
+    expect(reviewQueue(await db.cards.toArray(), now)).toHaveLength(0);
+    expect((await getStudy()).cardsReviewed).toBe(1);
   });
 });
 

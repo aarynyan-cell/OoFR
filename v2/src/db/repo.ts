@@ -3,6 +3,7 @@
 import { db } from "./database";
 import { DEFAULT_SETTINGS, DEFAULT_STUDY, TAPE_COLORS, localDateKey, makeId, nowIso } from "./defaults";
 import type { Card, CardStatus, Material, Sentence, Settings, StudyStats, Tape } from "./types";
+import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
 export async function getSettings(): Promise<Settings> {
@@ -282,6 +283,41 @@ export async function saveWord(word: WordToSave, material: Material): Promise<{ 
     await db.cards.add(card);
     return { card, added: true };
   });
+}
+
+// New cards introduced per day, so a big import does not turn into a wall of reviews.
+export const NEW_CARDS_PER_DAY = 20;
+
+// Today's reviews: cards that are due (oldest first), then new cards up to the daily limit.
+// Cards marked 已掌握 in 1.0 without a schedule are left out of the new ones.
+export function reviewQueue(cards: Card[], now = new Date()): Card[] {
+  const today = localDateKey(now);
+  const time = now.getTime();
+  const due = cards
+    .filter((card) => card.review && Date.parse(card.review.due) <= time)
+    .sort((a, b) => Date.parse(a.review!.due) - Date.parse(b.review!.due));
+  const introducedToday = cards.filter((card) => card.review?.reps === 1 && card.review.lastReview && localDateKey(new Date(card.review.lastReview)) === today).length;
+  const fresh = cards
+    .filter((card) => !card.review && card.status !== "got")
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .slice(0, Math.max(0, NEW_CARDS_PER_DAY - introducedToday));
+  return [...due, ...fresh];
+}
+
+export async function gradeCard(cardId: string, grade: Grade, now = new Date()): Promise<Card | undefined> {
+  const updated = await db.transaction("rw", db.cards, db.kv, async () => {
+    const card = await db.cards.get(cardId);
+    if (!card) return undefined;
+    const next = scheduleReview(card.review, grade, now);
+    const status: CardStatus = grade === 1 ? "learning" : next.stability >= MASTERED_DAYS ? "got" : "learning";
+    const changes = { review: next, status, practiceCount: card.practiceCount + 1, lastPracticedAt: now.toISOString(), updatedAt: now.toISOString() };
+    await db.cards.update(cardId, changes);
+    const study = await getStudy();
+    await db.kv.put({ key: "study", value: { ...study, cardsReviewed: study.cardsReviewed + 1 } });
+    return { ...card, ...changes };
+  });
+  await markStudiedToday(now);
+  return updated;
 }
 
 export async function removeCard(cardId: string): Promise<void> {

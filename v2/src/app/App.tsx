@@ -5,6 +5,7 @@ import { AddMaterialPage } from "../pages/AddMaterialPage";
 import { LessonPage } from "../pages/LessonPage";
 import { MePage } from "../pages/MePage";
 import { PhrasebookPage } from "../pages/PhrasebookPage";
+import { ReviewPage } from "../pages/ReviewPage";
 import { TapesPage } from "../pages/TapesPage";
 import { TodayPage } from "../pages/TodayPage";
 import { TabBar } from "../ui/TabBar";
@@ -35,6 +36,7 @@ export function App() {
       {route.name === "lesson" && <LessonPage key={route.id} id={route.id} mode={route.mode} />}
       {route.name === "add" && <AddMaterialPage tapeId={route.tapeId} />}
       {route.name === "phrases" && <PhrasebookPage />}
+      {route.name === "review" && <ReviewPage />}
       {route.name === "me" && <MePage />}
       {withTabs && <TabBar active={route.name} />}
       <UpdateNotice />

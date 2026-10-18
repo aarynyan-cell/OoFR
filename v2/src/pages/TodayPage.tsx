@@ -2,8 +2,9 @@ import { href } from "../app/router";
 import { useV1Migration } from "../app/migration";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { currentStreak, getStudy, materialsOfTape, progressOf, recentMaterials, trackLabel } from "../db/repo";
+import { currentStreak, getStudy, materialsOfTape, progressOf, recentMaterials, reviewQueue, trackLabel } from "../db/repo";
 import type { Material, Tape } from "../db/types";
+import { frenchSpacing } from "../text/typography";
 import { CassetteCover, MiniCassette } from "../ui/Cassette";
 import { ChevronIcon, PlayIcon, ReelIcon } from "../ui/icons";
 
@@ -24,6 +25,7 @@ export function TodayPage() {
   const materials = useLive(() => db.materials.toArray(), []);
   const recent = useLive(() => recentMaterials(3), []);
   const cardCount = useLive(() => db.cards.count(), []);
+  const dueCount = useLive(async () => reviewQueue(await db.cards.toArray()).length, []);
   const { detection, busy, importNow } = useV1Migration();
 
   const tapeOf = (material: Material) => tapes?.find((tape) => tape.id === material.tapeId);
@@ -60,14 +62,25 @@ export function TodayPage() {
 
       {current && <ContinueCard material={current} tape={tapeOf(current)} materials={materials ?? []} />}
 
-      <a className="card row-link" href={href({ name: "phrases" })}>
-        <span className="icon-tile icon-tile-ok"><ReelIcon size={22} /></span>
-        <span className="grow stack-2">
-          <b>词句本</b>
-          <span className="muted small">{cardCount ? `已收藏 ${cardCount} 个词句` : "在课程里点“收藏”，好句子会出现在这里"}</span>
-        </span>
-        <ChevronIcon size={20} />
-      </a>
+      {dueCount ? (
+        <a className="card row-link" href={href({ name: "review" })}>
+          <span className="icon-tile icon-tile-ok"><ReelIcon size={22} /></span>
+          <span className="grow stack-2">
+            <b>今日复习 {dueCount} 个词句</b>
+            <span className="muted small">约 {Math.max(1, Math.round((dueCount * 12) / 60))} 分钟</span>
+          </span>
+          <ChevronIcon size={20} />
+        </a>
+      ) : (
+        <a className="card row-link" href={href({ name: "phrases" })}>
+          <span className="icon-tile icon-tile-ok"><ReelIcon size={22} /></span>
+          <span className="grow stack-2">
+            <b>词句本</b>
+            <span className="muted small">{cardCount ? `已收藏 ${cardCount} 个词句，今天的复习都做完了` : "在课程里点“收藏”，好句子会出现在这里"}</span>
+          </span>
+          <ChevronIcon size={20} />
+        </a>
+      )}
 
       <section className="stack-8">
         <div className="section-head">
@@ -111,7 +124,7 @@ function ContinueCard({ material, tape, materials }: { material: Material; tape?
       <div className="continue-row">
         <div className="grow stack-4">
           <span className="dim small">{progress.started ? "上次停在" : "从这里开始"}</span>
-          <p className="fr continue-text" lang={material.language}>{material.sentences[position]?.text}</p>
+          <p className="fr continue-text" lang={material.language}>{frenchSpacing(material.sentences[position]?.text ?? "")}</p>
         </div>
         <a className="round-button round-accent" href={href({ name: "lesson", id: material.id })} aria-label={`继续播放 ${material.title}`}>
           <PlayIcon size={22} />

@@ -3,8 +3,10 @@ import { speakOnce } from "../app/audio";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { type CardFilter, filterCards, getSettings, removeCard, setCardStatus } from "../db/repo";
+import { href } from "../app/router";
+import { type CardFilter, filterCards, getSettings, removeCard, reviewQueue, setCardStatus } from "../db/repo";
 import type { Card } from "../db/types";
+import { frenchSpacing } from "../text/typography";
 import { CloseIcon, PlayIcon, SearchIcon } from "../ui/icons";
 
 const FILTERS: { value: CardFilter; label: string }[] = [
@@ -23,6 +25,7 @@ export function PhrasebookPage() {
   const [query, setQuery] = useState("");
 
   const shown = filterCards(cards ?? [], filter, query, wordbookId);
+  const dueCount = cards ? reviewQueue(cards).length : 0;
 
   const toggleStatus = (card: Card) => {
     const next = card.status === "got" ? "learning" : "got";
@@ -40,6 +43,7 @@ export function PhrasebookPage() {
     <main className="page">
       <header className="page-head">
         <h1 className="page-title">词句</h1>
+        {dueCount > 0 && <a className="button button-primary button-small" href={href({ name: "review" })}>复习 {dueCount} 个</a>}
       </header>
 
       <div className="segmented segmented-4" role="group" aria-label="按状态筛选">
@@ -80,7 +84,7 @@ export function PhrasebookPage() {
                 <PlayIcon size={16} />
               </button>
               <span className="grow stack-2">
-                <b className={`fr ${card.kind === "word" ? "card-word" : "card-phrase"}`} lang={card.language}>{card.text}</b>
+                <b className={`fr ${card.kind === "word" ? "card-word" : "card-phrase"}`} lang={card.language}>{frenchSpacing(card.text)}</b>
                 <span className="muted small">{card.kind === "word" ? "单词" : "句子"} · {card.translation || "释义待补充"}</span>
               </span>
               <button type="button" className={`tag tag-button ${card.status === "got" ? "tag-ok" : card.translation ? "" : "tag-todo"}`} onClick={() => toggleStatus(card)} aria-label={`${card.text}：${card.status === "got" ? "已掌握，点一下移回待学" : "待学，点一下标记为已掌握"}`}>

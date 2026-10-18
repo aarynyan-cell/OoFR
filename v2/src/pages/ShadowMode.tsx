@@ -9,6 +9,7 @@ import { player } from "../speech/player";
 import { type Listening, canRecognize, listen } from "../speech/recognizer";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
+import { frenchSpacing } from "../text/typography";
 import { MicIcon, PlayIcon, SpeakerIcon } from "../ui/icons";
 import { LessonTop } from "./LessonTop";
 
@@ -123,7 +124,7 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
       <div className="shadow-body">
         <section className="card stack-10 shadow-sentence">
           <span className="mono eyebrow">{String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</span>
-          <p className="fr shadow-text" lang={material.language}>{sentence.text}</p>
+          <p className="fr shadow-text" lang={material.language}>{frenchSpacing(sentence.text)}</p>
           {sentence.translation && <p className="muted small">{sentence.translation}</p>}
         </section>
 
@@ -165,7 +166,7 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
               <>
                 <p className="fr shadow-check" lang={material.language}>
                   {attempt.check.tokens.map((token, tokenIndex) =>
-                    token.word && !token.ok ? <mark key={tokenIndex} className="missed">{token.text}</mark> : <span key={tokenIndex}>{token.text}</span>
+                    token.word && !token.ok ? <mark key={tokenIndex} className="missed">{token.text}</mark> : <span key={tokenIndex}>{frenchSpacing(token.text)}</span>
                   )}
                 </p>
                 <p className="muted small">

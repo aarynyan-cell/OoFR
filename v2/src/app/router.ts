@@ -10,6 +10,7 @@ export type Route =
   | { name: "lesson"; id: string; mode?: LessonMode }
   | { name: "add"; tapeId?: string }
   | { name: "phrases" }
+  | { name: "review" }
   | { name: "me" };
 
 export function parseRoute(hash: string): Route {
@@ -32,6 +33,8 @@ export function parseRoute(hash: string): Route {
       return { name: "add", tapeId: params.get("tape") ?? undefined };
     case "phrases":
       return { name: "phrases" };
+    case "review":
+      return { name: "review" };
     case "me":
       return { name: "me" };
     default:
@@ -49,6 +52,8 @@ export function href(route: Route): string {
       return route.tapeId ? `#/add?tape=${encodeURIComponent(route.tapeId)}` : "#/add";
     case "phrases":
       return "#/phrases";
+    case "review":
+      return "#/review";
     case "me":
       return "#/me";
     default:

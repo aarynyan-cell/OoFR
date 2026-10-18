@@ -117,3 +117,11 @@ describe("tappable words", () => {
     expect(tokens.filter((token) => token.text.toLowerCase() === "le").map((token) => token.occurrence)).toEqual([0, 1]);
   });
 });
+
+describe("keeping words and their punctuation together", () => {
+  it("groups inverted subjects and closing punctuation", async () => {
+    const { groupWords, tokenize } = await import("../src/text/tokens");
+    const groups = groupWords(tokenize("Comment allez-vous aujourd'hui ? Oui."));
+    expect(groups.map((group) => group.map((token) => token.text).join(""))).toEqual(["Comment", " ", "allez-vous", " ", "aujourd'hui ?", " ", "Oui."]);
+  });
+});
