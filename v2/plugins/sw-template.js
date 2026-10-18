@@ -6,6 +6,9 @@
 // starts with "oofr-", and this worker only ever deletes its own older copies.
 const CACHE_PREFIX = "oofr2-shell-";
 const CACHE_NAME = `${CACHE_PREFIX}__VERSION__`;
+// Dictionary shards stay cached across app updates (a different prefix).
+const DICTIONARY_CACHE = "oofr2-dictionary";
+const DICTIONARY_VERSION = "__DICTIONARY_VERSION__";
 const ASSETS = __ASSETS__;
 
 self.addEventListener("install", (event) => {
@@ -18,6 +21,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => pruneDictionary().catch(() => {}))
       .then(() => self.clients.claim())
   );
 });
@@ -37,8 +41,30 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(openPage(request));
     return;
   }
+  if (url.pathname.includes("/dictionary/")) {
+    event.respondWith(dictionaryFile(request));
+    return;
+  }
   event.respondWith(fromCache(request));
 });
+
+// Shard addresses carry the dictionary version (?v=…), so a cached shard never
+// goes stale: it answers at once and offline, without spending mobile data.
+async function dictionaryFile(request) {
+  const cache = await caches.open(DICTIONARY_CACHE);
+  const cached = await cache.match(request.url, { ignoreVary: true });
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok && response.status === 200) cache.put(request.url, response.clone()).catch(() => {});
+  return response;
+}
+
+// Shards of an older dictionary build are dropped once a new one is in use.
+async function pruneDictionary() {
+  const cache = await caches.open(DICTIONARY_CACHE);
+  const requests = await cache.keys();
+  await Promise.all(requests.filter((request) => new URL(request.url).searchParams.get("v") !== DICTIONARY_VERSION).map((request) => cache.delete(request)));
+}
 
 // Look files up by address only: module scripts and stylesheets are requested
 // with an Origin header, and a server that answers "Vary: Origin" would

@@ -7,8 +7,10 @@ import { useLive } from "../db/live";
 import { cardKey, getSettings, materialsOfTape, saveSentence, saveSettings, setPosition, trackLabel } from "../db/repo";
 import type { Explanation, Material, Settings } from "../db/types";
 import { player } from "../speech/player";
+import { groupWords, lookupText, tokenize } from "../text/tokens";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
+import { type WordTarget, WordSheet } from "../ui/WordSheet";
 import { BackIcon, BookmarkIcon, MicIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, ReplayIcon, SparkleIcon } from "../ui/icons";
 
 const RATES = [0.7, 0.85, 1, 1.15];
@@ -43,7 +45,14 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   const sentence = material.sentences[index];
   const savedCard = useLive(() => db.cards.where("normalized").equals(cardKey("phrase", sentence?.text ?? "")).first(), [sentence?.text]);
   const [explaining, setExplaining] = useState<Explanation | null>(null);
+  const [word, setWord] = useState<WordTarget | null>(null);
   const currentRef = useRef<HTMLElement>(null);
+
+  // Looking a word up pauses the lesson; closing the card does not resume it on its own.
+  const openWord = (text: string, occurrence: number) => {
+    if (running && state.status === "playing") player.pause();
+    setWord({ text, occurrence, context: sentence.text, translation: sentence.translation });
+  };
 
   useEffect(() => {
     currentRef.current?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -136,7 +145,27 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
           itemIndex === index ? (
             <article key={item.id} className="current" aria-current="true" ref={currentRef}>
               <span className="mono current-label"><ReelIcon size={14} />{pad(itemIndex + 1)}{speakerLabel(item.speakerLabel)}</span>
-              <p className="fr current-text" lang={material.language}>{item.text}</p>
+              <p className="fr current-text" lang={material.language}>
+                {groupWords(tokenize(item.text)).map((group, groupIndex) =>
+                  group[0].word ? (
+                    // "allez" + "-vous" are two buttons that must stay on one line.
+                    <span key={groupIndex} className="nowrap">
+                      {group.map((token, tokenIndex) => (
+                        <button
+                          key={tokenIndex}
+                          type="button"
+                          className={`word${word?.text === lookupText(token) && word.occurrence === token.occurrence ? " word-on" : ""}`}
+                          onClick={() => openWord(lookupText(token), token.occurrence)}
+                        >
+                          {token.text}
+                        </button>
+                      ))}
+                    </span>
+                  ) : (
+                    <span key={groupIndex}>{group[0].text}</span>
+                  )
+                )}
+              </p>
               {settings.showTranslation && item.translation && <p className="current-translation">{item.translation}</p>}
               <div className="actions-4">
                 <button type="button" className="action" onClick={replay}><ReplayIcon size={20} />重听</button>
@@ -178,6 +207,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
       </section>
 
       {explaining && <ExplanationSheet explanation={explaining} text={sentence.text} onClose={() => setExplaining(null)} />}
+      {word && <WordSheet target={word} material={material} settings={settings} onClose={() => setWord(null)} />}
     </main>
   );
 }

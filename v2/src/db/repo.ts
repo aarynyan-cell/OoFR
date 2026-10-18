@@ -197,6 +197,52 @@ export async function saveSentence(material: Material, sentence: Sentence): Prom
   return card;
 }
 
+export interface WordToSave {
+  lemma: string;
+  surface: string;
+  translation: string;
+  ipa: string;
+  partOfSpeech: string;
+}
+
+// 收藏 a word under its dictionary form; saving another form of it (voudrais,
+// veux…) only records that form on the card already there.
+export async function saveWord(word: WordToSave, material: Material): Promise<{ card: Card; added: boolean }> {
+  return db.transaction("rw", db.cards, async () => {
+    const existing = await findCard("word", word.lemma);
+    const form = { form: word.surface, normalized: normalizeWord(word.surface), count: 1 };
+    if (existing) {
+      const seen = existing.seenForms.find((item) => item.normalized === form.normalized);
+      const seenForms = seen ? existing.seenForms.map((item) => (item === seen ? { ...item, count: item.count + 1 } : item)) : [...existing.seenForms, form];
+      await db.cards.update(existing.id, { seenForms, translation: existing.translation || word.translation, updatedAt: nowIso() });
+      return { card: { ...existing, seenForms }, added: false };
+    }
+    const card: Card = {
+      id: makeId("card"),
+      kind: "word",
+      text: word.lemma,
+      normalized: cardKey("word", word.lemma),
+      lemma: word.lemma,
+      translation: word.translation,
+      ipa: word.ipa,
+      partOfSpeech: word.partOfSpeech,
+      language: material.language,
+      status: "new",
+      wordbookIds: [],
+      sourceMaterialId: material.id,
+      sourceTitle: material.title,
+      seenForms: [form],
+      practiceCount: 0,
+      lastPracticedAt: null,
+      review: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso()
+    };
+    await db.cards.add(card);
+    return { card, added: true };
+  });
+}
+
 export async function removeCard(cardId: string): Promise<void> {
   await db.cards.delete(cardId);
 }
