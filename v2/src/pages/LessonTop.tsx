@@ -1,6 +1,6 @@
 import { type LessonMode, href } from "../app/router";
 import type { Material } from "../db/types";
-import { BackIcon } from "../ui/icons";
+import { BackIcon, MoreIcon } from "../ui/icons";
 
 const MODES: { mode: LessonMode; label: string }[] = [
   { mode: "listen", label: "听读" },
@@ -18,6 +18,7 @@ export function LessonTop({ material, mode, trackName, tapeTitle }: { material: 
           <h1 className="lesson-title">{material.title}</h1>
           <span className="mono eyebrow">{[tapeTitle, "SIDE A", trackName].filter(Boolean).join(" · ")}</span>
         </div>
+        <a className="icon-button" href={href({ name: "edit", id: material.id })} aria-label="编辑或删除这条素材"><MoreIcon size={22} /></a>
       </header>
       <nav className="segmented lesson-modes" aria-label="学习模式">
         {MODES.map((item) => (

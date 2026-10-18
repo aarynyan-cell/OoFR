@@ -144,6 +144,85 @@ export async function createMaterial(input: NewMaterial): Promise<Material> {
   return material;
 }
 
+// The text as the learner would type it again ("A: …" lines for dialogues).
+export function materialText(material: Material): string {
+  const dialogue = material.materialType === "情景对话";
+  return material.sentences.map((sentence) => (dialogue && sentence.speakerLabel ? `${sentence.speakerLabel}: ${sentence.text}` : sentence.text)).join("\n");
+}
+
+export interface MaterialChanges {
+  title?: string;
+  tapeId?: string;
+  text?: string;
+  materialType?: MaterialType;
+}
+
+// Editing the text keeps everything attached to sentences that did not change
+// (translation, explanation, recording); recordings of removed sentences go.
+export async function updateMaterial(materialId: string, changes: MaterialChanges): Promise<Material> {
+  return db.transaction("rw", db.materials, db.recordings, db.tapes, async () => {
+    const material = await db.materials.get(materialId);
+    if (!material) throw new Error("找不到这条素材");
+    if (changes.tapeId && !(await db.tapes.get(changes.tapeId))) throw new Error("找不到这盘磁带");
+    const next: Material = { ...material, updatedAt: nowIso() };
+    if (changes.title !== undefined) next.title = changes.title.trim() || material.title;
+    if (changes.tapeId) next.tapeId = changes.tapeId;
+    if (changes.text !== undefined) {
+      const materialType = changes.materialType ?? material.materialType;
+      const fresh = sentencesFromText(changes.text, materialType);
+      if (!fresh.length) throw new Error("没有找到可以朗读的句子");
+      const unused = [...material.sentences];
+      next.sentences = fresh.map((sentence) => {
+        const match = unused.findIndex((old) => old.text === sentence.text);
+        if (match < 0) return sentence;
+        const [old] = unused.splice(match, 1);
+        return old.speakerLabel === sentence.speakerLabel ? old : { ...old, speakerId: sentence.speakerId, speakerLabel: sentence.speakerLabel };
+      });
+      next.materialType = materialType;
+      next.position = Math.min(material.position, next.sentences.length - 1);
+      await db.recordings.bulkDelete(unused.map((sentence) => sentence.recordingKey).filter(Boolean));
+    }
+    await db.materials.put(next);
+    return next;
+  });
+}
+
+// Removes a material and its recordings. Saved words and sentences stay in the phrasebook.
+export async function deleteMaterial(materialId: string): Promise<void> {
+  await db.transaction("rw", db.materials, db.recordings, async () => {
+    const material = await db.materials.get(materialId);
+    if (!material) return;
+    await db.recordings.bulkDelete(material.sentences.map((sentence) => sentence.recordingKey).filter(Boolean));
+    await db.materials.delete(materialId);
+  });
+}
+
+export async function updateTape(tapeId: string, changes: { title?: string; color?: string }): Promise<void> {
+  await db.tapes.update(tapeId, {
+    ...(changes.title !== undefined && changes.title.trim() ? { title: changes.title.trim() } : {}),
+    ...(changes.color ? { color: changes.color } : {}),
+    updatedAt: nowIso()
+  });
+}
+
+// Deleting a tape never deletes lessons: they move to another tape (one called
+// 其他素材 is made if this was the last tape).
+export async function deleteTape(tapeId: string): Promise<{ movedTo: string | null; moved: number }> {
+  return db.transaction("rw", db.tapes, db.materials, async () => {
+    const tapes = (await db.tapes.orderBy("order").toArray()).filter((tape) => tape.id !== tapeId);
+    const materials = await db.materials.where("tapeId").equals(tapeId).toArray();
+    let target: Tape | undefined = tapes[0];
+    if (materials.length && !target) {
+      target = { id: makeId("tape"), title: "其他素材", description: "", color: TAPE_COLORS[2], order: 0, createdAt: nowIso(), updatedAt: nowIso() };
+      await db.tapes.add(target);
+    }
+    for (const material of materials) await db.materials.update(material.id, { tapeId: target!.id, updatedAt: nowIso() });
+    await db.tapes.delete(tapeId);
+    await Promise.all(tapes.map((tape, index) => db.tapes.update(tape.id, { order: index })));
+    return { movedTo: materials.length ? target!.title : null, moved: materials.length };
+  });
+}
+
 export async function setPosition(materialId: string, position: number): Promise<void> {
   await db.materials.update(materialId, { position: Math.max(0, position), lastStudiedAt: nowIso() });
 }

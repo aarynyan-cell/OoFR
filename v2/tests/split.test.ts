@@ -18,6 +18,10 @@ describe("sentence splitting (same rules as 1.0)", () => {
     expect(countSpeakers(sentences)).toBe(2);
   });
 
+  it("reads 1.0 speaker labels such as 'B · Alex'", () => {
+    expect(splitSentences("A · Camille: Bonjour.\nB · Alex: Salut.").map((sentence) => sentence.speakerId)).toEqual(["a", "b"]);
+  });
+
   it("does not treat a single 'label:' line as a dialogue", () => {
     expect(detectDialogue("Note: il faut réviser.")).toBe(false);
     expect(splitSentences("Note: il faut réviser.")).toEqual([{ text: "Note: il faut réviser." }]);

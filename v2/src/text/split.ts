@@ -49,6 +49,9 @@ export function inferMaterialType(text: string): MaterialType {
 }
 
 export function speakerIdFor(label: string): string {
+  // "B · Alex" (how 1.0 wrote speakers): the letter in front decides.
+  const head = normalizeWord(label.trim().split(/\s*[·•]\s*|\s+/)[0] ?? "");
+  if (/^[a-z]$/.test(head)) return head;
   const normalized = normalizeWord(label);
   if (/^[a-z]$/.test(normalized)) return normalized;
   if (/^(b|alex|teacher|landlord|friend|assistant|对方|乙)$/.test(normalized)) return "b";

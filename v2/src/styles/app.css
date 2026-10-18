@@ -1644,3 +1644,9 @@ mark.missed {
   font-size: 40px;
   color: var(--accent-text);
 }
+
+.button-danger {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--accent-text);
+}

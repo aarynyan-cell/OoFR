@@ -4,7 +4,7 @@ import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { TAPE_COLORS } from "../db/defaults";
 import { useLive } from "../db/live";
-import { createTape, listTapes, materialsOfTape, progressOf, trackLabel } from "../db/repo";
+import { createTape, deleteTape, listTapes, materialsOfTape, progressOf, trackLabel, updateTape } from "../db/repo";
 import type { Material, Tape } from "../db/types";
 import { Modal } from "../ui/Modal";
 import { ChevronIcon, SearchIcon } from "../ui/icons";
@@ -14,6 +14,7 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
   const materials = useLive(() => db.materials.toArray(), []);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editingTape, setEditingTape] = useState<Tape | null>(null);
 
   const selected = tapes?.find((tape) => tape.id === tapeId) ?? tapes?.[0];
   const needle = query.trim().toLocaleLowerCase("fr-FR");
@@ -64,7 +65,10 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
           <h2 className="section-title">
             {needle ? `搜索结果 · ${shown.length} 条` : <><span className="mono accent-text small">SIDE A</span> {selected?.title ?? ""}</>}
           </h2>
-          <a className="text-button" href={href({ name: "add", tapeId: selected?.id })}>＋ 新建素材</a>
+          <span className="row-8">
+            {selected && !needle && <button type="button" className="text-button" onClick={() => setEditingTape(selected)}>编辑磁带</button>}
+            <a className="text-button" href={href({ name: "add", tapeId: selected?.id })}>＋ 新建素材</a>
+          </span>
         </div>
         {shown.length ? (
           <div className="list">
@@ -92,25 +96,40 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
         )}
       </section>
 
-      {creating && <NewTapeSheet onClose={() => setCreating(false)} />}
+      {creating && <TapeSheet onClose={() => setCreating(false)} />}
+      {editingTape && <TapeSheet tape={editingTape} onClose={() => setEditingTape(null)} />}
     </main>
   );
 }
 
-function NewTapeSheet({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [color, setColor] = useState(TAPE_COLORS[0]);
+// New tape, or (with a tape) rename, recolour or delete it.
+function TapeSheet({ tape, onClose }: { tape?: Tape; onClose: () => void }) {
+  const [title, setTitle] = useState(tape?.title ?? "");
+  const [color, setColor] = useState(tape?.color ?? TAPE_COLORS[0]);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const tape = await createTape(title, color);
-    toast(`已新建磁带：${tape.title}`);
+    if (tape) {
+      await updateTape(tape.id, { title, color });
+      toast("已保存");
+      onClose();
+      return;
+    }
+    const created = await createTape(title, color);
+    toast(`已新建磁带：${created.title}`);
     onClose();
-    navigate({ name: "tapes", tapeId: tape.id });
+    navigate({ name: "tapes", tapeId: created.id });
+  };
+  const remove = async () => {
+    if (!tape || !window.confirm(`删除磁带「${tape.title}」？里面的素材不会删除，会移到另一盘磁带。`)) return;
+    const { movedTo, moved } = await deleteTape(tape.id);
+    toast(moved ? `已删除，${moved} 条素材移到了「${movedTo}」` : "已删除");
+    onClose();
+    navigate({ name: "tapes" }, { replace: true });
   };
   return (
-    <Modal title="新建磁带" onClose={onClose}>
+    <Modal title={tape ? "编辑磁带" : "新建磁带"} onClose={onClose}>
       <form className="stack-16" onSubmit={submit}>
-        <h2 className="sheet-title">新建磁带</h2>
+        <h2 className="sheet-title">{tape ? "编辑磁带" : "新建磁带"}</h2>
         <label className="field">
           名字
           <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="比如：旅行用语" maxLength={40} />
@@ -118,14 +137,14 @@ function NewTapeSheet({ onClose }: { onClose: () => void }) {
         <div className="field" role="group" aria-label="标签颜色">
           标签颜色
           <div className="row-8">
-            {TAPE_COLORS.map((option) => (
+            {[...new Set([...TAPE_COLORS, color])].map((option) => (
               <button
                 key={option}
                 type="button"
                 className="color-choice"
                 style={{ background: option }}
                 aria-pressed={option === color}
-                aria-label={option === TAPE_COLORS[0] ? "琥珀" : option === TAPE_COLORS[1] ? "青绿" : "米白"}
+                aria-label={option === TAPE_COLORS[0] ? "琥珀" : option === TAPE_COLORS[1] ? "青绿" : option === TAPE_COLORS[2] ? "米白" : "原来的颜色"}
                 onClick={() => setColor(option)}
               />
             ))}
@@ -133,8 +152,9 @@ function NewTapeSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div className="row-12">
           <button type="button" className="button button-outline grow" onClick={onClose}>取消</button>
-          <button type="submit" className="button button-primary grow">新建</button>
+          <button type="submit" className="button button-primary grow">{tape ? "保存" : "新建"}</button>
         </div>
+        {tape && <button type="button" className="button button-danger" onClick={remove}>删除这盘磁带</button>}
       </form>
     </Modal>
   );

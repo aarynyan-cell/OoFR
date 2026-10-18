@@ -35,6 +35,7 @@ export function App() {
       {route.name === "tapes" && <TapesPage tapeId={route.tapeId} />}
       {route.name === "lesson" && <LessonPage key={route.id} id={route.id} mode={route.mode} />}
       {route.name === "add" && <AddMaterialPage tapeId={route.tapeId} />}
+      {route.name === "edit" && <AddMaterialPage key={route.id} editId={route.id} />}
       {route.name === "phrases" && <PhrasebookPage />}
       {route.name === "review" && <ReviewPage />}
       {route.name === "me" && <MePage />}
