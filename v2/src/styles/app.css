@@ -1150,10 +1150,13 @@ p {
   gap: 12px;
 }
 
+/* Speed on the left, 法/中/双语 on the right, the play button exactly in the middle. */
 .player-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 48px 76px 48px 1fr;
   align-items: center;
-  justify-content: space-between;
+  justify-items: center;
+  column-gap: 8px;
 }
 
 .player-text {

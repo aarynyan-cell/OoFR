@@ -560,6 +560,7 @@ async fn ai_chat(state: State<'_, AiState>, request: Value) -> Result<Value, Str
 
 /// One chat request to Ollama on the loopback address (from this window or a paired phone).
 async fn forward_chat(client: &reqwest::Client, request: &Value) -> Result<Value, String> {
+    mark_ai_in_use();
     client
         .post(format!("{OLLAMA_ENDPOINT}/api/chat"))
         .timeout(Duration::from_secs(240))
@@ -572,6 +573,19 @@ async fn forward_chat(client: &reqwest::Client, request: &Value) -> Result<Value
         .json::<Value>()
         .await
         .map_err(|error| format!("本地 AI 返回无效数据：{error}"))
+}
+
+/// Leaves a mark that the learner is using the AI right now. Long background
+/// jobs on this Mac (the dictionary translation script) wait while it is fresh,
+/// so lessons get the model to themselves.
+fn mark_ai_in_use() {
+    if let Ok(path) = support_dir().map(|dir| dir.join("ai-in-use")) {
+        let _ = fs::write(path, now_unix().to_string());
+    }
+}
+
+fn now_unix() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|value| value.as_secs()).unwrap_or(0)
 }
 
 /// Shows the QR code for pairing a phone: starts listening and makes a one-time code.

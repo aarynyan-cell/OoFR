@@ -1,10 +1,14 @@
-// The local AI's work queue: one job at a time, newest lesson first. While a
-// lesson is open it fills in missing translations and prepares the
-// explanations of the next few sentences, so 讲解 is usually ready when tapped.
+// The local AI's work queue, one job at a time, in this order:
+//   0. the sentence the learner asked 讲解 for;
+//   1. the open lesson: its missing translations (from the current sentence on),
+//      then its explanations sentence by sentence (current one first);
+//   2. missing translations of other lessons, newest first (new lessons start
+//      as soon as they are saved).
+// Moving to another sentence re-plans tier 1, so that sentence comes next.
 
 import { useSyncExternalStore } from "react";
 import { db } from "../db/database";
-import { applySentenceAi } from "../db/repo";
+import { applySentenceAi, getSettings } from "../db/repo";
 import type { Material, Sentence } from "../db/types";
 import { dictionary } from "../dict/dictionary";
 import { type FormLookup, sentenceFacts } from "./grammar";
@@ -18,6 +22,9 @@ interface Job {
   materialId: string;
   // "" for a lesson's translations.
   sentenceId: string;
+  tier: 0 | 1 | 2;
+  // Translations start from this sentence.
+  from?: number;
 }
 
 export interface JobState {
@@ -25,8 +32,8 @@ export interface JobState {
   error: string;
 }
 
-const AHEAD = 3;
 const TRANSLATE_BATCH = 8;
+const LIBRARY_LESSONS = 10;
 
 let queue: Job[] = [];
 let running = false;
@@ -57,24 +64,30 @@ export function useAiJob(kind: Kind, materialId: string, sentenceId = ""): JobSt
   );
 }
 
-function enqueue(job: Job, first = false): void {
+// Tier 0 goes to the very front; other jobs go after everything of their tier.
+function enqueue(job: Job): void {
   const key = keyOf(job);
   if (states.get(key)?.status === "running") return;
+  const existing = queue.find((item) => keyOf(item) === key);
   queue = queue.filter((item) => keyOf(item) !== key);
-  if (first) queue.unshift(job);
-  else queue.push(job);
-  setState(job, { status: "queued", error: "" });
+  const placed = existing && existing.tier < job.tier ? { ...job, tier: existing.tier } : job;
+  const at = placed.tier === 0 ? 0 : queue.findIndex((item) => item.tier > placed.tier);
+  queue.splice(at < 0 ? queue.length : at, 0, placed);
+  setState(placed, { status: "queued", error: "" });
 }
+
+const missingTranslation = (material: Material) => material.sentences.some((sentence) => !sentence.translation.trim());
 
 // Called when a lesson opens or the learner moves to another sentence.
 export function planLesson(material: Material, index: number): void {
-  // Work queued for other lessons can wait until they are opened again.
-  for (const job of queue.filter((item) => item.materialId !== material.id)) states.delete(keyOf(job));
-  queue = queue.filter((item) => item.materialId === material.id);
-  if (material.sentences.some((sentence) => !sentence.translation.trim())) enqueue({ kind: "translate", materialId: material.id, sentenceId: "" });
-  for (const sentence of material.sentences.slice(index, index + AHEAD)) {
+  // The previous open lesson's explanations wait until it is opened again.
+  for (const job of queue.filter((item) => item.tier === 1)) states.delete(keyOf(job));
+  queue = queue.filter((item) => item.tier !== 1);
+  if (missingTranslation(material)) enqueue({ kind: "translate", materialId: material.id, sentenceId: "", tier: 1, from: index });
+  const order = [...material.sentences.slice(index), ...material.sentences.slice(0, index)];
+  for (const sentence of order) {
     if (!sentence.explanation && states.get(`explain:${material.id}:${sentence.id}`)?.status !== "failed") {
-      enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id });
+      enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id, tier: 1 });
     }
   }
   void pump();
@@ -82,8 +95,21 @@ export function planLesson(material: Material, index: number): void {
 
 // The learner tapped 讲解 on a sentence that has none yet: it goes first.
 export function explainNow(material: Material, sentence: Sentence): void {
-  enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id }, true);
+  enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id, tier: 0 });
   void pump();
+}
+
+// A lesson was just added: translate it in the background straight away.
+export function prepareMaterial(material: Material): void {
+  if (missingTranslation(material)) enqueue({ kind: "translate", materialId: material.id, sentenceId: "", tier: 2 });
+  void pump();
+}
+
+// When the AI becomes ready: the newest lessons still missing translations.
+async function prepareLibrary(): Promise<void> {
+  if (!(await getSettings()).aiPrepare) return;
+  const materials = await db.materials.orderBy("createdAt").reverse().toArray();
+  materials.filter(missingTranslation).slice(0, LIBRARY_LESSONS).forEach(prepareMaterial);
 }
 
 const formLookup: FormLookup = async (word, context, occurrence) => {
@@ -98,7 +124,10 @@ async function run(job: Job, ai: NonNullable<ReturnType<typeof readyAi>>): Promi
   const material = await db.materials.get(job.materialId);
   if (!material) return;
   if (job.kind === "translate") {
-    const missing = material.sentences.filter((sentence) => !sentence.translation.trim());
+    // The sentences the learner is about to read first.
+    const from = Math.min(Math.max(0, job.from ?? 0), material.sentences.length);
+    const ordered = [...material.sentences.slice(from), ...material.sentences.slice(0, from)];
+    const missing = ordered.filter((sentence) => !sentence.translation.trim());
     for (let start = 0; start < missing.length; start += TRANSLATE_BATCH) {
       const part = missing.slice(start, start + TRANSLATE_BATCH);
       const result = await translateSentences(ai.backend, ai.model, material, part);
@@ -137,18 +166,27 @@ async function pump(): Promise<void> {
 }
 
 // Work waiting for the AI starts as soon as it becomes ready.
+let wasReady = false;
 onAiChange(() => {
-  if (readyAi() && queue.length) void pump();
+  const ready = Boolean(readyAi());
+  if (ready && !wasReady) void prepareLibrary();
+  wasReady = ready;
+  if (ready && queue.length) void pump();
 });
 
 // A failed sentence can be asked again.
 export function retryJob(kind: Kind, materialId: string, sentenceId = ""): void {
-  enqueue({ kind, materialId, sentenceId }, true);
+  enqueue({ kind, materialId, sentenceId, tier: 0 });
   void pump();
 }
 
 export function resetQueueForTests(): void {
   queue = [];
   running = false;
+  wasReady = false;
   states.clear();
+}
+
+export function queueForTests(): string[] {
+  return queue.map(keyOf);
 }

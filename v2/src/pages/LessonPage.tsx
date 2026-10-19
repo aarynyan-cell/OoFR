@@ -148,12 +148,6 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     toast(`语速 ${next}×${running ? "，下一句起生效" : ""}`);
   };
 
-  const toggleMode = () => {
-    const next = settings.playMode === "all" ? "one" : "all";
-    void saveSettings({ playMode: next });
-    toast(next === "one" ? "单句循环：一直重复当前这句" : "全文播放：从当前句播到最后");
-  };
-
   const speakerLabel = (label: string) => (label && label !== "旁白" ? ` · ${label.replace(/^[AB]\s*·\s*/, "").toLocaleUpperCase("fr-FR")}` : "");
 
   return (
@@ -212,15 +206,15 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
           <span className="progress grow" aria-hidden="true"><span style={{ width: `${((index + 1) / total) * 100}%` }} /></span>
           <span className="mono small muted">{pad(index + 1)} / {pad(total)}</span>
         </div>
+        {/* The big button plays on from the current sentence; a tapped sentence plays alone. */}
         <div className="player-controls">
-          <button type="button" className="player-text" onClick={cycleText} aria-label={`文字显示：${TEXT_MODES.find((item) => item.mode === textMode)?.hint}，点一下切换`}>{TEXT_MODES.find((item) => item.mode === textMode)?.label}</button>
           <button type="button" className="mono player-text" onClick={cycleRate} aria-label={`语速 ${settings.rate} 倍，点一下切换`}>{settings.rate}×</button>
           <button type="button" className="icon-button" onClick={() => goTo(index - 1)} aria-label="上一句" disabled={index === 0}><PrevIcon /></button>
           <button type="button" className="round-button round-accent round-large" onClick={playPause} aria-label={running && state.status === "playing" ? "暂停" : "播放"}>
             {running && state.status === "playing" ? <PauseIcon size={26} /> : <PlayIcon size={26} />}
           </button>
           <button type="button" className="icon-button" onClick={() => goTo(index + 1)} aria-label="下一句" disabled={index >= total - 1}><NextIcon /></button>
-          <button type="button" className="player-text" onClick={toggleMode} aria-label="切换播放方式">{settings.playMode === "one" ? "单句" : "全文"}</button>
+          <button type="button" className="player-text" onClick={cycleText} aria-label={`文字显示：${TEXT_MODES.find((item) => item.mode === textMode)?.hint}，点一下切换`}>{TEXT_MODES.find((item) => item.mode === textMode)?.label}</button>
         </div>
       </section>
 

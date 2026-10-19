@@ -73,7 +73,7 @@ export function AiPanel() {
               <input type="checkbox" checked={settings.aiPrepare} onChange={(event) => void saveSettings({ aiPrepare: event.target.checked })} />
               <span className="grow stack-2">
                 <span>打开素材时自动准备</span>
-                <span className="dim small">补上缺的译文，并提前生成接下来几句的讲解</span>
+                <span className="dim small">先补上缺的译文，再逐句生成整课的讲解（你点到的句子优先）</span>
               </span>
             </label>
           )}

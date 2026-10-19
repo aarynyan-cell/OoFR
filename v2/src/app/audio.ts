@@ -43,11 +43,11 @@ export function usePlayer(): PlayerState {
 
 export const materialKey = (material: Material) => `material:${material.id}`;
 
-function options(settings: Settings, mode = settings.playMode) {
+function options(settings: Settings, mode: "all" | "one" = "all") {
   return { rate: settings.rate, repeat: settings.repeat, gapMs: settings.gapMs, mode, voice: pickVoice(voices, settings.voice) };
 }
 
-// Plays a lesson from one sentence on, remembering where the learner is.
+// Plays a lesson from one sentence to the end, remembering where the learner is.
 export function playMaterial(material: Material, startIndex: number, settings: Settings): void {
   const key = materialKey(material);
   stopRecordingAudio();
@@ -65,7 +65,7 @@ export function playMaterial(material: Material, startIndex: number, settings: S
   });
   void player
     .play(key, items, startIndex, options(settings), () => {
-      if (settings.playMode === "all") void markFinished(material.id);
+      void markFinished(material.id);
     })
     .finally(unsubscribe);
 }

@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AiBackend, type ChatBody, OLLAMA, localBackend, readPullStream } from "../src/ai/backend";
-import { explainNow, planLesson, resetQueueForTests } from "../src/ai/enrich";
+import { explainNow, planLesson, prepareMaterial, queueForTests, resetQueueForTests } from "../src/ai/enrich";
 import { type FormLookup, type WordForm, factsText, sentenceFacts } from "../src/ai/grammar";
 import { chooseModel, isAllowedModel } from "../src/ai/models";
 import { aiState, progressText, refreshAi, resetAiForTests, setupAi } from "../src/ai/state";
@@ -292,5 +292,37 @@ describe("pairing a phone with the Mac", () => {
     await savePairing({ ips: ["10.0.0.2"], host: "", port: 47800, fp, key: "secret" });
     const backup = await createBackup("test");
     expect(JSON.stringify(backup)).not.toContain("secret");
+  });
+});
+
+describe("the order the AI works in", () => {
+  let run = 0;
+  beforeEach(() => {
+    setDatabase(new OoFRDatabase(`oofr2-order-${(run += 1)}`));
+    // The AI is not ready, so jobs stay queued and their order can be read.
+    resetAiForTests();
+    resetQueueForTests();
+  });
+
+  it("does the tapped sentence first, then the open lesson from where the learner is, then other lessons", async () => {
+    const tape = await createTape("测试");
+    const open = await createMaterial({ title: "open", tapeId: tape.id, text: "Un. Deux. Trois. Quatre." });
+    const other = await createMaterial({ title: "other", tapeId: tape.id, text: "Cinq. Six." });
+    const [one, two, three, four] = open.sentences.map((sentence) => sentence.id);
+    prepareMaterial(other);
+    planLesson(open, 2);
+    expect(queueForTests()).toEqual([
+      `translate:${open.id}:`,
+      `explain:${open.id}:${three}`,
+      `explain:${open.id}:${four}`,
+      `explain:${open.id}:${one}`,
+      `explain:${open.id}:${two}`,
+      `translate:${other.id}:`
+    ]);
+    explainNow(open, open.sentences[1]);
+    expect(queueForTests()[0]).toBe(`explain:${open.id}:${two}`);
+    // Moving to another sentence puts it next in the lesson's turn.
+    planLesson(open, 3);
+    expect(queueForTests().slice(0, 3)).toEqual([`explain:${open.id}:${two}`, `translate:${open.id}:`, `explain:${open.id}:${four}`]);
   });
 });

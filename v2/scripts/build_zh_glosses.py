@@ -396,6 +396,20 @@ def best_records(words: dict[str, dict]) -> dict[str, dict]:
     return best
 
 
+# The OoFR Mac app marks when the learner uses the AI; this job waits meanwhile.
+APP_IN_USE = Path.home() / "Library" / "Application Support" / "OoFR" / "ai-in-use"
+IN_USE_SECONDS = 120
+
+
+def wait_while_app_in_use() -> None:
+    told = False
+    while APP_IN_USE.exists() and time.time() - APP_IN_USE.stat().st_mtime < IN_USE_SECONDS:
+        if not told:
+            print("OoFR is using the AI; waiting", flush=True)
+            told = True
+        time.sleep(15)
+
+
 def translate(limit: int, batch_size: int) -> None:
     frequent = lexicon_keys()
     words = load_words()
@@ -421,6 +435,7 @@ def translate(limit: int, batch_size: int) -> None:
     failures = PROGRESS.with_name("zh-glosses-failed.log")
 
     def run_batch(keys: list[str], out) -> dict:
+        wait_while_app_in_use()
         batch = [words[key] for key in keys]
         try:
             answer = ask(batch)
@@ -621,6 +636,8 @@ def status() -> None:
         current, total, hours = int(match.group(1)), int(match.group(2)), float(match.group(3))
         print(f"本轮进度 {current}/{total}（{current * 100 // total}%），预计还要约 {hours:.1f} 小时。")
     print("后台任务正在运行。" if running else "后台任务没有在运行。")
+    if running and APP_IN_USE.exists() and time.time() - APP_IN_USE.stat().st_mtime < IN_USE_SECONDS:
+        print("你正在用 OoFR 的 AI，词典翻译暂时让路，空闲约 2 分钟后自动继续。")
 
 
 def main() -> None:

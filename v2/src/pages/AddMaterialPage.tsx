@@ -1,9 +1,10 @@
 import { type CSSProperties, type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
+import { prepareMaterial } from "../ai/enrich";
 import { href, navigate } from "../app/router";
 import { toast } from "../app/toast";
 import { useLive } from "../db/live";
 import { db } from "../db/database";
-import { createMaterial, createTape, deleteMaterial, listTapes, materialText, updateMaterial } from "../db/repo";
+import { createMaterial, createTape, deleteMaterial, getSettings, listTapes, materialText, updateMaterial } from "../db/repo";
 import { MATERIAL_TYPES, type MaterialType, countSpeakers, guessLanguage, inferMaterialType, splitSentences } from "../text/split";
 import { BackIcon, FileIcon } from "../ui/icons";
 
@@ -67,6 +68,8 @@ export function AddMaterialPage({ tapeId, editId }: { tapeId?: string; editId?: 
       }
       const tape = chosenTape || (await createTape("我的素材")).id;
       const material = await createMaterial({ title, tapeId: tape, text, materialType, language });
+      // The local AI starts translating the new lesson straight away.
+      void getSettings().then((current) => current.aiPrepare && prepareMaterial(material));
       navigate({ name: "lesson", id: material.id }, { replace: true });
     } catch (error) {
       toast(error instanceof Error ? error.message : "没能生成课程");
