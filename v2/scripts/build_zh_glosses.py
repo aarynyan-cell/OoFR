@@ -46,6 +46,7 @@ LEXICON = ROOT / "lexicon.js"
 PROGRESS = ROOT / ".lexicon-cache" / "zh-glosses.jsonl"
 OUT_DIR = ROOT / "dictionary"
 SHARD_COUNT = 128
+PACK_EVERY = 1000
 # qwen3.5:9b: accurate senses in the comparison with gemma3:4b (v2/docs/ai-model-choice.md)
 # while using about 6 GB, so it can run in the background without slowing the Mac.
 # gemma4:26b is as good but needs ~20 GB, too much for a 24 GB machine in use.
@@ -67,10 +68,10 @@ LATIN = re.compile(r"[A-Za-z]{2,}")
 
 SYSTEM = (
     "你是严谨的法汉词典编辑。把给出的英文释义翻译成简洁、准确的简体中文词典释义，不要增加没有给出的意思。\n"
-    "规则：每个英文义项对应一条中文，顺序不变，条目之间用“；”分隔；每条 2 到 12 个汉字，近义词用顿号并列；"
+    "规则：每个英文义项翻成一条中文，顺序不变；每条 2 到 12 个汉字，近义词用顿号并列；"
     "不写拼音、英文、例句或解释；动词释义用动词，名词用名词，形容词通常以“的”结尾；"
     "地区或语域说明（如 Louisiana、slang、informal）用括号放在该条最后，例如“家伙（口语）”。\n"
-    "输出格式：每个词先写一行词本身，然后每个词性一行“词性: 中文；中文”，词性名照抄输入；词与词之间空一行。只输出这些内容。"
+    "按要求的 JSON 返回，写在一行里，不要换行和缩进：每个词一个对象，键是输入里的词性名，值是中文释义数组。"
 )
 
 
@@ -171,7 +172,22 @@ def load_words() -> dict[str, dict]:
     for key, record in words.items():
         # An expression is as common as its rarest word.
         record["score"] = min(counts.get(ELISION.sub("", part), 0) for part in key.split(" "))
+        # "synonym of lâchage" tells the model nothing about lâchage; give it lâchage's meaning.
+        for group in record["groups"]:
+            group["senses"] = [synonym_sense(sense, group["pos"], words) for sense in group["senses"]]
     return words
+
+
+SYNONYM = re.compile(r"^(?:synonym of|alternative form of|variant of)\s+([^\s,;:()]+)", re.I)
+
+
+def synonym_sense(sense: str, pos: str, words: dict[str, dict]) -> str:
+    match = SYNONYM.match(sense)
+    target = words.get(normalize_key(match.group(1))) if match else None
+    group = next((group for group in (target or {}).get("groups", []) if group["pos"] == pos), None)
+    if not group or SYNONYM.match(group["senses"][0]):
+        return sense
+    return f"{group['senses'][0]} ({sense[: match.end()]})"[:90]
 
 
 def label(group: dict) -> str:
@@ -187,15 +203,32 @@ def prepare(batch: list[dict]) -> list[dict]:
     return batch
 
 
+def schema(batch: list[dict]) -> dict:
+    """The form the answer must fill (Ollama structured output): every word and every
+    part of speech is required, so none is left out, and each list is capped at the
+    number of English senses, so the model cannot repeat itself for pages."""
+    prepare(batch)
+    return {
+        "type": "object",
+        "properties": {item["word"]: {
+            "type": "object",
+            "properties": {label(group): {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 24},
+                                          "minItems": 1, "maxItems": len(group["senses"])} for group in item["groups"]},
+            "required": [label(group) for group in item["groups"]],
+        } for item in batch},
+        "required": [item["word"] for item in batch],
+    }
+
+
 def ask(batch: list[dict]) -> str:
     prepare(batch)
     payload = [{"word": item["word"], "groups": [{"pos": label(group), "senses": group["senses"]} for group in item["groups"]]} for item in batch]
     body = {
         # This Mac's Ollama keeps a model loaded for 30 minutes by default; let it go
         # two minutes after the last batch so it never sits in memory unused.
-        "model": MODEL, "stream": False, "think": False, "keep_alive": "2m",
+        "model": MODEL, "stream": False, "think": False, "keep_alive": "2m", "format": schema(batch),
         # A batch needs a few hundred tokens; the cap stops a rambling answer early.
-        "options": {"temperature": 0.1, "num_ctx": 4096, "num_predict": 120 * len(batch)},
+        "options": {"temperature": 0.1, "num_ctx": 4096, "num_predict": 200 * len(batch)},
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
     }
     request = urllib.request.Request(OLLAMA, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
@@ -203,6 +236,37 @@ def ask(batch: list[dict]) -> str:
         result = json.loads(response.read())
     ask.timing = f"prompt {result.get('prompt_eval_count', 0)} tok/{result.get('prompt_eval_duration', 0) / 1e9:.0f}s, answer {result.get('eval_count', 0)} tok/{result.get('eval_duration', 0) / 1e9:.0f}s"
     return result["message"]["content"]
+
+
+def read_answer(answer: str, batch: list[dict]) -> dict[str, list[dict]]:
+    """Reads a JSON answer (see schema()); older free-text answers go through parse()."""
+    try:
+        data = json.loads(answer)
+    except json.JSONDecodeError:
+        # Cut off by the length cap, or an answer from before the JSON form.
+        return parse(answer, batch)
+    results: dict[str, list[dict]] = {}
+    for item in prepare(batch):
+        found = data.get(item["word"]) if isinstance(data, dict) else None
+        groups = []
+        for group in item["groups"]:
+            # One string sometimes holds several senses ("社区；邦联"): split them.
+            senses = [clean_item(part) for sense in ((found or {}).get(label(group)) or []) if isinstance(sense, str)
+                      for part in re.split(r"[；;]", sense)]
+            senses = [sense for sense in dict.fromkeys(senses) if sense]
+            if senses:
+                groups.append({"pos": group["pos"], "gender": group["gender"], "zh": senses})
+        if groups:
+            results[normalize_key(item["word"])] = tidy(groups, item["groups"])
+    return {key: groups for key, groups in results.items() if groups}
+
+
+def clean_item(sense: str) -> str:
+    """One sense from a JSON answer: parts with English left in are dropped ("谁、 whom" → "谁")."""
+    parts = [part.strip() for part in re.split(r"[、，,]", sense)]
+    kept = [part for part in parts if part and not LATIN.search(part)]
+    sense = "、".join(kept).strip(" ；;。.")
+    return sense if CJK.search(sense) and len(sense) <= 24 else ""
 
 
 POS_ZH = {"动词": "verb", "名词": "noun", "形容词": "adjective", "副词": "adverb", "代词": "pronoun", "介词": "preposition",
@@ -341,7 +405,9 @@ def translate(limit: int, batch_size: int) -> None:
     # Hand-reviewed words always win in the app; no need to translate them.
     curated = set(json.loads((OUT_DIR / "curated.json").read_text(encoding="utf-8")).get("fr", {}))
     done |= {normalize_key(key) for key in curated}
-    singles = sorted((key for key in words if key in frequent and key not in done and " " not in key), key=lambda key: -words[key]["score"])
+    # Elided forms (n', m', s') are explained by the grammar notes, not translated here.
+    singles = sorted((key for key in words if key in frequent and key not in done and " " not in key and not words[key]["word"].endswith("'")),
+                     key=lambda key: -words[key]["score"])
     # Then fixed expressions made only of frequent words ("bien sûr", "tout à l'heure").
     phrases = sorted(
         (key for key in words if " " in key and key not in done and all(part.split("'")[-1] in frequent for part in key.split(" "))),
@@ -362,7 +428,7 @@ def translate(limit: int, batch_size: int) -> None:
             print(f"batch {keys[0]}: {error}", flush=True)
             time.sleep(10)
             return {}
-        results = parse(answer, batch)
+        results = read_answer(answer, batch)
         if len(results) < len(batch):
             with failures.open("a", encoding="utf-8") as log:
                 log.write(f"--- {[key for key in keys if key not in results]}\n{answer}\n")
@@ -381,6 +447,9 @@ def translate(limit: int, batch_size: int) -> None:
             results = run_batch(keys, out)
             missed += [key for key in keys if key not in results]
             finished = index + len(keys)
+            # The app picks up new meanings as the run goes, not only at the end.
+            if finished % PACK_EVERY < batch_size:
+                pack(words)
             rate = (time.time() - started) / finished
             print(f"{finished}/{len(queue)} · {len(results)}/{len(keys)} ok · {rate:.1f}s/word · ~{rate * (len(queue) - finished) / 3600:.1f}h left · {getattr(ask, 'timing', '')}", flush=True)
         # Words that did not come back in a batch get a second try, two at a time.
@@ -388,6 +457,7 @@ def translate(limit: int, batch_size: int) -> None:
             results = run_batch(missed[index:index + 2], out)
             print(f"retry {index + 2}/{len(missed)} · {len(results)} ok", flush=True)
     fill(set(queue))
+    pack()
 
 
 def fill(only: set[str] | None = None) -> None:
@@ -411,7 +481,7 @@ def fill(only: set[str] | None = None) -> None:
                 except Exception as error:  # Ollama restarted, timeout: asked again next run
                     print(f"fill {key}: {error}", flush=True)
                     continue
-                groups += parse(answer, [part]).get(key, [])
+                groups += read_answer(answer, [part]).get(key, [])
             order = [(group["pos"], group["gender"]) for group in words[key]["groups"]]
             groups.sort(key=lambda group: order.index((group["pos"], group["gender"])) if (group["pos"], group["gender"]) in order else len(order))
             out.write(json.dumps({**record, "groups": groups, "model": MODEL, "at": datetime.now(timezone.utc).isoformat(), "filled": True}, ensure_ascii=False) + "\n")
@@ -488,8 +558,8 @@ def tidy(groups: list[dict], sources: list[dict] | None = None) -> list[dict]:
     return [group for group in out if group["zh"]]
 
 
-def pack() -> None:
-    words = load_words()
+def pack(words: dict[str, dict] | None = None) -> None:
+    words = words or load_words()
     shards: dict[str, dict] = {}
     model = MODEL
     count = 0
@@ -529,7 +599,7 @@ def recover() -> None:
             keys = [key for key in ast.literal_eval(header) if key in words and key not in done]
             if not keys:
                 continue
-            results = parse(answer, [words[key] for key in keys])
+            results = read_answer(answer, [words[key] for key in keys])
             stamp = datetime.now(timezone.utc).isoformat()
             for key, groups in results.items():
                 out.write(json.dumps({"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp, "recovered": True}, ensure_ascii=False) + "\n")

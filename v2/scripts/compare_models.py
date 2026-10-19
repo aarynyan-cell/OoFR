@@ -2,7 +2,7 @@
 """Runs the same OoFR AI tasks on a local Ollama model, to choose which model to use.
 
 Tasks mirror what OoFR asks the model to do:
-  glosses     - Chinese dictionary senses from English Wiktionary senses (build_zh_glosses.py format)
+  glosses     - Chinese dictionary senses from English Wiktionary senses (build_zh_glosses.py JSON form)
   explain     - a sentence explanation as JSON (1.0's explanation fields)
   translate   - French sentences into Chinese
   context     - what a word means in this particular sentence
@@ -101,9 +101,9 @@ def run(model: str) -> None:
     glosses.MODEL = model
     for index in range(0, len(batch), 8):
         part = batch[index:index + 8]
-        payload = [{"word": item["word"], "groups": [{"pos": group["pos"], "senses": group["senses"]} for group in item["groups"]]} for item in part]
-        answer, timing = chat(model, glosses.SYSTEM, json.dumps(payload, ensure_ascii=False))
-        gloss_out.update(glosses.parse(answer, part))
+        payload = [{"word": item["word"], "groups": [{"pos": glosses.label(group), "senses": group["senses"]} for group in item["groups"]]} for item in glosses.prepare(part)]
+        answer, timing = chat(model, glosses.SYSTEM, json.dumps(payload, ensure_ascii=False), glosses.schema(part))
+        gloss_out.update(glosses.read_answer(answer, part))
         raw.append(answer)
         total = {"seconds": total["seconds"] + timing["seconds"], "tokens": total["tokens"] + timing["tokens"]}
     results["glosses"] = {"timing": total, "parsed": len(gloss_out), "asked": len(batch), "output": gloss_out, "raw": raw,
@@ -158,9 +158,9 @@ def rerun_glosses(model: str) -> None:
     gloss_out, total, raw = {}, {"seconds": 0.0, "tokens": 0}, []
     for index in range(0, len(batch), 8):
         part = batch[index:index + 8]
-        payload = [{"word": item["word"], "groups": [{"pos": group["pos"], "senses": group["senses"]} for group in item["groups"]]} for item in part]
-        answer, timing = chat(model, glosses.SYSTEM, json.dumps(payload, ensure_ascii=False))
-        gloss_out.update(glosses.parse(answer, part))
+        payload = [{"word": item["word"], "groups": [{"pos": glosses.label(group), "senses": group["senses"]} for group in item["groups"]]} for item in glosses.prepare(part)]
+        answer, timing = chat(model, glosses.SYSTEM, json.dumps(payload, ensure_ascii=False), glosses.schema(part))
+        gloss_out.update(glosses.read_answer(answer, part))
         raw.append(answer)
         total = {"seconds": total["seconds"] + timing["seconds"], "tokens": total["tokens"] + timing["tokens"]}
     saved["glosses"] = {"timing": total, "parsed": len(gloss_out), "asked": len(batch), "output": gloss_out, "raw": raw,

@@ -65,6 +65,38 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(result["rue"][0]["zh"], ["街"])
 
 
+class JsonAnswerTest(unittest.TestCase):
+    def test_schema_requires_every_part_of_speech_and_caps_the_lists(self):
+        form = glosses.schema([TOUR, RUE])
+        self.assertEqual(form["required"], ["tour", "rue"])
+        self.assertEqual(form["properties"]["tour"]["required"], ["noun (masculine)", "noun (feminine)"])
+        self.assertEqual(form["properties"]["tour"]["properties"]["noun (masculine)"]["maxItems"], 4)
+        self.assertEqual(form["properties"]["rue"]["required"], ["noun"])
+
+    def test_reads_json_answers(self):
+        answer = '{"tour":{"noun (masculine)":["轮次、周长"],"noun (feminine)":["塔楼","车（国际象棋）"]},"rue":{"noun":["街道","街道"]}}'
+        self.assertEqual(glosses.read_answer(answer, [TOUR, RUE]), {
+            "tour": [{"pos": "noun", "gender": "masculine", "zh": ["轮次、周长"]},
+                     {"pos": "noun", "gender": "feminine", "zh": ["塔楼", "车（国际象棋）"]}],
+            "rue": [{"pos": "noun", "gender": "feminine", "zh": ["街道"]}],
+        })
+        self.assertEqual(glosses.read_answer('{"rue":{"noun":["街道；马路"]}}', [RUE])["rue"][0]["zh"], ["街道", "马路"])
+
+    def test_english_left_in_a_json_sense_is_dropped(self):
+        self.assertEqual(glosses.clean_item("谁、 whom"), "谁")
+        self.assertEqual(glosses.clean_item("whom"), "")
+        self.assertEqual(glosses.clean_item("裸体、希腊字母 nu"), "裸体")
+
+    def test_cut_off_answer_reads_as_nothing(self):
+        self.assertEqual(glosses.read_answer('{"tour":{"noun (masculine)":["轮', [TOUR]), {})
+
+    def test_synonym_senses_borrow_the_other_word_meaning(self):
+        words = {"lâchage": word("lâchage", ("noun", "masculine", 1))}
+        words["lâchage"]["groups"][0]["senses"] = ["release, loosening"]
+        self.assertEqual(glosses.synonym_sense("synonym of lâchage", "noun", words), "release, loosening (synonym of lâchage)")
+        self.assertEqual(glosses.synonym_sense("synonym of inconnu", "noun", words), "synonym of inconnu")
+
+
 class TidyTest(unittest.TestCase):
     def test_embedded_part_of_speech_moves_to_its_group(self):
         marin = [{"pos": "adjective", "gender": "", "senses": ["x"]}, {"pos": "noun", "gender": "masculine", "senses": ["x"]},
