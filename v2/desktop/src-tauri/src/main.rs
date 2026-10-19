@@ -19,6 +19,8 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
 
+mod pair;
+
 const OLLAMA_VERSION: &str = "0.34.0";
 const OLLAMA_URL: &str =
     "https://github.com/ollama/ollama/releases/download/v0.34.0/ollama-darwin.tgz";
@@ -138,6 +140,10 @@ struct AiStatus {
 }
 
 fn support_dir() -> Result<PathBuf, String> {
+    #[cfg(test)]
+    if let Some(dir) = std::env::var_os("OOFR_SUPPORT_DIR") {
+        return Ok(PathBuf::from(dir));
+    }
     let base = dirs::data_dir().ok_or_else(|| "无法定位 Application Support".to_string())?;
     let path = base.join("OoFR");
     fs::create_dir_all(&path).map_err(|error| format!("无法创建 OoFR 数据目录：{error}"))?;
@@ -549,11 +555,15 @@ async fn ai_pull_model(
 #[tauri::command]
 async fn ai_chat(state: State<'_, AiState>, request: Value) -> Result<Value, String> {
     validate_chat_request(&request)?;
-    state
-        .client
+    forward_chat(&state.client, &request).await
+}
+
+/// One chat request to Ollama on the loopback address (from this window or a paired phone).
+async fn forward_chat(client: &reqwest::Client, request: &Value) -> Result<Value, String> {
+    client
         .post(format!("{OLLAMA_ENDPOINT}/api/chat"))
         .timeout(Duration::from_secs(240))
-        .json(&request)
+        .json(request)
         .send()
         .await
         .map_err(|error| format!("本地 AI 请求失败：{error}"))?
@@ -562,6 +572,37 @@ async fn ai_chat(state: State<'_, AiState>, request: Value) -> Result<Value, Str
         .json::<Value>()
         .await
         .map_err(|error| format!("本地 AI 返回无效数据：{error}"))
+}
+
+/// Shows the QR code for pairing a phone: starts listening and makes a one-time code.
+#[tauri::command]
+fn pair_info(ai: State<'_, AiState>, pairing: State<'_, pair::PairState>) -> Result<Value, String> {
+    serde_json::to_value(pairing.info(ai.client.clone())?).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn pair_devices(pairing: State<'_, pair::PairState>) -> Value {
+    json!(pairing.devices())
+}
+
+#[tauri::command]
+fn pair_forget(pairing: State<'_, pair::PairState>, id: String) -> Result<Value, String> {
+    Ok(json!(pairing.forget(&id)?))
+}
+
+/// QR code modules as rows of "1"/"0", for the page to draw.
+#[tauri::command]
+fn qr_rows(text: String) -> Result<Vec<String>, String> {
+    if text.len() > 1200 {
+        return Err("二维码内容过长".to_string());
+    }
+    let code = qrcode::QrCode::with_error_correction_level(text.as_bytes(), qrcode::EcLevel::M).map_err(|error| error.to_string())?;
+    let width = code.width();
+    let colors = code.to_colors();
+    Ok(colors
+        .chunks(width)
+        .map(|row| row.iter().map(|color| if *color == qrcode::Color::Dark { '1' } else { '0' }).collect())
+        .collect())
 }
 
 #[tauri::command]
@@ -577,8 +618,26 @@ fn ai_stop(state: State<'_, AiState>) -> Result<Value, String> {
 }
 
 fn main() {
+    // Development only: run the phone connection without a window, to test
+    // pairing from a browser ("cargo run -- --pair-server").
+    #[cfg(debug_assertions)]
+    if std::env::args().any(|arg| arg == "--pair-server") {
+        let pairing = pair::PairState::default();
+        let info = pairing.info(reqwest::Client::new()).expect("pairing listener");
+        println!("{}", serde_json::to_string(&info).unwrap());
+        loop {
+            std::thread::sleep(Duration::from_secs(3600));
+        }
+    }
     tauri::Builder::default()
         .manage(AiState::default())
+        .manage(pair::PairState::default())
+        .setup(|app| {
+            // A phone paired earlier can connect without anyone touching the Mac.
+            let client = app.state::<AiState>().client.clone();
+            app.state::<pair::PairState>().start_if_paired(client);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             ai_status,
             ai_install_runtime,
@@ -586,7 +645,11 @@ fn main() {
             ai_start,
             ai_chat,
             ai_stop,
-            ai_cancel_setup
+            ai_cancel_setup,
+            pair_info,
+            pair_devices,
+            pair_forget,
+            qr_rows
         ])
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {

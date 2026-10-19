@@ -254,3 +254,43 @@ describe("the AI work queue", () => {
     await vi.waitFor(async () => expect((await db.materials.get(material.id))!.sentences[0].explanation?.summary).toBe("你好。"));
   });
 });
+
+describe("pairing a phone with the Mac", () => {
+  const fp = Array.from({ length: 32 }, (_, index) => index.toString(16).padStart(2, "0").toUpperCase()).join(":");
+  const encode = (value: unknown) => btoa(JSON.stringify(value)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const good = { v: 1, ips: ["172.20.10.4"], host: "MacBook-Air.local", port: 47800, fp, code: "0123456789abcdef01234567" };
+
+  it("reads the QR code as a link or as the bare payload, and refuses anything odd", async () => {
+    const { parsePairing } = await import("../src/ai/paired");
+    expect(parsePairing(`https://aarynyan-cell.github.io/OoFR/#/pair/${encode(good)}`)).toEqual({ ips: ["172.20.10.4"], host: "MacBook-Air.local", port: 47800, fp, code: good.code });
+    expect(parsePairing(encode(good))?.port).toBe(47800);
+    for (const bad of [{ ...good, v: 2 }, { ...good, ips: [], host: "" }, { ...good, port: 70000 }, { ...good, fp: "nope" }, { ...good, code: "" }, { ...good, host: "evil.com", ips: [] }]) {
+      expect(parsePairing(encode(bad))).toBeNull();
+    }
+    expect(parsePairing("not a code")).toBeNull();
+    // Addresses that are not plain IPv4 never reach the session description.
+    expect(parsePairing(encode({ ...good, ips: ["1.2.3.4 typ host\r\na=x", "10.0.0.2"] }))?.ips).toEqual(["10.0.0.2"]);
+  });
+
+  it("writes the Mac's side of the session from the QR code", async () => {
+    const { answerFor } = await import("../src/ai/paired");
+    const local = "v=0\r\na=ice-ufrag:Dkhu\r\na=ice-pwd:abcdefghijklmnopqrstuvwx\r\na=mid:0\r\n";
+    const answer = answerFor({ ips: ["172.20.10.4", "192.168.1.5"], host: "", port: 47800, fp }, local);
+    expect(answer).toContain("a=ice-lite");
+    expect(answer).toContain("a=ice-ufrag:oofr+v1/abcdefghijklmnopqrstuvwx\r\n");
+    expect(answer).toContain("a=ice-pwd:oofr+v1/abcdefghijklmnopqrstuvwx\r\n");
+    expect(answer).toContain(`a=fingerprint:sha-256 ${fp}`);
+    expect(answer).toContain("a=setup:passive");
+    expect(answer).toContain("a=candidate:1 1 udp 2130706431 172.20.10.4 47800 typ host");
+    expect(answer).toContain("a=candidate:2 1 udp 2130706430 192.168.1.5 47800 typ host");
+  });
+
+  it("keeps the phone's pairing key out of backups", async () => {
+    setDatabase(new OoFRDatabase(`oofr2-pairing-${Date.now()}`));
+    const { savePairing } = await import("../src/ai/paired");
+    const { createBackup } = await import("../src/backup/backup");
+    await savePairing({ ips: ["10.0.0.2"], host: "", port: 47800, fp, key: "secret" });
+    const backup = await createBackup("test");
+    expect(JSON.stringify(backup)).not.toContain("secret");
+  });
+});

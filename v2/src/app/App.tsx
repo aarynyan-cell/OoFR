@@ -5,6 +5,7 @@ import { getSettings } from "../db/repo";
 import { AddMaterialPage } from "../pages/AddMaterialPage";
 import { LessonPage } from "../pages/LessonPage";
 import { MePage } from "../pages/MePage";
+import { PairPage } from "../pages/PairPage";
 import { PhrasebookPage } from "../pages/PhrasebookPage";
 import { ReviewPage } from "../pages/ReviewPage";
 import { TapesPage } from "../pages/TapesPage";
@@ -45,6 +46,7 @@ export function App() {
       {route.name === "phrases" && <PhrasebookPage />}
       {route.name === "review" && <ReviewPage />}
       {route.name === "me" && <MePage />}
+      {route.name === "pair" && <PairPage payload={route.payload} />}
       {withTabs && <TabBar active={route.name} />}
       <UpdateNotice />
       <div className={`toast${message ? " toast-show" : ""}`} role="status" aria-live="polite">{message}</div>

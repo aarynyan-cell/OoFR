@@ -16,7 +16,10 @@ futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+qrcode = { version = "0.14.1", default-features = false }
 sha2 = "0.10"
+# 连接手机: WebRTC data channel to a paired phone (src/pair.rs).
+str0m = { version = "0.24.1", default-features = false, features = ["apple-crypto"] }
 tar = "0.4"
 tauri = { version = "2", features = [] }
 tokio = { version = "1", features = ["fs", "io-util", "time"] }

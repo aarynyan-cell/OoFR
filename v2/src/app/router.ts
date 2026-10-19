@@ -12,7 +12,9 @@ export type Route =
   | { name: "edit"; id: string }
   | { name: "phrases" }
   | { name: "review" }
-  | { name: "me" };
+  | { name: "me" }
+  // From the QR code the Mac shows under 连接手机.
+  | { name: "pair"; payload: string };
 
 export function parseRoute(hash: string): Route {
   const [path, query = ""] = hash.replace(/^#\/?/, "").split("?");
@@ -40,6 +42,8 @@ export function parseRoute(hash: string): Route {
       return { name: "review" };
     case "me":
       return { name: "me" };
+    case "pair":
+      return parts[1] ? { name: "pair", payload: parts[1] } : { name: "me" };
     default:
       return { name: "today" };
   }
@@ -61,6 +65,8 @@ export function href(route: Route): string {
       return "#/review";
     case "me":
       return "#/me";
+    case "pair":
+      return `#/pair/${route.payload}`;
     default:
       return "#/";
   }

@@ -2,6 +2,7 @@
 // loopback address; nothing is ever sent to a server on the internet.
 //   app   - the OoFR Mac app, which installs, starts and talks to Ollama itself
 //   local - a browser on the computer where Ollama is already running
+//   paired - a phone using a paired Mac's AI over the local network (paired.ts)
 
 export const OLLAMA = "http://127.0.0.1:11434";
 
@@ -22,7 +23,7 @@ export interface Progress {
 }
 
 export interface AiBackend {
-  kind: "app" | "local";
+  kind: "app" | "local" | "paired";
   // Ollama's version when it answers, else null.
   version(): Promise<string | null>;
   models(): Promise<string[]>;

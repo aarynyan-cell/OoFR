@@ -1931,3 +1931,37 @@ mark.missed {
   white-space: pre-line;
   line-height: 1.6;
 }
+
+.qr-box {
+  align-items: center;
+}
+
+.qr {
+  width: min(260px, 70vw);
+  height: auto;
+  border-radius: 8px;
+}
+
+.device-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scanner-video {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #000;
+}
+
+.pair-card {
+  padding: 20px;
+}

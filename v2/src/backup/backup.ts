@@ -13,6 +13,8 @@ import { MATERIAL_TYPES, type MaterialType } from "../text/split";
 
 export const BACKUP_TYPE = "oofr2.backup";
 export const SNAPSHOT_KEY = "snapshot.beforeImport";
+// Kept in sync with src/ai/paired.ts (not imported, so backups stay free of the AI code).
+const PAIRING_KEY = "pairing";
 const LEARNING_PACKAGE_TYPE = "oofr.learning-package";
 
 interface BackupRecording {
@@ -69,8 +71,8 @@ export async function createBackup(appVersion: string): Promise<BackupFile> {
     cards: await db.cards.toArray(),
     wordbooks: await db.wordbooks.toArray(),
     dictionary: await db.dictionary.toArray(),
-    // The undo copy of an earlier import stays on this device.
-    kv: (await db.kv.toArray()).filter((row) => row.key !== SNAPSHOT_KEY),
+    // The undo copy of an earlier import and the pairing key of this phone stay on this device.
+    kv: (await db.kv.toArray()).filter((row) => row.key !== SNAPSHOT_KEY && row.key !== PAIRING_KEY),
     recordings: await Promise.all(
       recordings.map(async (recording) => ({
         key: recording.key,

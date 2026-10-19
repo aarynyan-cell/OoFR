@@ -4,6 +4,7 @@
 import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
+import { type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
   | "checking"
@@ -26,9 +27,14 @@ export interface AiState {
   step: string;
   progress: Progress | null;
   error: string;
+  // The paired Mac's name while its AI is used from this phone; null otherwise.
+  paired: string | null;
+  // This phone has been paired with a Mac (reachable or not).
+  hasPairing: boolean;
 }
 
-let state: AiState = { phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "" };
+const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "", paired: null, hasPairing: false });
+let state: AiState = initial();
 let backend: AiBackend | null = null;
 let setup: AppSetup | null = null;
 const listeners = new Set<() => void>();
@@ -89,14 +95,42 @@ async function check(): Promise<void> {
     return update({ phase: models.includes(model.name) ? "ready" : "needs-model", model });
   }
   const local = localBackend();
-  if (!(await local.version())) {
-    backend = null;
-    return update({ phase: "unreachable" });
+  if (await local.version()) {
+    backend = local;
+    const model = chooseModel(browserMemoryGb());
+    const models = await local.models().catch((): string[] => []);
+    return update({ phase: models.includes(model.name) ? "ready" : "needs-model", model, paired: null, hasPairing: false });
   }
-  backend = local;
-  const model = chooseModel(browserMemoryGb());
-  const models = await local.models().catch((): string[] => []);
-  update({ phase: models.includes(model.name) ? "ready" : "needs-model", model });
+  // A phone: use the AI of the Mac it was paired with.
+  const pairing = await loadPairing();
+  if (pairing) {
+    const remote = pairedBackend(pairing);
+    try {
+      const status = await remote.status();
+      backend = remote;
+      const model = chooseModel(status.memoryBytes ? status.memoryBytes / 2 ** 30 : null);
+      const phase = !status.serverRunning ? "stopped" : status.models.includes(model.name) ? "ready" : "needs-model";
+      return update({ phase, model, paired: pairing.mac || "电脑", hasPairing: true, error: "" });
+    } catch {
+      backend = null;
+      return update({ phase: "unreachable", paired: null, hasPairing: true });
+    }
+  }
+  backend = null;
+  update({ phase: "unreachable", paired: null, hasPairing: false });
+}
+
+// After scanning the Mac's QR code.
+export async function pairPhone(pairing: Pairing): Promise<string> {
+  const paired = await pairWith(pairing);
+  await refreshAi();
+  return paired.mac || "电脑";
+}
+
+export async function unpairPhone(): Promise<void> {
+  await forgetPairing();
+  backend = null;
+  update({ phase: "unreachable", paired: null, hasPairing: false, error: "" });
 }
 
 let checking: Promise<void> | null = null;
@@ -151,6 +185,7 @@ export async function setupAi(): Promise<void> {
       await setup.start();
     }
     if (!backend) throw new AiError("连不上本机 AI");
+    if (backend.kind === "paired") throw new AiError("请在电脑上的 OoFR 里完成这一步");
     if (!(await backend.models()).includes(state.model.name)) {
       update({ phase: "working", step: `下载 AI 模型（约 ${state.model.downloadGb} GB，只需一次）`, progress: null, error: "" });
       await backend.pull(state.model.name, onProgress, controller.signal);
@@ -173,7 +208,7 @@ export async function cancelAiSetup(): Promise<void> {
 
 // Tests start from a clean state.
 export function resetAiForTests(): void {
-  state = { phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "" };
+  state = initial();
   backend = null;
   setup = null;
   checking = null;
