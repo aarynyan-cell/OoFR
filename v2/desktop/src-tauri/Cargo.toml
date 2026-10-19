@@ -1,0 +1,28 @@
+[package]
+name = "oofr"
+version = "2.0.0"
+description = "OoFR 2.0 for macOS: the web app plus one-click local AI"
+authors = ["OoFR"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dirs = "6"
+flate2 = "1"
+fs2 = "0.4"
+futures-util = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tar = "0.4"
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["fs", "io-util", "time"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

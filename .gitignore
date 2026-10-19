@@ -31,3 +31,7 @@ oofr-wordbook*.json
 desktop/node_modules/
 desktop/dist/
 desktop/src-tauri/target/
+
+# 2.0 Mac app build output
+v2/desktop/src-tauri/target/
+v2/desktop/src-tauri/gen/
