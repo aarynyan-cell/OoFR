@@ -4,6 +4,7 @@ import { db } from "./database";
 import { DEFAULT_SETTINGS, DEFAULT_STUDY, TAPE_COLORS, localDateKey, makeId, nowIso } from "./defaults";
 import type { Card, CardStatus, Explanation, Material, Sentence, Settings, ShadowResult, StudyStats, Tape, Wordbook } from "./types";
 import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
+import { numbersToFrench } from "../text/numbers";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
 // Settings written before 2.0's settingsVersion 2 held every default too, so a
@@ -117,11 +118,12 @@ export interface NewMaterial {
   language?: "fr" | "en";
 }
 
-export function sentencesFromText(text: string, materialType: MaterialType): Sentence[] {
+// French lessons show numbers as words ("1900" → "mille neuf cents"): what the learner reads is what is said.
+export function sentencesFromText(text: string, materialType: MaterialType, language: "fr" | "en" = "fr"): Sentence[] {
   const narration = ["文章", "笔记", "歌词"].includes(materialType);
   return splitSentences(text, materialType).map((part, index) => ({
     id: makeId("s"),
-    text: part.text,
+    text: language === "fr" ? numbersToFrench(part.text) : part.text,
     translation: "",
     speakerId: narration ? "narrator" : part.speakerId || (index % 2 === 0 ? "a" : "b"),
     speakerLabel: narration ? "旁白" : part.speakerLabel || "",
@@ -133,14 +135,15 @@ export function sentencesFromText(text: string, materialType: MaterialType): Sen
 
 export async function createMaterial(input: NewMaterial): Promise<Material> {
   const materialType = input.materialType ?? inferMaterialType(input.text);
-  const sentences = sentencesFromText(input.text, materialType);
+  const language = input.language ?? guessLanguage(input.text);
+  const sentences = sentencesFromText(input.text, materialType, language);
   if (!sentences.length) throw new Error("没有找到可以朗读的句子");
   if (!(await db.tapes.get(input.tapeId))) throw new Error("请先选一盘磁带");
   const material: Material = {
     id: makeId("material"),
     tapeId: input.tapeId,
     title: input.title.trim() || sentences[0].text.slice(0, 24),
-    language: input.language ?? guessLanguage(input.text),
+    language,
     materialType,
     description: "",
     notes: "",
@@ -182,7 +185,7 @@ export async function updateMaterial(materialId: string, changes: MaterialChange
     if (changes.tapeId) next.tapeId = changes.tapeId;
     if (changes.text !== undefined) {
       const materialType = changes.materialType ?? material.materialType;
-      const fresh = sentencesFromText(changes.text, materialType);
+      const fresh = sentencesFromText(changes.text, materialType, material.language);
       if (!fresh.length) throw new Error("没有找到可以朗读的句子");
       const unused = [...material.sentences];
       next.sentences = fresh.map((sentence) => {
@@ -226,6 +229,29 @@ export async function applySentenceAi(materialId: string, updates: SentenceAi[])
       return next;
     });
     if (changed) await db.materials.put({ ...material, sentences });
+    return changed;
+  });
+}
+
+// Lessons saved before numbers were spelled out, or brought in from a backup or
+// 1.0, get the same treatment at start, with their saved sentences in the
+// phrasebook so highlights still match. Only lessons that still have digits change.
+export async function spellOutNumbers(): Promise<number> {
+  return db.transaction("rw", db.materials, db.cards, async () => {
+    let changed = 0;
+    const now = nowIso();
+    for (const material of await db.materials.toArray()) {
+      if (material.language !== "fr") continue;
+      const sentences = material.sentences.map((sentence) => ({ ...sentence, text: numbersToFrench(sentence.text) }));
+      if (sentences.every((sentence, index) => sentence.text === material.sentences[index].text)) continue;
+      await db.materials.put({ ...material, sentences, updatedAt: now });
+      changed += 1;
+    }
+    for (const card of await db.cards.toArray()) {
+      if (card.kind !== "phrase" || card.language !== "fr") continue;
+      const text = numbersToFrench(card.text);
+      if (text !== card.text) await db.cards.put({ ...card, text, normalized: cardKey("phrase", text), updatedAt: now });
+    }
     return changed;
   });
 }

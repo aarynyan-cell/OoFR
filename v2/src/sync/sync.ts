@@ -54,7 +54,9 @@ export function fingerprint(value: unknown): string {
 }
 
 // A tape's place in the list is this device's own arrangement.
-const comparable = (kind: SyncKind, record: Synced): unknown => (kind === "tape" ? { ...(record as Tape), order: 0 } : record);
+// A tape's place in the list and a lesson's reading position belong to each device.
+const comparable = (kind: SyncKind, record: Synced): unknown =>
+  kind === "tape" ? { ...(record as Tape), order: 0 } : kind === "material" ? { ...(record as Material), position: 0 } : record;
 
 const SANITIZE: Record<SyncKind, (raw: unknown) => Synced | null> = {
   tape: sanitizeTape,
@@ -191,13 +193,81 @@ export async function mergeRecords(set: Partial<RecordSet>): Promise<number> {
           await rememberDeleted([{ k: "card", id: dropId }]);
         }
         if (kind === "tape") next = { ...(next as Tape), order: (existing as Tape | undefined)?.order ?? (await db.tapes.count()) };
+        if (kind === "material") {
+          const sentences = (next as Material).sentences.length;
+          next = { ...(next as Material), position: Math.min((local as Material | undefined)?.position ?? 0, Math.max(0, sentences - 1)) };
+        }
         if (local && fingerprint(comparable(kind, local)) === fingerprint(comparable(kind, next)) && local.id === next.id) continue;
         await (table as unknown as { put(value: Synced): Promise<unknown> }).put(next);
         changed += 1;
       }
     }
+    changed += await joinDuplicates();
   });
   return changed;
+}
+
+const sameTitle = (title: string) => title.trim().toLocaleLowerCase("fr-FR").replace(/\s+/g, " ");
+const sameText = (material: Material) =>
+  `${material.language}|${material.sentences.map((sentence) => sentence.text.trim().toLocaleLowerCase("fr-FR").replace(/\s+/g, " ")).join("\n")}`;
+
+// The one both devices keep: the smaller id. Ids never change (dates can, when
+// copies merge), so both devices always choose the same one.
+function keeper<T extends { id: string }>(items: T[]): T {
+  return [...items].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
+}
+
+const earliest = (items: { createdAt: string }[]) => items.map((item) => item.createdAt).sort()[0];
+
+function groups<T>(items: T[], key: (item: T) => string): T[][] {
+  const map = new Map<string, T[]>();
+  for (const item of items) map.set(key(item), [...(map.get(key(item)) ?? []), item]);
+  return [...map.values()].filter((group) => group.length > 1);
+}
+
+// Tapes with the same name, lessons with the same text and wordbooks with the
+// same name, made separately on two devices, become one. Both devices pick the
+// same keeper, and the others travel as deletions. Call inside a transaction.
+export async function joinDuplicates(): Promise<number> {
+  let joined = 0;
+  for (const group of groups(await db.tapes.toArray(), (tape) => sameTitle(tape.title))) {
+    const keep = keeper(group);
+    for (const tape of group.filter((item) => item.id !== keep.id)) {
+      await db.materials.where("tapeId").equals(tape.id).modify({ tapeId: keep.id });
+      await db.tapes.delete(tape.id);
+      await rememberDeleted([{ k: "tape", id: tape.id }]);
+      joined += 1;
+    }
+  }
+  for (const group of groups(await db.materials.toArray(), sameText)) {
+    const keep = keeper(group);
+    let result = normalized("material", keep) as Material;
+    for (const other of group.filter((item) => item.id !== keep.id)) {
+      const clean = normalized("material", other) as Material | null;
+      if (clean) result = merged("material", result, clean);
+      await db.materials.delete(other.id);
+      await rememberDeleted([{ k: "material", id: other.id }]);
+      joined += 1;
+    }
+    // Where this device was reading, whichever copy it was reading in.
+    const position = Math.min(Math.max(...group.map((item) => item.position)), Math.max(0, result.sentences.length - 1));
+    await db.materials.put({ ...result, id: keep.id, position, createdAt: earliest(group) });
+  }
+  for (const group of groups(await db.wordbooks.toArray(), (wordbook) => sameTitle(wordbook.title))) {
+    const keep = keeper(group);
+    const others = new Set(group.filter((item) => item.id !== keep.id).map((item) => item.id));
+    await db.cards
+      .filter((card) => card.wordbookIds.some((id) => others.has(id)))
+      .modify((card) => {
+        card.wordbookIds = [...new Set(card.wordbookIds.map((id) => (others.has(id) ? keep.id : id)))];
+      });
+    for (const id of others) {
+      await db.wordbooks.delete(id);
+      await rememberDeleted([{ k: "wordbook", id }]);
+      joined += 1;
+    }
+  }
+  return joined;
 }
 
 export const SYNC_DELETED_KEY = DELETED_KEY;

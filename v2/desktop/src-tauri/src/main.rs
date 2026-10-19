@@ -588,6 +588,83 @@ fn now_unix() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|value| value.as_secs()).unwrap_or(0)
 }
 
+// ---------- system voices ----------
+// The web view (WebKit) only offers web pages the two basic French voices;
+// the Mac's own speech, through `say`, can use the enhanced and premium voices
+// the learner downloaded in System Settings.
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SystemVoice {
+    name: String,
+    lang: String,
+    voice_uri: String,
+    local_service: bool,
+}
+
+/// One line of `say -v '?'`: "Thomas (Enhanced)   fr_FR    # Bonjour, …".
+fn parse_voice(line: &str) -> Option<SystemVoice> {
+    let (head, _) = line.split_once('#')?;
+    let head = head.trim_end();
+    let split = head.rfind(char::is_whitespace)?;
+    let (name, lang) = (head[..split].trim(), head[split..].trim());
+    if name.is_empty() || !lang.contains('_') {
+        return None;
+    }
+    Some(SystemVoice { name: name.to_string(), lang: lang.replace('_', "-"), voice_uri: name.to_string(), local_service: true })
+}
+
+#[tauri::command]
+fn tts_voices() -> Vec<SystemVoice> {
+    Command::new("/usr/bin/say")
+        .args(["-v", "?"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).lines().filter_map(parse_voice).collect())
+        .unwrap_or_default()
+}
+
+/// One sentence as AAC audio in the chosen voice. Rendering a sentence takes about
+/// a third of its length, so the page renders the next sentence while one plays
+/// and there is no wait between sentences (speaking directly with `say` costs
+/// almost two seconds of start-up per sentence).
+#[tauri::command]
+async fn tts_render(text: String, voice: String, rate: f64) -> Result<tauri::ipc::Response, String> {
+    if text.trim().is_empty() || text.len() > 5000 || voice.len() > 100 {
+        return Err("朗读内容无效".to_string());
+    }
+    let words_per_minute = ((175.0 * rate.clamp(0.4, 2.0)).round() as u32).to_string();
+    let file = std::env::temp_dir().join(format!("oofr-voice-{}-{}.m4a", std::process::id(), pair::random_hex(6)));
+    let mut command = Command::new("/usr/bin/say");
+    if !voice.is_empty() {
+        command.args(["-v", &voice]);
+    }
+    command
+        .args(["-r", &words_per_minute, "-o"])
+        .arg(&file)
+        .args(["--file-format=m4af", "--data-format=aac", "--", &text])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let status = tokio::task::spawn_blocking(move || command.status())
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| format!("朗读失败：{error}"))?;
+    let bytes = fs::read(&file);
+    let _ = fs::remove_file(&file);
+    if !status.success() {
+        return Err("这个声音不能朗读，请换一个声音".to_string());
+    }
+    Ok(tauri::ipc::Response::new(bytes.map_err(|error| format!("朗读失败：{error}"))?))
+}
+
+/// Development only: lets OOFR_EVAL scripts report back.
+#[tauri::command]
+fn debug_log(text: String) {
+    #[cfg(debug_assertions)]
+    eprintln!("page: {text}");
+    #[cfg(not(debug_assertions))]
+    let _ = text;
+}
+
 /// Shows the QR code for pairing a phone: starts listening and makes a one-time code.
 #[tauri::command]
 fn pair_info(app: AppHandle, ai: State<'_, AiState>, pairing: State<'_, pair::PairState>) -> Result<Value, String> {
@@ -669,6 +746,14 @@ fn main() {
             // A phone paired earlier can connect without anyone touching the Mac.
             let client = app.state::<AiState>().client.clone();
             app.state::<pair::PairState>().start_if_paired(client.clone(), app.handle().clone());
+            // Development only: run a script in the page (OOFR_EVAL) and print what it reports with debug_log.
+            #[cfg(debug_assertions)]
+            if let (Ok(script), Some(window)) = (std::env::var("OOFR_EVAL"), app.get_webview_window("main")) {
+                std::thread::spawn(move || {
+                    std::thread::sleep(Duration::from_secs(5));
+                    let _ = window.eval(&script);
+                });
+            }
             // Development only: print a pairing code, to pair a test browser without the QR code.
             #[cfg(debug_assertions)]
             if std::env::var_os("OOFR_PRINT_PAIRING").is_some() {
@@ -691,7 +776,10 @@ fn main() {
             pair_forget,
             qr_rows,
             open_microphone_settings,
-            pair_send
+            pair_send,
+            tts_voices,
+            tts_render,
+            debug_log
         ])
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
@@ -755,6 +843,15 @@ mod tests {
         assert!(validate_chat_request(&json!({ "model": "qwen3.5:9b" })).is_err());
         let huge = json!({ "model": "qwen3.5:9b", "messages": ["x".repeat(MAX_CHAT_REQUEST_BYTES + 1)] });
         assert!(validate_chat_request(&huge).is_err());
+    }
+
+    #[test]
+    fn reads_system_voices_including_enhanced_ones() {
+        let voice = parse_voice("Thomas (Enhanced)   fr_FR    # Bonjour, je m’appelle Thomas.").unwrap();
+        assert_eq!((voice.name.as_str(), voice.lang.as_str()), ("Thomas (Enhanced)", "fr-FR"));
+        let voice = parse_voice("Eddy (French (Canada)) fr_CA    # Bonjour!").unwrap();
+        assert_eq!((voice.name.as_str(), voice.lang.as_str()), ("Eddy (French (Canada))", "fr-CA"));
+        assert!(parse_voice("garbage").is_none());
     }
 
     #[test]

@@ -32,6 +32,23 @@ export function canRecognize(): boolean {
   return Boolean(recognitionClass());
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// The last recognition, until it has really ended. Safari records nothing for a
+// new take while the previous recognition is still finishing.
+let previous: { ended: Promise<void>; abort: () => void } | null = null;
+
+export async function recognitionSettled(): Promise<void> {
+  const last = previous;
+  if (!last) return;
+  const done = await Promise.race([last.ended.then(() => true), sleep(600).then(() => false)]);
+  if (!done) {
+    last.abort();
+    await Promise.race([last.ended, sleep(800)]);
+  }
+  if (previous === last) previous = null;
+}
+
 export interface Listening {
   // Resolves with what was heard ("" when nothing usable came back).
   finish(): Promise<string>;
@@ -62,6 +79,14 @@ export function listen(lang = "fr-FR"): Listening | null {
   } catch {
     return null;
   }
+  const abort = () => {
+    try {
+      recognition.abort();
+    } catch {
+      resolveEnded();
+    }
+  };
+  previous = { ended, abort };
   return {
     async finish() {
       try {
@@ -69,8 +94,9 @@ export function listen(lang = "fr-FR"): Listening | null {
       } catch {
         resolveEnded();
       }
-      // Some engines never report the end; do not keep the learner waiting.
-      await Promise.race([ended, new Promise((resolve) => setTimeout(resolve, 4000))]);
+      // Some engines never report the end; do not keep the learner waiting, and do not leave it running.
+      const done = await Promise.race([ended.then(() => true), sleep(4000).then(() => false)]);
+      if (!done) abort();
       return parts.join(" ").trim();
     },
     cancel() {

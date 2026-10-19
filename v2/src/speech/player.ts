@@ -6,6 +6,8 @@
 //    versions) end the sentence early: after resume it is spoken again;
 //  - three failures in a row stop playback with a clear message.
 
+import { nativeSynth, nativeUtterance } from "./native";
+
 export interface PlayItem {
   text: string;
   lang: string;
@@ -17,6 +19,8 @@ export interface PlayOptions {
   gapMs: number;
   // "all": play to the end; "one": keep repeating the starting sentence.
   mode: "all" | "one";
+  // "all" only: start again from the first sentence after the last one.
+  loop?: boolean;
   voice: SpeechSynthesisVoice | null;
 }
 
@@ -104,6 +108,11 @@ export class SpeechPlayer {
           await this.wait(options.gapMs, token);
         }
         if (options.mode === "all") index += 1;
+        // The lesson plays round until the learner pauses.
+        if (options.loop && index >= items.length && token === this.runToken) {
+          onFinish?.();
+          index = 0;
+        }
       }
       finished = token === this.runToken && !message;
     } finally {
@@ -227,7 +236,15 @@ export class SpeechPlayer {
   }
 }
 
-export const player = new SpeechPlayer();
+// In the Mac app, the Mac's own speech (enhanced voices); elsewhere the browser's.
+const system = nativeSynth();
+export const player = system
+  ? new SpeechPlayer(() => system as unknown as SpeechSynthesis, (text) => nativeUtterance(text) as unknown as SpeechSynthesisUtterance)
+  : new SpeechPlayer();
+
+export function speechEngine(): SpeechSynthesis | undefined {
+  return (system as unknown as SpeechSynthesis | null) ?? globalThis.speechSynthesis;
+}
 
 // Voices arrive asynchronously on most engines.
 export function loadVoices(synth: SpeechSynthesis | undefined = globalThis.speechSynthesis, timeoutMs = 1500): Promise<SpeechSynthesisVoice[]> {

@@ -8,6 +8,7 @@ import "./styles/app.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
+import { spellOutNumbers } from "./db/repo";
 import { addStarterContentIfEmpty } from "./db/starter";
 import { detectV1 } from "./migrate/v1-import";
 
@@ -20,6 +21,7 @@ async function prepare(): Promise<void> {
     // brought over (it holds the same demo lesson).
     const v1 = await detectV1();
     if (v1.status === "none") await addStarterContentIfEmpty();
+    await spellOutNumbers();
   } catch (error) {
     console.error("OoFR could not prepare its data", error);
   }

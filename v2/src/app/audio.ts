@@ -1,7 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { markFinished, markStudiedToday, setPosition } from "../db/repo";
 import type { Material, Settings } from "../db/types";
-import { type PlayerState, loadVoices, player } from "../speech/player";
+import { type PlayerState, loadVoices, player, speechEngine } from "../speech/player";
+import { nativeSynth } from "../speech/native";
 import { pickVoice } from "../speech/voices";
 import { stopRecordingAudio } from "./recordings";
 
@@ -9,15 +10,15 @@ let voices: SpeechSynthesisVoice[] = [];
 const voiceListeners = new Set<() => void>();
 
 function refreshVoices(): void {
-  void loadVoices().then((list) => {
+  void loadVoices(speechEngine()).then((list) => {
     voices = list;
     voiceListeners.forEach((listener) => listener());
   });
 }
 
-if (typeof window !== "undefined" && globalThis.speechSynthesis) {
+if (typeof window !== "undefined" && speechEngine()) {
   refreshVoices();
-  globalThis.speechSynthesis.addEventListener?.("voiceschanged", refreshVoices);
+  speechEngine()!.addEventListener?.("voiceschanged", refreshVoices);
   // A voice downloaded in system settings shows up when the learner comes back.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") refreshVoices();
@@ -47,13 +48,16 @@ function options(settings: Settings, mode: "all" | "one" = "all") {
   return { rate: settings.rate, repeat: settings.repeat, gapMs: settings.gapMs, mode, voice: pickVoice(voices, settings.voice) };
 }
 
-// Plays a lesson from one sentence to the end, remembering where the learner is.
+// Plays a lesson from one sentence on, round and round until paused, remembering where the learner is.
 export function playMaterial(material: Material, startIndex: number, settings: Settings): void {
   const key = materialKey(material);
   stopRecordingAudio();
   const items = material.sentences.map((sentence) => ({ text: sentence.text, lang: material.language === "en" ? "en-US" : "fr-FR" }));
   void markStudiedToday();
   void setPosition(material.id, startIndex);
+  // The Mac app renders the coming sentences while one plays.
+  const lang = material.language === "en" ? "en-US" : "fr-FR";
+  nativeSynth()?.prefetch([...items.slice(startIndex), ...items.slice(0, startIndex)].map((item) => item.text), pickVoice(voices, settings.voice), lang, settings.rate);
   let lastIndex = startIndex;
   const unsubscribe = player.subscribe(() => {
     const state = player.getState();
@@ -64,7 +68,7 @@ export function playMaterial(material: Material, startIndex: number, settings: S
     }
   });
   void player
-    .play(key, items, startIndex, options(settings), () => {
+    .play(key, items, startIndex, { ...options(settings), loop: true }, () => {
       void markFinished(material.id);
     })
     .finally(unsubscribe);

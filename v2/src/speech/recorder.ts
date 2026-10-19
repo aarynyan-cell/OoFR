@@ -34,6 +34,21 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
     const name = error instanceof DOMException ? error.name : "";
     throw new RecorderError(name === "NotAllowedError" ? "需要允许使用麦克风：请在浏览器或系统设置里打开" : name === "NotFoundError" ? "没有找到麦克风" : "麦克风打不开，请稍后再试");
   }
+  // A microphone still held by the last take can come back muted: wait a moment, then ask again once.
+  const track = stream.getAudioTracks()[0];
+  if (track?.muted) {
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 800);
+      track.addEventListener("unmute", () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    });
+    if (track.muted) {
+      stream.getTracks().forEach((item) => item.stop());
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    }
+  }
   const mimeType = MIME_TYPES.find((type) => MediaRecorder.isTypeSupported?.(type));
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
   const chunks: Blob[] = [];
@@ -53,7 +68,8 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
       reject(new RecorderError("录音中断了，请再试一次"));
     };
   });
-  recorder.start();
+  // Small slices: a take keeps whatever was recorded even if the engine stops early.
+  recorder.start(250);
   const limit = setTimeout(() => recorder.state === "recording" && recorder.stop(), maxMs);
   return {
     stop() {

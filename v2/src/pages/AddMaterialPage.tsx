@@ -1,5 +1,6 @@
 import { type CSSProperties, type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import { prepareMaterial } from "../ai/enrich";
+import { numbersToFrench } from "../text/numbers";
 import { href, navigate } from "../app/router";
 import { toast } from "../app/toast";
 import { useLive } from "../db/live";
@@ -36,9 +37,13 @@ export function AddMaterialPage({ tapeId, editId }: { tapeId?: string; editId?: 
   }, [tapes, tapeId, chosenTape]);
 
   const materialType = chosenType || (text.trim() ? inferMaterialType(text) : "自定义文本");
-  const sentences = useMemo(() => splitSentences(text, chosenType || undefined), [text, chosenType]);
-  const speakers = countSpeakers(sentences);
   const language = guessLanguage(text);
+  // The preview shows numbers as words, as the lesson will.
+  const sentences = useMemo(
+    () => splitSentences(text, chosenType || undefined).map((part) => (language === "fr" ? { ...part, text: numbersToFrench(part.text) } : part)),
+    [text, chosenType, language]
+  );
+  const speakers = countSpeakers(sentences);
 
   const readFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

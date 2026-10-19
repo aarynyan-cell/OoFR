@@ -8,7 +8,7 @@ import { stopRecordingAudio, toggleRecordings, useRecordingPlayback } from "../a
 import { markStudiedToday, saveRecording, setPosition, toggleSentence } from "../db/repo";
 import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
-import { type Listening, canRecognize, listen } from "../speech/recognizer";
+import { type Listening, canRecognize, listen, recognitionSettled } from "../speech/recognizer";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
 import { type MicState, askMicrophone, canOpenSystemSettings, micState, micSteps, openSystemSettings } from "../speech/microphone";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
@@ -96,6 +96,8 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     player.stop();
     stopRecordingAudio();
     setAttempt(null);
+    // The last take's speech check must have ended, or this take records nothing.
+    await recognitionSettled();
     try {
       session.current = await startRecording();
     } catch (error) {

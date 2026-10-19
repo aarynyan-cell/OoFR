@@ -121,4 +121,27 @@ describe("syncing a phone with its Mac", () => {
     expect(results.slice(0, -1).every((result) => result === null)).toBe(true);
     expect(results.at(-1)).toEqual(message);
   });
+
+  it("joins tapes and lessons made separately on both devices, and keeps each device's reading place", async () => {
+    const text = "Bonjour. Comment ça va ? Très bien.";
+    const phoneTape = await on(phone, () => createTape("我的素材"));
+    const phoneLesson = await on(phone, () => createMaterial({ title: "Salut", tapeId: phoneTape.id, text }));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const macTape = await on(mac, () => createTape("我的素材"));
+    await on(mac, () => createMaterial({ title: "Salut", tapeId: macTape.id, text }));
+    await on(phone, () => db.materials.update(phoneLesson.id, { position: 2 }));
+    await sync();
+    await sync();
+    for (const device of [phone, mac]) {
+      expect(await on(device, async () => (await db.tapes.toArray()).filter((tape) => tape.title === "我的素材").length)).toBe(1);
+      expect(await on(device, () => db.materials.count())).toBe(1);
+    }
+    // Both devices kept the same copy.
+    expect((await on(phone, () => db.materials.toArray()))[0].id).toBe((await on(mac, () => db.materials.toArray()))[0].id);
+    // The phone's reading place stays (it was on the third sentence).
+    expect((await on(phone, () => db.materials.toArray()))[0].position).toBe(2);
+    expect((await on(mac, () => db.materials.toArray()))[0].position).toBe(0);
+    const again = await sync();
+    expect([again.received, again.sent]).toEqual([0, 0]);
+  });
 });

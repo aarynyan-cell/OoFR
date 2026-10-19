@@ -1,4 +1,5 @@
 import { type ChangeEvent, useState } from "react";
+import { tauri } from "../ai/backend";
 import { useAi } from "../ai/state";
 import { speakOnce, useVoices } from "../app/audio";
 import { useV1Migration } from "../app/migration";
@@ -18,6 +19,16 @@ const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "day", label: "日间" },
   { value: "system", label: "跟随系统" }
 ];
+
+// Apple lets web pages (Safari, the iPhone home-screen app) use only the two basic
+// voices; downloaded enhanced voices work in the Mac app and in Edge / Chrome.
+function voiceNote(voices: SpeechSynthesisVoice[]): string {
+  const apple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
+  const webkitOnly = apple && !/Chrome|Edg\//.test(navigator.userAgent) && !tauri();
+  if (webkitOnly) return "苹果只允许网页使用两个基础声音，系统里下载的“增强版”只有应用能用。电脑上用 OoFR 应用或 Edge / Chrome，就能用增强版声音。";
+  if (canDownloadBetterVoice(voices, navigator.userAgent)) return "可以在 系统设置 → 辅助功能 → 朗读内容 → 系统声音 → 管理声音 里免费下载法语“增强版”声音，会自然很多。";
+  return "";
+}
 
 function relativeDays(iso: string): string {
   const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
@@ -142,9 +153,7 @@ export function MePage() {
               {french.length ? french.map((voice) => <option key={voiceId(voice)} value={voiceId(voice)}>{voiceLabel(voice)}</option>) : <option value="">没有法语声音</option>}
             </select>
           </label>
-          {canDownloadBetterVoice(voices, navigator.userAgent) && (
-            <p className="list-note">iPhone / Mac 可以在 设置 → 辅助功能 → 朗读内容 → 声音 → 法语 里免费下载“增强版”声音，会自然很多。</p>
-          )}
+          {voiceNote(voices) && <p className="list-note">{voiceNote(voices)}</p>}
           <button type="button" className="list-row list-button" onClick={() => setAiOpen(true)}>
             <span className="grow stack-2"><span>本机 AI</span><span className="dim small">{aiSummary(ai)}</span></span>
             <ChevronIcon size={18} />
