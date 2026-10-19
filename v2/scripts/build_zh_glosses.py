@@ -7,20 +7,28 @@ This script asks the local Ollama model to translate the clean English
 Wiktionary senses (Kaikki) into short Simplified Chinese dictionary senses.
 It only translates the senses it is given; it never invents meanings.
 
-Two steps:
+Steps:
   translate  - works through the most common words first, appending results
-               to a JSONL progress file; safe to stop and run again.
+               to a JSONL progress file; safe to stop and run again. A word
+               that came back missing a part of speech is asked once more.
+  recover    - re-reads the logged answers that did not parse, with the
+               current parser (no model needed).
+  fill       - asks for each part of speech a word is still missing, one at
+               a time (translate does this at the end of a run).
   pack       - writes dictionary/fr/zh-XX.json shards (same hashing as the
                other shards) and dictionary/zh-manifest.json.
+  status     - progress in plain Chinese.
 
 Usage (from the repository root):
   python3 v2/scripts/build_zh_glosses.py translate --limit 3000
   python3 v2/scripts/build_zh_glosses.py pack
+Tests: python3 -m unittest discover -s v2/scripts -p "test_*.py"
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import gzip
 import json
 import re
@@ -52,7 +60,8 @@ POS_NAMES = {
 SKIP_TAGS = {"form-of", "obsolete", "archaic", "rare", "misspelling", "abbreviation", "alt-of"}
 FORM_GLOSS = re.compile(r"^(inflection of|form of|plural of|singular of|feminine of|masculine of|conjugation of|"
                         r"participle of|alternative form of|alternative spelling of|obsolete form of|feminine singular of|"
-                        r"masculine plural of|feminine plural of)\b", re.I)
+                        r"masculine plural of|feminine plural of|past participle of|present participle of|"
+                        r"post-1990 spelling of|(?:first|second|third)-person\b)", re.I)
 CJK = re.compile(r"[㐀-鿿]")
 LATIN = re.compile(r"[A-Za-z]{2,}")
 
@@ -138,7 +147,7 @@ def load_words() -> dict[str, dict]:
             senses, gender = [], ""
             for sense in entry.get("senses", []):
                 tags = set(sense.get("tags", []))
-                gloss = (sense.get("glosses") or [""])[0].strip()
+                gloss = re.sub(r"\.\s*\d{3,4},.*$", "", (sense.get("glosses") or [""])[0]).strip()
                 if not gloss or tags & SKIP_TAGS or FORM_GLOSS.match(gloss):
                     continue
                 if not gender:
@@ -201,9 +210,33 @@ POS_ZH = {"动词": "verb", "名词": "noun", "形容词": "adjective", "副词"
           "数词": "numeral", "短语": "phrase", "固定表达": "phrase"}
 
 
+GENDER_ZH = {"阳": "masculine", "阳性": "masculine", "阴": "feminine", "阴性": "feminine"}
+
+# Dictionary abbreviations some answers use instead of "pos:" ("n. 酱汁；调味汁").
+ABBREVIATION = re.compile(r"^(n|nm|nf|v|vt|vi|a|adj|adv|prep|conj|pron|int|interj)\.\s*(?![:：])")
+ABBREVIATION_POS = {"n": "noun", "nm": "noun (masculine)", "nf": "noun (feminine)", "v": "verb", "vt": "verb", "vi": "verb",
+                    "a": "adjective", "adj": "adjective", "adv": "adverb", "prep": "preposition", "conj": "conjunction",
+                    "pron": "pronoun", "int": "interjection", "interj": "interjection"}
+
+
+def read_label(name: str) -> tuple[str, str]:
+    """("名词（阴性）") → ("noun", "feminine"); ("noun (masculine)") → ("noun", "masculine"); ("动词") → ("verb", "")."""
+    name = name.strip().strip("*").strip()
+    match = re.match(r"^(.+?)\s*[（(]\s*(masculine|feminine|阳性|阴性|阳|阴)\s*[)）]$", name)
+    if match:
+        base, gender = match.group(1).strip(), match.group(2)
+        return POS_ZH.get(base, base), GENDER_ZH.get(gender, gender)
+    match = re.match(r"^(阳性|阴性)(名词)$", name)
+    if match:
+        return "noun", GENDER_ZH[match.group(1)]
+    return POS_ZH.get(name, name), ""
+
+
 def split_senses(text: str) -> list[str]:
     """Senses are separated by "；"; a model that used "、" between senses (and no "；") is read the same way."""
     parts = re.split(r"[；;]", text) if re.search(r"[；;]", text) else re.split(r"[、，,]", text)
+    # Notes such as "（见同义词表：无套）" are not meanings.
+    parts = [re.sub(r"[（(][^（）()]*[：:见][^（）()]*[)）]", "", part) for part in parts]
     senses = [sense.strip(" ，,。.") for sense in parts if sense.strip(" ，,。.")]
     return [sense for sense in senses if CJK.search(sense) and not LATIN.search(sense) and len(sense) <= 24]
 
@@ -228,27 +261,83 @@ def parse(answer: str, batch: list[dict]) -> dict[str, list[dict]]:
         line = raw.strip().strip("*").strip()
         if not line:
             continue
+        line = ABBREVIATION.sub(lambda found: ABBREVIATION_POS[found.group(1)] + ": ", line)
         match = re.match(r"^([^:：]{1,40})\s*[:：]\s*(.+)$", line)
         name = match.group(1).strip().strip("*").strip() if match else ""
-        pos = POS_ZH.get(name, name)
-        if match and current and pos in {label(group) for group in prepare([current])[0]["groups"]}:
-            add(current, pos, match.group(2))
-            continue
+        pos, gender = read_label(name)
+        if match and current:
+            groups = prepare([current])[0]["groups"]
+            filled = {(item["pos"], item["gender"]) for item in results.get(normalize_key(current["word"]), [])}
+            # A plain "noun:" for a word with two noun groups fills the first one still empty.
+            group = next((item for item in groups if label(item) == pos), None) or next(
+                (item for item in groups if item["pos"] == pos and (not gender or item["gender"] == gender)
+                 and (item["pos"], item["gender"]) not in filled), None)
+            if group:
+                add(current, label(group), match.group(2))
+                continue
         word = expected.get(normalize_key(name)) if match else None
         if word and len(word["groups"]) == 1:
             add(word, label(word["groups"][0]), match.group(2))
             current = word
             continue
         current = expected.get(normalize_key(line), current if match else None)
+    if not results:
+        results = parse_without_words(answer, batch)
+    return {key: tidy(groups, expected[key]["groups"]) for key, groups in results.items()}
+
+
+def parse_without_words(answer: str, batch: list[dict]) -> dict[str, list[dict]]:
+    """Some answers leave out the word lines and give one "pos: …" line per group,
+    in order. Accepted only when every line's part of speech matches the group in
+    that position, so a shifted answer is never assigned to the wrong word."""
+    slots = [(item, group) for item in prepare(batch) for group in item["groups"]]
+    lines = [ABBREVIATION.sub(lambda found: ABBREVIATION_POS[found.group(1)] + ": ", line.strip()) for line in answer.splitlines()]
+    lines = [line for line in lines if re.match(r"^[^:：]{1,40}[:：]", line)]
+    if len(lines) != len(slots):
+        return {}
+    results: dict[str, list[dict]] = {}
+    for line, (item, group) in zip(lines, slots):
+        name, text = re.split(r"[:：]", line, maxsplit=1)
+        pos, gender = read_label(name)
+        if pos != group["pos"] or (gender and gender != group["gender"]):
+            return {}
+        senses = split_senses(text)
+        if senses:
+            results.setdefault(normalize_key(item["word"]), []).append({"pos": group["pos"], "gender": group["gender"], "zh": senses[: len(group["senses"]) + 1]})
     return results
 
 
+def missing_groups(record: dict, source: dict | None) -> list[dict]:
+    """The word's Wiktionary groups the record has no Chinese for (la mort: noun)."""
+    have = {(group["pos"], group["gender"]) for group in tidy(record["groups"], source["groups"] if source else None)}
+    return [group for group in (source or {}).get("groups", []) if (group["pos"], group["gender"]) not in have]
+
+
+def best_records(words: dict[str, dict]) -> dict[str, dict]:
+    """One record per word: the one covering the most groups, the newest on a tie."""
+    best: dict[str, dict] = {}
+    if not PROGRESS.exists():
+        return best
+    for line in PROGRESS.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        old = best.get(record["key"])
+        if old is None or len(missing_groups(record, words.get(record["key"]))) <= len(missing_groups(old, words.get(record["key"]))):
+            best[record["key"]] = {**record, "retried": record.get("retried") or bool(old and old.get("retried")),
+                                   "filled": record.get("filled") or bool(old and old.get("filled"))}
+        else:
+            old["retried"] = old.get("retried") or record.get("retried", False)
+            old["filled"] = old.get("filled") or record.get("filled", False)
+    return best
+
+
 def translate(limit: int, batch_size: int) -> None:
-    done = set()
-    if PROGRESS.exists():
-        done = {json.loads(line)["key"] for line in PROGRESS.read_text(encoding="utf-8").splitlines() if line.strip()}
     frequent = lexicon_keys()
     words = load_words()
+    records = best_records(words)
+    # A word missing a part of speech (only "死的" for mort) is asked again, once a run.
+    done = {key for key, record in records.items() if not missing_groups(record, words.get(key)) or record.get("retried")}
     # Hand-reviewed words always win in the app; no need to translate them.
     curated = set(json.loads((OUT_DIR / "curated.json").read_text(encoding="utf-8")).get("fr", {}))
     done |= {normalize_key(key) for key in curated}
@@ -279,7 +368,10 @@ def translate(limit: int, batch_size: int) -> None:
                 log.write(f"--- {[key for key in keys if key not in results]}\n{answer}\n")
         stamp = datetime.now(timezone.utc).isoformat()
         for key, groups in results.items():
-            out.write(json.dumps({"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp}, ensure_ascii=False) + "\n")
+            record = {"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp}
+            if key in records:
+                record["retried"] = True
+            out.write(json.dumps(record, ensure_ascii=False) + "\n")
         out.flush()
         return results
 
@@ -295,18 +387,117 @@ def translate(limit: int, batch_size: int) -> None:
         for index in range(0, len(missed), 2):
             results = run_batch(missed[index:index + 2], out)
             print(f"retry {index + 2}/{len(missed)} · {len(results)} ok", flush=True)
+    fill(set(queue))
+
+
+def fill(only: set[str] | None = None) -> None:
+    """Asks for each part of speech a record is still missing, one at a time.
+    With several groups the model sometimes repeats itself on the first one and
+    never reaches the next (même: "甚至" but no "相同的"); alone, it answers."""
+    words = load_words()
+    records = best_records(words)
+    curated = {normalize_key(key) for key in json.loads((OUT_DIR / "curated.json").read_text(encoding="utf-8")).get("fr", {})}
+    todo = [key for key, record in records.items() if (only is None or key in only) and key not in curated
+            and not record.get("filled") and missing_groups(record, words.get(key))]
+    filled = 0
+    with PROGRESS.open("a", encoding="utf-8") as out:
+        for key in todo:
+            record = records[key]
+            groups = tidy(record["groups"], words[key]["groups"])
+            for group in missing_groups(record, words[key]):
+                part = {"word": words[key]["word"], "groups": [group]}
+                try:
+                    answer = ask([part])
+                except Exception as error:  # Ollama restarted, timeout: asked again next run
+                    print(f"fill {key}: {error}", flush=True)
+                    continue
+                groups += parse(answer, [part]).get(key, [])
+            order = [(group["pos"], group["gender"]) for group in words[key]["groups"]]
+            groups.sort(key=lambda group: order.index((group["pos"], group["gender"])) if (group["pos"], group["gender"]) in order else len(order))
+            out.write(json.dumps({**record, "groups": groups, "model": MODEL, "at": datetime.now(timezone.utc).isoformat(), "filled": True}, ensure_ascii=False) + "\n")
+            out.flush()
+            filled += not missing_groups({"groups": groups}, words[key])
+    print(f"filled {filled}/{len(todo)} words missing a part of speech", flush=True)
+
+
+EMBEDDED_POS = re.compile(r"^((?:阳性|阴性)?(?:" + "|".join(sorted(POS_ZH, key=len, reverse=True)) + r")(?:\s*[（(]\s*(?:阳性|阴性|阳|阴)\s*[)）])?)\s*[:：]\s*")
+
+
+POS_NAME_ZH = {"noun": "名词", "verb": "动词", "adjective": "形容词", "adverb": "副词", "pronoun": "代词", "preposition": "介词",
+               "conjunction": "连词", "interjection": "感叹词"}
+
+
+def clean_sense(sense: str) -> str:
+    """One sense in house style: full-width brackets, no notes about the dictionary
+    itself, a register note at the end ("（口语）熬夜" → "熬夜（口语）"), no repeats,
+    and an abbreviation or "(f.)" in front turned into a part-of-speech label that
+    tidy() can read ("n. (f.) 损坏" → "名词（阴性）：损坏")."""
+    sense = re.sub(r"\s*\(([^()]*)\)", r"（\1）", sense.strip())
+    sense = re.sub(r"（(?:各种含义|[^（）]*见[^（）]*)）", "", sense)
+    gender = ""
+    abbreviation = ABBREVIATION.match(sense)
+    if abbreviation:
+        pos = ABBREVIATION_POS[abbreviation.group(1)]
+        gender = {"noun (masculine)": "阳性", "noun (feminine)": "阴性"}.get(pos, "")
+        sense, base = sense[abbreviation.end():], POS_NAME_ZH.get(pos.split(" ")[0], "")
+    else:
+        base = ""
+    marker = re.match(r"^（([mf])\.）\s*", sense) or re.match(r"^([mf])\.\s*", sense)
+    if marker:
+        sense, base, gender = sense[marker.end():], base or "名词", "阳性" if marker.group(1) == "m" else "阴性"
+    trailing = re.search(r"（(阳性|阴性)）$", sense)
+    if base == "名词" and trailing and not gender:
+        sense, gender = sense[: trailing.start()], trailing.group(1)
+    register = re.match(r"^（([^（）]{1,8})）\s*(.+)$", sense)
+    if register:
+        sense = f"{register.group(2)}（{register.group(1)}）"
+    items = [item for item in sense.split("、") if item]
+    sense = "、".join(dict.fromkeys(items))
+    if base:
+        sense = f"{base}{f'（{gender}）' if gender else ''}：{sense}"
+    return sense
+
+
+def tidy(groups: list[dict], sources: list[dict] | None = None) -> list[dict]:
+    """Repairs answers where the model put two parts of speech on one line
+    ("笑；名词：笑声"): senses after "名词：" move to the noun group, created from
+    the word's Wiktionary groups (for its gender) when the answer had none.
+    Also drops empty brackets and repeated senses."""
+    out = [{**group, "zh": []} for group in groups]
+    for index, group in enumerate(groups):
+        target = out[index]
+        for sense in group["zh"]:
+            sense = clean_sense(sense)
+            match = EMBEDDED_POS.match(sense)
+            if match:
+                pos, gender = read_label(match.group(1))
+                fits = lambda item: item["pos"] == pos and (not gender or item.get("gender") == gender)
+                target = next((item for item in out if fits(item)), None)
+                if target is None:
+                    source = next((item for item in sources or [] if fits(item)), None)
+                    if source:
+                        target = {"pos": pos, "gender": source.get("gender", ""), "zh": []}
+                        out.append(target)
+                sense = sense[match.end():]
+                if target is None:
+                    continue
+            sense = re.sub(r"[（(]\s*[)）]", "", sense).strip(" ，,；;")
+            # "的" alone is what is left of an answer that had nothing to say.
+            if sense and sense not in target["zh"] and re.sub(r"[的地之]", "", sense):
+                target["zh"].append(sense)
+    return [group for group in out if group["zh"]]
 
 
 def pack() -> None:
+    words = load_words()
     shards: dict[str, dict] = {}
     model = MODEL
     count = 0
-    for line in PROGRESS.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        record = json.loads(line)
+    for record in best_records(words).values():
         model = record.get("model", model)
-        shards.setdefault(shard_for(record["key"]), {})[record["key"]] = record["groups"]
+        groups = tidy(record["groups"], words.get(record["key"], {}).get("groups"))
+        if groups:
+            shards.setdefault(shard_for(record["key"]), {})[record["key"]] = groups
     for shard, rows in shards.items():
         (OUT_DIR / "fr" / f"zh-{shard}.json").write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         count += len(rows)
@@ -323,11 +514,35 @@ def pack() -> None:
     print(f"listed {len(expressions)} expressions")
 
 
+def recover() -> None:
+    """Re-reads the answers logged for words that did not come back, with the
+    current parser, so a parser fix recovers them without asking the model again."""
+    failures = PROGRESS.with_name("zh-glosses-failed.log")
+    if not failures.exists():
+        return
+    words = load_words()
+    done = {key for key, record in best_records(words).items() if not missing_groups(record, words.get(key))}
+    recovered = 0
+    chunks = re.split(r"^--- (\[.*\])$", failures.read_text(encoding="utf-8"), flags=re.M)
+    with PROGRESS.open("a", encoding="utf-8") as out:
+        for header, answer in zip(chunks[1::2], chunks[2::2]):
+            keys = [key for key in ast.literal_eval(header) if key in words and key not in done]
+            if not keys:
+                continue
+            results = parse(answer, [words[key] for key in keys])
+            stamp = datetime.now(timezone.utc).isoformat()
+            for key, groups in results.items():
+                out.write(json.dumps({"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp, "recovered": True}, ensure_ascii=False) + "\n")
+                done.add(key)
+                recovered += 1
+    print(f"recovered {recovered} words from logged answers")
+
+
 def status() -> None:
     """Progress in plain words, for the owner."""
     log = PROGRESS.with_name("zh-glosses.log")
     lines = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
-    done = sum(1 for line in PROGRESS.read_text(encoding="utf-8").splitlines() if line.strip()) if PROGRESS.exists() else 0
+    done = len({json.loads(line)["key"] for line in PROGRESS.read_text(encoding="utf-8").splitlines() if line.strip()}) if PROGRESS.exists() else 0
     running = subprocess.run(["pgrep", "-f", "build_zh_glosses.py translate"], capture_output=True).returncode == 0
     last = next((line for line in reversed(lines) if re.match(r"^\d+/\d+ ", line)), "")
     match = re.match(r"^(\d+)/(\d+) .*~([\d.]+)h left", last)
@@ -340,7 +555,7 @@ def status() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("step", choices=["translate", "pack", "status"])
+    parser.add_argument("step", choices=["translate", "recover", "fill", "pack", "status"])
     parser.add_argument("--limit", type=int, default=30000)
     parser.add_argument("--batch", type=int, default=10)
     args = parser.parse_args()
@@ -348,6 +563,10 @@ def main() -> None:
         translate(args.limit, args.batch)
     elif args.step == "status":
         status()
+    elif args.step == "recover":
+        recover()
+    elif args.step == "fill":
+        fill()
     else:
         pack()
 
