@@ -21,9 +21,10 @@ interface Ask {
   schema: unknown;
   maxTokens: number;
   signal?: AbortSignal;
+  task?: "translate" | "explain";
 }
 
-export async function askJson<T>(backend: AiBackend, model: string, { prompt, schema, maxTokens, signal }: Ask): Promise<T> {
+export async function askJson<T>(backend: AiBackend, model: string, { prompt, schema, maxTokens, signal, task }: Ask): Promise<T> {
   const content = await backend.chat(
     {
       model,
@@ -38,7 +39,8 @@ export async function askJson<T>(backend: AiBackend, model: string, { prompt, sc
         { role: "user", content: prompt }
       ]
     },
-    signal
+    signal,
+    task
   );
   try {
     return JSON.parse(content) as T;
@@ -56,6 +58,16 @@ const list = (value: unknown, limit: number, count: number) =>
 
 // Sentence id → Chinese translation, for the sentences given (one lesson, in order).
 export async function translateSentences(backend: AiBackend, model: string, material: Material, sentences: Sentence[], signal?: AbortSignal): Promise<Map<string, string>> {
+  // Online AI has a translation model that takes one sentence at a time.
+  if (backend.translateLines) {
+    const lines = await backend.translateLines(sentences.map((sentence) => sentence.text), material.language, signal);
+    const result = new Map<string, string>();
+    lines.forEach((line, index) => {
+      const zh = text(line, 240);
+      if (CJK.test(zh)) result.set(sentences[index].id, zh);
+    });
+    return result;
+  }
   const items = sentences.map((sentence, index) => ({ id: index, text: sentence.text }));
   const schema = {
     type: "object",
@@ -73,7 +85,7 @@ export async function translateSentences(backend: AiBackend, model: string, mate
     `把这些${LANGUAGE_NAME[material.language]}句子翻译成自然、准确的简体中文。它们按顺序来自同一篇素材《${material.title}》。` +
     "习语按意思翻译，人名保留原文；不要解释，不要漏句或合并，id 保持不变。只返回要求的 JSON。\n\n" +
     JSON.stringify(items);
-  const data = await askJson<{ translations?: { id?: unknown; zh?: unknown }[] }>(backend, model, { prompt, schema, maxTokens: 120 + 90 * items.length, signal });
+  const data = await askJson<{ translations?: { id?: unknown; zh?: unknown }[] }>(backend, model, { prompt, schema, maxTokens: 120 + 90 * items.length, signal, task: "translate" });
   const result = new Map<string, string>();
   for (const item of data.translations ?? []) {
     const sentence = typeof item.id === "number" ? sentences[item.id] : undefined;
@@ -121,7 +133,7 @@ export async function explainSentence(
   ]
     .filter(Boolean)
     .join("\n\n");
-  const data = await askJson<Record<string, unknown>>(backend, model, { prompt, schema: EXPLAIN_SCHEMA, maxTokens: 900, signal });
+  const data = await askJson<Record<string, unknown>>(backend, model, { prompt, schema: EXPLAIN_SCHEMA, maxTokens: 900, signal, task: "explain" });
   const summary = text(data.summary, 120);
   if (!summary) throw new AiError("本机 AI 没有给出讲解，请再试一次");
   return {
@@ -132,7 +144,7 @@ export async function explainSentence(
     morphology: facts ? factLines(facts).join("\n") : "",
     pitfalls: list(data.pitfalls, 140, 2),
     examples: list(data.examples, 160, 2),
-    model,
+    model: backend.lastModel || model,
     language: "zh",
     version: EXPLANATION_VERSION,
     source: "local-ai",

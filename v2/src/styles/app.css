@@ -2469,3 +2469,30 @@ mark.missed {
 .confirm-actions > .button {
   flex: 1;
 }
+
+/* 在线 AI keys */
+.key-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+}
+
+.key-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.online-keys + .sheet-subtitle {
+  margin-top: 8px;
+}
+
+.online-keys a {
+  color: var(--accent-text);
+  text-decoration: underline;
+}

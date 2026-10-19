@@ -6,6 +6,7 @@ import { getSettings, saveSettings } from "../db/repo";
 import { syncNow, useSync } from "../sync/auto";
 import { pairOnce } from "../pages/PairPage";
 import { Modal } from "./Modal";
+import { OnlineKeys } from "./OnlineKeys";
 import { PhonePairing } from "./PhonePairing";
 import { QrScanner, canScan } from "./QrScanner";
 
@@ -20,6 +21,7 @@ export function aiSummary(ai: AiState): string {
     case "checking":
       return "正在检查…";
     case "ready":
+      if (ai.online) return ai.paired ? `已就绪 · 在线 AI，已连接 ${ai.paired} 同步` : "已就绪 · 在线 AI";
       return ai.paired ? `已连接 ${ai.paired} · 由电脑生成` : `已就绪 · ${ai.model.name}，在这台设备上运行`;
     case "needs-model":
       return "还差一步：下载 AI 模型";
@@ -64,12 +66,14 @@ export function AiPanel() {
 
   return (
     <div className="stack-10 ai-panel">
+      <OnlineKeys />
+      {!ai.online && <h3 className="sheet-subtitle">电脑上的本机 AI{isPhone() ? "（通过扫码连接）" : "（可选）"}</h3>}
       {ai.phase === "checking" && <p className="dim">正在检查这台设备上的 AI…</p>}
 
       {ai.phase === "ready" && (
         <>
-          <span className="pill pill-ok">{ai.paired ? `已连接 ${ai.paired} · ${ai.model.name}` : `已就绪 · ${ai.model.name}`}</span>
-          <p className="dim small">{ai.paired ? "译文和讲解由你的电脑生成，只在你们之间传，不经过网络服务器。" : "讲解和译文都在这台设备上生成，不会上传到网络。"}</p>
+          {!ai.online && <span className="pill pill-ok">{ai.paired ? `已连接 ${ai.paired} · ${ai.model.name}` : `已就绪 · ${ai.model.name}`}</span>}
+          {!ai.online && <p className="dim small">{ai.paired ? "译文和讲解由你的电脑生成，只在你们之间传，不经过网络服务器。" : "讲解和译文都在这台设备上生成，不会上传到网络。"}</p>}
           {settings && (
             <label className="check-row">
               <input type="checkbox" checked={settings.aiPrepare} onChange={(event) => void saveSettings({ aiPrepare: event.target.checked })} />
@@ -136,6 +140,19 @@ export function AiPanel() {
             <button type="button" className="button button-outline" onClick={() => void refreshAi()}>重新检测</button>
           </>
         ))}
+
+      {ai.online && isPhone() && !ai.hasPairing && (
+        <>
+          <p className="dim small">想和电脑同步磁带、素材和词句本？在电脑上的 OoFR 里点 我的 → 本机 AI → 显示二维码，再扫码。</p>
+          {scanButton("扫码连接电脑")}
+        </>
+      )}
+      {ai.online && ai.hasPairing && !ai.paired && (
+        <>
+          <p className="dim small">连不上配对的电脑，同步先暂停；在同一个 Wi-Fi 下打开电脑上的 OoFR 就会接着同步。</p>
+          <button type="button" className="button button-small button-outline" onClick={() => void refreshAi()}>重新连接</button>
+        </>
+      )}
 
       {ai.paired && (
         <p className="dim small" aria-live="polite">

@@ -3,6 +3,7 @@
 //   app   - the OoFR Mac app, which installs, starts and talks to Ollama itself
 //   local - a browser on the computer where Ollama is already running
 //   paired - a phone using a paired Mac's AI over the local network (paired.ts)
+//   online - free online AI with the learner's own keys (online.ts, 2.1)
 
 export const OLLAMA = "http://127.0.0.1:11434";
 
@@ -23,12 +24,17 @@ export interface Progress {
 }
 
 export interface AiBackend {
-  kind: "app" | "local" | "paired";
+  kind: "app" | "local" | "paired" | "online";
   // Ollama's version when it answers, else null.
   version(): Promise<string | null>;
   models(): Promise<string[]>;
-  chat(body: ChatBody, signal?: AbortSignal): Promise<string>;
+  // task: online AI picks its models by what is asked (local AI ignores it).
+  chat(body: ChatBody, signal?: AbortSignal, task?: "translate" | "explain"): Promise<string>;
   pull(model: string, onProgress: (progress: Progress) => void, signal?: AbortSignal): Promise<void>;
+  // Online AI: a translation model that takes one sentence at a time.
+  translateLines?(lines: string[], sourceLanguage: string, signal?: AbortSignal): Promise<(string | null)[]>;
+  // Online AI: which model wrote the last answer.
+  lastModel?: string;
 }
 
 export class AiError extends Error {}

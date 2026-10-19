@@ -21,6 +21,11 @@ vi.mock("../src/ai/backend", async (original) => ({
   localBackend: () => ({ kind: "local", version: async () => null, models: async () => [] })
 }));
 vi.mock("../src/sync/auto", () => ({ startAutoSync: () => undefined, stopAutoSync: () => undefined }));
+// No online keys on this phone.
+vi.mock("../src/ai/online", async (original) => ({
+  ...(await original<typeof import("../src/ai/online")>()),
+  loadKeys: async () => ({ siliconflow: [], zhipu: [] })
+}));
 vi.mock("../src/ai/paired", async (original) => ({
   ...(await original<typeof import("../src/ai/paired")>()),
   loadPairing: async () => ({ ips: ["10.0.0.2"], host: "", port: 47800, fp: "AA", key: "key", mac: "Mac" }),

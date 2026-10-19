@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
 import { startAutoSync, stopAutoSync } from "../sync/auto";
+import { OnlineBackend, hasKeys, loadKeys } from "./online";
 import { type PairedBackend, type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
@@ -32,9 +33,14 @@ export interface AiState {
   paired: string | null;
   // This phone has been paired with a Mac (reachable or not).
   hasPairing: boolean;
+  // Free online AI with the learner's own keys is in use (2.1).
+  online: boolean;
 }
 
-const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "", paired: null, hasPairing: false });
+// What the panels show while online AI answers.
+export const ONLINE_MODEL: ModelChoice = { name: "在线 AI", downloadGb: 0, minMemoryGb: 0 };
+
+const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "", paired: null, hasPairing: false, online: false });
 let state: AiState = initial();
 let backend: AiBackend | null = null;
 let setup: AppSetup | null = null;
@@ -105,7 +111,43 @@ function setConnectedMac(mac: PairedBackend | null): void {
   macListeners.forEach((listener) => listener());
 }
 
+// A paired phone keeps its Mac (syncing, the Mac's voices) even when its AI
+// comes from online, and looks for it again when it is lost.
+async function syncWithPairedMac(): Promise<string | null> {
+  const pairing = await loadPairing();
+  if (!pairing) {
+    setConnectedMac(null);
+    return null;
+  }
+  const mac = remoteFor(pairing);
+  try {
+    await mac.status();
+    startAutoSync(mac);
+    setConnectedMac(mac);
+    return pairing.mac || "电脑";
+  } catch {
+    stopAutoSync();
+    setConnectedMac(null);
+    lookAgainLater();
+    return null;
+  }
+}
+
+let online: { key: string; backend: OnlineBackend } | null = null;
+
 async function check(): Promise<void> {
+  // 2.1: the learner's own free online keys come first, on every device.
+  const keys = await loadKeys();
+  if (hasKeys(keys)) {
+    const key = JSON.stringify(keys);
+    if (online?.key !== key) online = { key, backend: new OnlineBackend(keys) };
+    backend = online.backend;
+    setup = null;
+    update({ phase: "ready", model: ONLINE_MODEL, online: true, error: "" });
+    const mac = await syncWithPairedMac();
+    return update({ paired: mac, hasPairing: Boolean(await loadPairing()) });
+  }
+  update({ online: false });
   const app = tauri();
   if (app) {
     const desktop = appBackend(app);
@@ -297,6 +339,7 @@ export async function cancelAiSetup(): Promise<void> {
 export function resetAiForTests(): void {
   remote?.backend.close();
   remote = null;
+  online = null;
   state = initial();
   backend = null;
   setup = null;
