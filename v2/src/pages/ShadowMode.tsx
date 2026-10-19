@@ -56,7 +56,8 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
   useEffect(() => {
     if (problem) return;
     void micState().then(async (state) => {
-      if (state === "granted" || state === "denied" || askedThisVisit) return setMic(state);
+      // The Mac app's web view cannot report the system's answer in advance; asking is what adds OoFR to System Settings.
+      if (state === "granted" || (state === "denied" && !canOpenSystemSettings()) || askedThisVisit) return setMic(state);
       askedThisVisit = true;
       setMic(await askMicrophone());
     });

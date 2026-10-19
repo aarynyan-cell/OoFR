@@ -27,7 +27,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "category": "Education",
     "shortDescription": "法语磁带：听读、跟读、练习",
     "longDescription": "用自选素材学法语：听读、跟读、练习和复习；译文和句子讲解由这台电脑上的本机 AI 生成，不上传网络。",
@@ -41,7 +44,8 @@
     "macOS": {
       "minimumSystemVersion": "14.0",
       "signingIdentity": "-",
-      "infoPlist": "Info.plist"
+      "infoPlist": "Info.plist",
+      "entitlements": "Entitlements.plist"
     }
   }
 }
