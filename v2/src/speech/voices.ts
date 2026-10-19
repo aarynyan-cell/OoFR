@@ -46,12 +46,22 @@ export function frenchVoices<T extends VoiceLike>(voices: T[]): T[] {
   return voices.filter(isFrench).sort((a, b) => scoreVoice(b) - scoreVoice(a) || a.name.localeCompare(b.name));
 }
 
+// "Thomas (Enhanced)" → "thomas": the same voice in another quality.
+export function voiceBase(voice: VoiceLike): string {
+  return voice.name.replace(/\s*\((premium|enhanced|amélioré[e]?)\)\s*/i, "").trim().toLocaleLowerCase();
+}
+
 // The learner's choice when this device still has it, otherwise the best voice.
+// A chosen voice is upgraded when its enhanced or premium version has been
+// downloaded since ("Thomas" → "Thomas (Enhanced)").
 export function pickVoice<T extends VoiceLike>(voices: T[], saved = ""): T | null {
   const french = frenchVoices(voices);
   if (saved) {
     const chosen = french.find((voice) => voiceId(voice) === saved || voice.name === saved.split("|")[0]);
-    if (chosen) return chosen;
+    if (chosen) {
+      const better = french.find((voice) => voiceBase(voice) === voiceBase(chosen) && voice.lang === chosen.lang && scoreVoice(voice) > scoreVoice(chosen));
+      return better ?? chosen;
+    }
   }
   return french.find((voice) => voiceQuality(voice) !== "novelty") ?? null;
 }

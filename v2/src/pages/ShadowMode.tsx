@@ -10,6 +10,7 @@ import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
 import { type Listening, canRecognize, listen } from "../speech/recognizer";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
+import { type MicState, askMicrophone, canOpenSystemSettings, micState, micSteps, openSystemSettings } from "../speech/microphone";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
 import { frenchSpacing } from "../text/typography";
 import { SaveToggle } from "../ui/SaveToggle";
@@ -26,6 +27,9 @@ interface Attempt {
 }
 
 const seconds = (ms: number) => `0:${String(Math.round(ms / 1000)).padStart(2, "0")}`;
+
+// The allow-microphone question is shown once per visit, as soon as shadowing opens.
+let askedThisVisit = false;
 
 export function ShadowMode({ material, settings, trackName, tapeTitle }: { material: Material; settings: Settings; trackName: string; tapeTitle: string }) {
   const total = material.sentences.length;
@@ -46,6 +50,23 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
   const mineKey = `shadow:${material.id}:${sentence.id}`;
   const anyTakes = material.sentences.some((item) => item.recordingKey);
   const problem = recordingProblem();
+  const [mic, setMic] = useState<MicState>("unknown");
+
+  // Shadowing needs the microphone: ask straight away instead of waiting for the first take.
+  useEffect(() => {
+    if (problem) return;
+    void micState().then(async (state) => {
+      if (state === "granted" || state === "denied" || askedThisVisit) return setMic(state);
+      askedThisVisit = true;
+      setMic(await askMicrophone());
+    });
+  }, []);
+
+  const retryMic = async () => {
+    const state = await askMicrophone();
+    setMic(state);
+    if (state === "granted") toast("麦克风已经可以用了");
+  };
 
   // A new sentence starts with a clean slate; leaving stops the microphone.
   useEffect(() => {
@@ -77,9 +98,11 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     try {
       session.current = await startRecording();
     } catch (error) {
+      if (error instanceof RecorderError && /允许/.test(error.message)) setMic("denied");
       toast(error instanceof RecorderError ? error.message : "录音没能开始");
       return;
     }
+    setMic("granted");
     listening.current = listen(lang);
     setElapsed(0);
     setPhase("recording");
@@ -139,6 +162,17 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
               </p>
               {sentence.translation && <p className="muted small">{sentence.translation}</p>}
             </section>
+
+            {mic === "denied" && !problem && (
+              <section className="card stack-10 mic-help" role="alert">
+                <h2 className="sheet-subtitle">跟读需要麦克风</h2>
+                <ol className="bullets">{micSteps().map((step) => <li key={step}>{step}</li>)}</ol>
+                <div className="row-8">
+                  {canOpenSystemSettings() && <button type="button" className="button button-primary button-small" onClick={() => void openSystemSettings()}>打开系统设置</button>}
+                  <button type="button" className="button button-outline button-small" onClick={() => void retryMic()}>再试一次</button>
+                </div>
+              </section>
+            )}
 
             <section className="record-row" aria-label="录音控制">
               <button type="button" className="record-side" onClick={() => speakOnce(sentence.text, settings, material.language)}>

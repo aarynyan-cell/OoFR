@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { speakOnce } from "../app/audio";
+import { speakOnce, usePlayer } from "../app/audio";
 import { href } from "../app/router";
 import { toast } from "../app/toast";
 import { useCardIndex } from "../app/cards";
@@ -23,6 +23,8 @@ const KIND_INFO: Record<ExerciseKind, { label: string; hint: string }> = {
   cloze: { label: "选词填空", hint: "句子里缺一个词，从四个里选" },
   order: { label: "连词成句", hint: "把打乱的词按顺序点回来" }
 };
+
+const REVEAL_SECONDS = 5;
 
 export function PracticeMode({ material, settings, trackName, tapeTitle }: { material: Material; settings: Settings; trackName: string; tapeTitle: string }) {
   const [round, setRound] = useState(0);
@@ -110,19 +112,43 @@ function Question({ exercise, material, settings, onAnswered, onNext }: {
   const sentence = material.sentences[exercise.sentence];
   const [picked, setPicked] = useState<number | string | null>(null);
   const [order, setOrder] = useState<number[]>([]);
-  const answered = exercise.kind === "order" ? order.length === exercise.pieces.length : picked !== null;
-  const correct = answered && isCorrect(exercise, exercise.kind === "order" ? order.map((index) => exercise.pieces[index]) : picked!);
-  const speak = () => speakOnce(sentence.text, settings, material.language);
+  // Time ran out before an answer: the answer is shown and counts as not known.
+  const [revealed, setRevealed] = useState(false);
+  const [left, setLeft] = useState<number | null>(null);
+  const chosen = exercise.kind === "order" ? order.length === exercise.pieces.length : picked !== null;
+  const answered = chosen || revealed;
+  const correct = chosen && isCorrect(exercise, exercise.kind === "order" ? order.map((index) => exercise.pieces[index]) : picked!);
+  const key = `practice:${exercise.kind}:${exercise.sentence}`;
+  const speak = () => speakOnce(sentence.text, settings, material.language, key);
+  const playerState = usePlayer();
+  const speaking = playerState.key === key && playerState.status !== "idle";
+
+  // Every question reads its sentence when it appears.
+  useEffect(() => {
+    speak();
+  }, []);
+
+  // Five seconds after the sentence has been read, the answer shows by itself
+  // (not once the learner has started putting the words in order).
+  const started = exercise.kind === "order" && order.length > 0;
+  useEffect(() => {
+    if (answered || speaking || started) {
+      setLeft(null);
+      return;
+    }
+    setLeft(REVEAL_SECONDS);
+    const timer = setInterval(() => setLeft((value) => (value === null ? null : Math.max(0, value - 1))), 1000);
+    return () => clearInterval(timer);
+  }, [answered, speaking, started]);
 
   useEffect(() => {
-    if (exercise.kind === "listen") speak();
-    // Speak once when the question appears.
-  }, []);
+    if (left === 0 && !answered) setRevealed(true);
+  }, [left]);
 
   useEffect(() => {
     if (!answered) return;
     onAnswered(correct);
-    if (exercise.kind !== "listen") speak();
+    if (chosen && exercise.kind !== "listen") speak();
   }, [answered]);
 
   const optionClass = (isAnswer: boolean, isPicked: boolean) =>
@@ -183,9 +209,11 @@ function Question({ exercise, material, settings, onAnswered, onNext }: {
         </>
       )}
 
+      {!answered && left !== null && <p className="dim small countdown" aria-live="polite">{left} 秒后显示答案</p>}
+
       {answered && (
         <div className="stack-8">
-          <p className={correct ? "ok-text" : "accent-text"}><b>{correct ? "答对了！" : "差一点"}</b></p>
+          <p className={correct ? "ok-text" : "accent-text"}><b>{correct ? "答对了！" : revealed ? "时间到" : "差一点"}</b></p>
           {!correct && <p className="fr" lang={material.language}>正确答案：{frenchSpacing(sentence.text)}</p>}
           <button type="button" className="button button-primary" onClick={onNext}>下一题</button>
         </div>

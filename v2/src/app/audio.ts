@@ -18,6 +18,10 @@ function refreshVoices(): void {
 if (typeof window !== "undefined" && globalThis.speechSynthesis) {
   refreshVoices();
   globalThis.speechSynthesis.addEventListener?.("voiceschanged", refreshVoices);
+  // A voice downloaded in system settings shows up when the learner comes back.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshVoices();
+  });
 }
 
 export function useVoices(): SpeechSynthesisVoice[] {

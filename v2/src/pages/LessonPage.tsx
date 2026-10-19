@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { explainNow, planLesson, retryJob, useAiJob } from "../ai/enrich";
 import { useAi } from "../ai/state";
 import { useCardIndex } from "../app/cards";
-import { materialKey, playMaterial, togglePause, toggleSpeech, usePlayer } from "../app/audio";
+import { materialKey, playMaterial, speakOnce, togglePause, toggleSpeech, usePlayer } from "../app/audio";
 import { type LessonMode, href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
 import { getSettings, materialsOfTape, saveSettings, setPosition, toggleSentence, trackLabel } from "../db/repo";
-import type { Material, Settings } from "../db/types";
+import type { Material, Sentence, Settings, TextMode } from "../db/types";
 import { player } from "../speech/player";
 import { AiPanel } from "../ui/AiSheet";
 import { CounterReels } from "../ui/Cassette";
@@ -22,6 +22,11 @@ import { ShadowMode } from "./ShadowMode";
 import { BookmarkFilledIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, ReelIcon, SparkleIcon } from "../ui/icons";
 
 const RATES = [0.7, 0.85, 1, 1.15];
+const TEXT_MODES: { mode: TextMode; label: string; hint: string }[] = [
+  { mode: "both", label: "双语", hint: "显示法语和中文" },
+  { mode: "fr", label: "法", hint: "只显示法语" },
+  { mode: "zh", label: "中", hint: "只显示中文（还没有译文的句子显示法语）" }
+];
 const pad = (value: number) => String(value).padStart(2, "0");
 
 export function LessonPage({ id, mode = "listen" }: { id: string; mode?: LessonMode }) {
@@ -63,9 +68,9 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   const sentenceKey = `sentence:${material.id}:${sentence?.id}`;
   const sentenceState = state.key === sentenceKey ? state.status : "idle";
 
-  // Looking a word up pauses the lesson; closing the card does not resume it on its own.
+  // Looking a word up stops the lesson; the card reads the word, and nothing resumes on its own.
   const openWord = (tapped: TappedWord) => {
-    if (running && state.status === "playing") player.pause();
+    if (running) player.stop();
     setWord({ ...tapped, context: sentence.text });
   };
 
@@ -111,11 +116,27 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // Plays just this sentence; the same button pauses and resumes it.
+  // Plays just this sentence once, whatever the 全文 / 单句 setting; the same button pauses and resumes it.
   const playSentence = () => {
     void setPosition(material.id, index);
     toggleSpeech(sentenceKey, sentence.text, settings, material.language);
   };
+
+  // Tapping another sentence moves there and reads only that sentence.
+  const playOther = (itemIndex: number, item: Sentence) => {
+    void setPosition(material.id, itemIndex);
+    speakOnce(item.text, settings, material.language, `sentence:${material.id}:${item.id}`);
+  };
+
+  const textMode = settings.textMode;
+  const cycleText = () => {
+    const at = TEXT_MODES.findIndex((item) => item.mode === textMode);
+    const next = TEXT_MODES[(at + 1) % TEXT_MODES.length];
+    void saveSettings({ textMode: next.mode, showTranslation: next.mode !== "fr" });
+    toast(next.hint);
+  };
+  // In 中 mode a sentence without a translation yet still shows its French.
+  const chineseOnly = (item: Sentence) => textMode === "zh" && Boolean(item.translation);
 
   const explain = () => setExplaining(sentence.id);
 
@@ -144,10 +165,14 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
           itemIndex === index ? (
             <article key={item.id} className="current" aria-current="true" ref={currentRef}>
               <span className="mono current-label"><ReelIcon size={14} />{pad(itemIndex + 1)}{speakerLabel(item.speakerLabel)}</span>
-              <p className="fr current-text" lang={material.language}>
-                <SentenceText text={item.text} cards={cards} onWord={openWord} active={word} />
-              </p>
-              {settings.showTranslation && item.translation && (
+              {chineseOnly(item) ? (
+                <p className="current-text current-zh">{item.translation}</p>
+              ) : (
+                <p className="fr current-text" lang={material.language}>
+                  <SentenceText text={item.text} cards={cards} onWord={openWord} active={word} />
+                </p>
+              )}
+              {textMode === "both" && item.translation && (
                 <p className="current-translation">
                   {item.translation}
                   {item.translationSource === "ai" && <span className="ai-tag" title="由本机 AI 翻译">AI 译</span>}
@@ -168,10 +193,11 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
               type="button"
               className={`fr sentence${itemIndex < index ? " sentence-done" : ""}`}
               lang={material.language}
-              onClick={() => playMaterial(material, itemIndex, settings)}
-              aria-label={`从第 ${itemIndex + 1} 句开始播放：${item.text}`}
+              onClick={() => playOther(itemIndex, item)}
+              aria-label={`播放第 ${itemIndex + 1} 句：${item.text}`}
             >
-              <SentenceText text={item.text} cards={cards} />
+              {chineseOnly(item) ? <span className="sentence-zh">{item.translation}</span> : <SentenceText text={item.text} cards={cards} />}
+              {textMode === "both" && item.translation && <span className="sentence-translation">{item.translation}</span>}
               {cards.phrase(item.text) && (
                 <span className={`saved-mark tone-${cards.phrase(item.text)!.status}`} aria-label="已收藏"><BookmarkFilledIcon size={14} /></span>
               )}
@@ -187,6 +213,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
           <span className="mono small muted">{pad(index + 1)} / {pad(total)}</span>
         </div>
         <div className="player-controls">
+          <button type="button" className="player-text" onClick={cycleText} aria-label={`文字显示：${TEXT_MODES.find((item) => item.mode === textMode)?.hint}，点一下切换`}>{TEXT_MODES.find((item) => item.mode === textMode)?.label}</button>
           <button type="button" className="mono player-text" onClick={cycleRate} aria-label={`语速 ${settings.rate} 倍，点一下切换`}>{settings.rate}×</button>
           <button type="button" className="icon-button" onClick={() => goTo(index - 1)} aria-label="上一句" disabled={index === 0}><PrevIcon /></button>
           <button type="button" className="round-button round-accent round-large" onClick={playPause} aria-label={running && state.status === "playing" ? "暂停" : "播放"}>

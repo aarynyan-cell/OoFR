@@ -126,7 +126,16 @@ describe("today's reviews", () => {
 describe("settings and streak", () => {
   it("keeps defaults for anything not changed", async () => {
     await saveSettings({ rate: 1 });
-    expect(await getSettings()).toMatchObject({ rate: 1, repeat: 1, theme: "night" });
+    expect(await getSettings()).toMatchObject({ rate: 1, repeat: 1, theme: "system", textMode: "both" });
+    // Only the change is stored, so a default changed later still applies.
+    expect((await db.kv.get("settings"))?.value).toEqual({ rate: 1, settingsVersion: 2 });
+  });
+
+  it("lets older settings follow the system look unless 夜读 was picked again", async () => {
+    await db.kv.put({ key: "settings", value: { rate: 0.85, theme: "night", showTranslation: false } });
+    expect(await getSettings()).toMatchObject({ theme: "system", textMode: "fr" });
+    await saveSettings({ theme: "night" });
+    expect((await getSettings()).theme).toBe("night");
   });
 
   it("counts consecutive study days and resets after a gap", async () => {

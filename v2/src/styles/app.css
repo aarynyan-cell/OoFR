@@ -1965,3 +1965,25 @@ mark.missed {
 .pair-card {
   padding: 20px;
 }
+
+/* 法 / 中 / 双语 */
+.current-zh {
+  font-size: 22px;
+}
+
+.sentence-zh,
+.sentence-translation {
+  font-family: var(--font-ui);
+}
+
+.sentence-translation {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.countdown {
+  text-align: center;
+}

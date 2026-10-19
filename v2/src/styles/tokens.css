@@ -72,6 +72,44 @@
   --st-got-soft: rgba(124, 193, 182, 0.38);
 }
 
+/* Before the settings load, follow the system (index.html starts as "auto"). */
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    color-scheme: light;
+    --bg: #f4f1e9;
+    --surface: #ffffff;
+    --surface-2: #f1ede3;
+    --raised: #ffffff;
+    --line: #ddd8cc;
+    --line-strong: #cfc9bb;
+    --divider: #e8e3d7;
+    --text: #1c1f20;
+    --text-strong: #1c1f20;
+    --text-2: #55585a;
+    --text-3: #686b69;
+    --text-dim: #686b69;
+    --accent: #e9c46a;
+    --accent-ink: #1c1f20;
+    --accent-text: #8a5f00;
+    --accent-soft: rgba(185, 138, 30, 0.14);
+    --accent-line: rgba(138, 95, 0, 0.45);
+    --ok: #2f7a70;
+    --ok-soft: rgba(47, 122, 112, 0.12);
+    --tape-brown: #5b4634;
+    --reel-hub: #ffffff;
+    --tape-window: #1c1f20;
+    --tabbar: #ffffff;
+    --overlay: rgba(28, 24, 12, 0.35);
+    --shadow: 0 4px 16px rgba(40, 32, 12, 0.06);
+    --st-new: #8a5f00;
+    --st-new-soft: rgba(233, 196, 106, 0.42);
+    --st-learning: #a4520f;
+    --st-learning-soft: rgba(240, 150, 80, 0.3);
+    --st-got: #2f7a70;
+    --st-got-soft: rgba(124, 193, 182, 0.38);
+}
+}
+
 :root {
   --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-fr: "Literata", Georgia, "Times New Roman", serif;

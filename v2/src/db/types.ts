@@ -148,6 +148,7 @@ export interface DictionaryEntry {
 
 export type ThemeChoice = "night" | "day" | "system";
 export type PlayMode = "all" | "one";
+export type TextMode = "fr" | "zh" | "both";
 
 export interface Settings {
   rate: number;
@@ -156,6 +157,8 @@ export interface Settings {
   voice: string;
   playMode: PlayMode;
   showTranslation: boolean;
+  // What the lesson shows: French, Chinese, or both (法 / 中 / 双语).
+  textMode: TextMode;
   theme: ThemeChoice;
   systemLanguage: "zh" | "en" | "fr";
   lastBackupAt: string;

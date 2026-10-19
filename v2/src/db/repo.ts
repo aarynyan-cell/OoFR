@@ -6,14 +6,27 @@ import type { Card, CardStatus, Explanation, Material, Sentence, Settings, Shado
 import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
-export async function getSettings(): Promise<Settings> {
-  const stored = (await db.kv.get("settings"))?.value as Partial<Settings> | undefined;
-  return { ...DEFAULT_SETTINGS, ...stored };
+// Settings written before 2.0's settingsVersion 2 held every default too, so a
+// default like 夜读 looked like a choice; it is dropped once and follows the system.
+function storedSettings(value: unknown): Partial<Settings> & { settingsVersion?: number } {
+  const stored = { ...((value as Partial<Settings> & { settingsVersion?: number }) ?? {}) };
+  if (!stored.settingsVersion && stored.theme === "night") delete stored.theme;
+  return stored;
 }
 
+export async function getSettings(): Promise<Settings> {
+  const stored = storedSettings((await db.kv.get("settings"))?.value);
+  const settings = { ...DEFAULT_SETTINGS, ...stored };
+  // Before 法 / 中 / 双语 there was only "show translation" on or off.
+  if (!stored?.textMode && stored?.showTranslation === false) settings.textMode = "fr";
+  return settings;
+}
+
+// Only what the learner changed is stored, so a later change of a default reaches everyone who never chose.
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {
   await db.transaction("rw", db.kv, async () => {
-    await db.kv.put({ key: "settings", value: { ...(await getSettings()), ...patch } });
+    const stored = storedSettings((await db.kv.get("settings"))?.value);
+    await db.kv.put({ key: "settings", value: { ...stored, ...patch, settingsVersion: 2 } });
   });
 }
 

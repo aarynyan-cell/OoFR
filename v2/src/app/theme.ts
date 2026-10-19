@@ -2,7 +2,7 @@ import type { ThemeChoice } from "../db/types";
 
 const THEME_COLORS = { night: "#16191A", day: "#F4F1E9" } as const;
 let systemQuery: MediaQueryList | null = null;
-let currentChoice: ThemeChoice = "night";
+let currentChoice: ThemeChoice = "system";
 
 function resolved(choice: ThemeChoice): "night" | "day" {
   if (choice !== "system") return choice;

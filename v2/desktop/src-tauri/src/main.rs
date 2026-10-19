@@ -590,6 +590,16 @@ fn pair_forget(pairing: State<'_, pair::PairState>, id: String) -> Result<Value,
     Ok(json!(pairing.forget(&id)?))
 }
 
+/// Shadowing needs the microphone; when it was refused, this opens the system's microphone list.
+#[tauri::command]
+fn open_microphone_settings() -> Result<(), String> {
+    Command::new("/usr/bin/open")
+        .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
 /// QR code modules as rows of "1"/"0", for the page to draw.
 #[tauri::command]
 fn qr_rows(text: String) -> Result<Vec<String>, String> {
@@ -649,7 +659,8 @@ fn main() {
             pair_info,
             pair_devices,
             pair_forget,
-            qr_rows
+            qr_rows,
+            open_microphone_settings
         ])
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {

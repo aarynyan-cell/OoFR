@@ -18,9 +18,17 @@ describe("choosing a French voice", () => {
   });
 
   it("keeps the learner's choice (1.0 stored it as name|lang)", () => {
-    const voices = [voice("Thomas (Enhanced)"), voice("Thomas")];
-    expect(pickVoice(voices, voiceId(voices[1]))?.name).toBe("Thomas");
+    const voices = [voice("Thomas (Enhanced)"), voice("Thomas"), voice("Jacques")];
+    expect(pickVoice(voices, voiceId(voices[2]))?.name).toBe("Jacques");
     expect(pickVoice(voices, "Gone|fr-FR")?.name).toBe("Thomas (Enhanced)");
+  });
+
+  it("moves a chosen voice to its enhanced version once that is downloaded", () => {
+    const before = [voice("Thomas"), voice("Jacques")];
+    expect(pickVoice(before, "Thomas|fr-FR")?.name).toBe("Thomas");
+    const after = [...before, voice("Thomas (Enhanced)"), voice("Amélie (Enhanced)", "fr-CA")];
+    expect(pickVoice(after, "Thomas|fr-FR")?.name).toBe("Thomas (Enhanced)");
+    expect(pickVoice(after, "Jacques|fr-FR")?.name).toBe("Jacques");
   });
 
   it("labels voices in plain words", () => {
