@@ -221,6 +221,8 @@ struct Session {
     local: SocketAddr,
     channel: Option<ChannelId>,
     device: Option<String>,
+    // When this phone proved who it is; a newer connection of the same phone replaces older ones.
+    known_since: Option<Instant>,
 }
 
 /// What a session asked for, answered later from the async runtime.
@@ -405,6 +407,23 @@ fn serve(
                 }
             }
         }
+        // A phone that reconnected leaves its older connections behind; only the newest stays.
+        let mut newest: HashMap<String, (Instant, SocketAddr)> = HashMap::new();
+        for (peer, session) in sessions.iter() {
+            if let (Some(device), Some(since)) = (&session.device, session.known_since) {
+                let entry = newest.entry(device.clone()).or_insert((since, *peer));
+                if since > entry.0 {
+                    *entry = (since, *peer);
+                }
+            }
+        }
+        for (peer, session) in sessions.iter() {
+            if let Some(device) = &session.device {
+                if newest.get(device).map(|(_, keep)| keep != peer).unwrap_or(false) {
+                    closed.push(*peer);
+                }
+            }
+        }
         for peer in closed {
             sessions.remove(&peer);
         }
@@ -423,7 +442,7 @@ fn new_session(data: &[u8], peer: SocketAddr, port: u16, cert: &DtlsCert) -> Opt
         .build(Instant::now());
     rtc.add_local_candidate(Candidate::host(local, "udp").ok()?);
     rtc.sdp_api().accept_offer(SdpOffer::from_sdp_string(&offer).ok()?).ok()?;
-    Some(Session { rtc, local, channel: None, device: None })
+    Some(Session { rtc, local, channel: None, device: None, known_since: None })
 }
 
 fn send(session: &mut Session, message: &str) {
@@ -455,6 +474,7 @@ fn handle(
         return match hello(&message, pending) {
             Some((device, key)) => {
                 session.device = Some(device);
+                session.known_since = Some(Instant::now());
                 let mut welcome = json!({ "t": "welcome", "mac": local_host_name().trim_end_matches(".local") });
                 if let Some(key) = key {
                     welcome["key"] = json!(key);

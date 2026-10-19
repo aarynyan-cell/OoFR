@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
 import { startAutoSync, stopAutoSync } from "../sync/auto";
-import { type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
+import { type PairedBackend, type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
   | "checking"
@@ -38,6 +38,17 @@ const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "b
 let state: AiState = initial();
 let backend: AiBackend | null = null;
 let setup: AppSetup | null = null;
+// One connection to the paired Mac, reused by every check (a new one each time would pile up).
+let remote: { key: string; backend: PairedBackend } | null = null;
+
+function remoteFor(pairing: Pairing): PairedBackend {
+  const key = `${pairing.key}|${pairing.port}|${pairing.ips.join(",")}`;
+  if (remote?.key !== key) {
+    remote?.backend.close();
+    remote = { key, backend: pairedBackend(pairing) };
+  }
+  return remote.backend;
+}
 const listeners = new Set<() => void>();
 
 function update(patch: Partial<AiState>): void {
@@ -105,12 +116,12 @@ async function check(): Promise<void> {
   // A phone: use the AI of the Mac it was paired with.
   const pairing = await loadPairing();
   if (pairing) {
-    const remote = pairedBackend(pairing);
+    const mac = remoteFor(pairing);
     try {
-      const status = await remote.status();
-      backend = remote;
+      const status = await mac.status();
+      backend = mac;
       // Connected: lessons and the phrasebook sync in the background, AI or not.
-      startAutoSync(remote);
+      startAutoSync(mac);
       const model = chooseModel(status.memoryBytes ? status.memoryBytes / 2 ** 30 : null);
       const phase = !status.serverRunning ? "stopped" : status.models.includes(model.name) ? "ready" : "needs-model";
       return update({ phase, model, paired: pairing.mac || "电脑", hasPairing: true, error: "" });
@@ -133,6 +144,8 @@ export async function pairPhone(pairing: Pairing): Promise<string> {
 
 export async function unpairPhone(): Promise<void> {
   stopAutoSync();
+  remote?.backend.close();
+  remote = null;
   await forgetPairing();
   backend = null;
   update({ phase: "unreachable", paired: null, hasPairing: false, error: "" });
@@ -213,6 +226,8 @@ export async function cancelAiSetup(): Promise<void> {
 
 // Tests start from a clean state.
 export function resetAiForTests(): void {
+  remote?.backend.close();
+  remote = null;
   state = initial();
   backend = null;
   setup = null;

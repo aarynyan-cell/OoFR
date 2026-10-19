@@ -214,7 +214,9 @@ export interface MacStatus {
   memoryBytes: number;
 }
 
-export function pairedBackend(pairing: Pairing): AiBackend & { status(): Promise<MacStatus>; exchange(message: Message, timeout?: number): Promise<Message> } {
+export type PairedBackend = AiBackend & { status(): Promise<MacStatus>; exchange(message: Message, timeout?: number): Promise<Message>; close(): void };
+
+export function pairedBackend(pairing: Pairing): PairedBackend {
   let link: Link | null = null;
   let opening: Promise<Link> | null = null;
   const connect = async () => {
@@ -259,6 +261,10 @@ export function pairedBackend(pairing: Pairing): AiBackend & { status(): Promise
     // Any other request/answer pair, such as a sync.
     async exchange(message: Message, timeout = 120000) {
       return (await connect()).request(message, timeout);
+    },
+    close() {
+      link?.close();
+      link = null;
     }
   };
 }
