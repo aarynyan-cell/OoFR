@@ -5,6 +5,7 @@
 // certificate; the Mac knows this phone by the key it gave it when pairing.
 
 import { db } from "../db/database";
+import { Reassembler, toFrames } from "../sync/frames";
 import { type AiBackend, AiError, type ChatBody } from "./backend";
 
 export const PAIRING_KEY = "pairing";
@@ -108,14 +109,13 @@ class Link {
   private next = 1;
   closed = false;
 
+  private readonly assembler = new Reassembler();
+
   private constructor(private readonly pc: RTCPeerConnection, private readonly channel: RTCDataChannel) {
     channel.onmessage = (event) => {
-      let message: Message;
-      try {
-        message = JSON.parse(String(event.data)) as Message;
-      } catch {
-        return;
-      }
+      // Long answers (a sync) arrive in parts.
+      const message = this.assembler.push(String(event.data)) as Message | null;
+      if (!message) return;
       const waiter = typeof message.id === "number" ? this.waiting.get(message.id) : undefined;
       if (!waiter) return;
       this.waiting.delete(message.id!);
@@ -182,7 +182,7 @@ class Link {
         clearTimeout(timer);
         reject(new DOMException("Aborted", "AbortError"));
       });
-      this.channel.send(JSON.stringify({ ...message, id }));
+      for (const frame of toFrames({ ...message, id })) this.channel.send(frame);
     });
   }
 
@@ -214,7 +214,7 @@ export interface MacStatus {
   memoryBytes: number;
 }
 
-export function pairedBackend(pairing: Pairing): AiBackend & { status(): Promise<MacStatus> } {
+export function pairedBackend(pairing: Pairing): AiBackend & { status(): Promise<MacStatus>; exchange(message: Message, timeout?: number): Promise<Message> } {
   let link: Link | null = null;
   let opening: Promise<Link> | null = null;
   const connect = async () => {
@@ -255,6 +255,10 @@ export function pairedBackend(pairing: Pairing): AiBackend & { status(): Promise
     },
     async pull() {
       throw new AiError("请在电脑上的 OoFR 里下载 AI 模型");
+    },
+    // Any other request/answer pair, such as a sync.
+    async exchange(message: Message, timeout = 120000) {
+      return (await connect()).request(message, timeout);
     }
   };
 }

@@ -590,8 +590,17 @@ fn now_unix() -> u64 {
 
 /// Shows the QR code for pairing a phone: starts listening and makes a one-time code.
 #[tauri::command]
-fn pair_info(ai: State<'_, AiState>, pairing: State<'_, pair::PairState>) -> Result<Value, String> {
-    serde_json::to_value(pairing.info(ai.client.clone())?).map_err(|error| error.to_string())
+fn pair_info(app: AppHandle, ai: State<'_, AiState>, pairing: State<'_, pair::PairState>) -> Result<Value, String> {
+    serde_json::to_value(pairing.info(ai.client.clone(), Some(app))?).map_err(|error| error.to_string())
+}
+
+/// The page's answer to a paired phone (a sync), sent over its connection.
+#[tauri::command]
+fn pair_send(pairing: State<'_, pair::PairState>, peer: String, text: String) -> Result<(), String> {
+    if text.len() > 200 * 1024 {
+        return Err("消息过长".to_string());
+    }
+    pairing.send(&peer, text)
 }
 
 #[tauri::command]
@@ -647,7 +656,7 @@ fn main() {
     #[cfg(debug_assertions)]
     if std::env::args().any(|arg| arg == "--pair-server") {
         let pairing = pair::PairState::default();
-        let info = pairing.info(reqwest::Client::new()).expect("pairing listener");
+        let info = pairing.info(reqwest::Client::new(), None).expect("pairing listener");
         println!("{}", serde_json::to_string(&info).unwrap());
         loop {
             std::thread::sleep(Duration::from_secs(3600));
@@ -659,7 +668,14 @@ fn main() {
         .setup(|app| {
             // A phone paired earlier can connect without anyone touching the Mac.
             let client = app.state::<AiState>().client.clone();
-            app.state::<pair::PairState>().start_if_paired(client);
+            app.state::<pair::PairState>().start_if_paired(client.clone(), app.handle().clone());
+            // Development only: print a pairing code, to pair a test browser without the QR code.
+            #[cfg(debug_assertions)]
+            if std::env::var_os("OOFR_PRINT_PAIRING").is_some() {
+                if let Ok(info) = app.state::<pair::PairState>().info(client, Some(app.handle().clone())) {
+                    eprintln!("pairing: {}", serde_json::to_string(&info).unwrap_or_default());
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -674,7 +690,8 @@ fn main() {
             pair_devices,
             pair_forget,
             qr_rows,
-            open_microphone_settings
+            open_microphone_settings,
+            pair_send
         ])
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {

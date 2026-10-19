@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { refreshAi } from "../ai/state";
+import { startSyncHost } from "../sync/host";
 import { useLive } from "../db/live";
 import { getSettings } from "../db/repo";
 import { AddMaterialPage } from "../pages/AddMaterialPage";
@@ -25,9 +26,11 @@ export function App() {
     if (settings) applyTheme(settings.theme);
   }, [settings?.theme]);
 
-  // Finds the local AI once at start, so lessons can use it straight away.
+  // Finds the local AI once at start, so lessons can use it straight away; the
+  // Mac app also starts answering its paired phones' syncs.
   useEffect(() => {
     void refreshAi();
+    startSyncHost();
   }, []);
 
   // Newer browsers return a promise from scrollTo, which an effect must not return.

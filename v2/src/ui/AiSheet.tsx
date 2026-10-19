@@ -3,6 +3,7 @@ import { parsePairing } from "../ai/paired";
 import { type AiState, cancelAiSetup, progressText, refreshAi, setupAi, unpairPhone, useAi } from "../ai/state";
 import { useLive } from "../db/live";
 import { getSettings, saveSettings } from "../db/repo";
+import { syncNow, useSync } from "../sync/auto";
 import { pairOnce } from "../pages/PairPage";
 import { Modal } from "./Modal";
 import { PhonePairing } from "./PhonePairing";
@@ -38,6 +39,7 @@ export function AiPanel() {
   const settings = useLive(() => getSettings(), []);
   const percent = ai.progress && ai.progress.total > 0 ? Math.round((ai.progress.completed / ai.progress.total) * 100) : 0;
   const gb = ai.model.downloadGb;
+  const sync = useSync();
   const [scanning, setScanning] = useState(false);
   const [pairing, setPairing] = useState(false);
   const [pairError, setPairError] = useState("");
@@ -135,6 +137,17 @@ export function AiPanel() {
           </>
         ))}
 
+      {ai.paired && (
+        <p className="dim small" aria-live="polite">
+          {sync.syncing
+            ? "正在和电脑同步磁带、素材和词句本…"
+            : sync.last
+              ? `磁带、素材和词句本已和电脑同步（${new Date(sync.last.at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}）`
+              : "连上后会自动同步磁带、素材和词句本"}
+          {!sync.syncing && <button type="button" className="link-button" onClick={() => void syncNow()}>现在同步</button>}
+        </p>
+      )}
+      {sync.error && ai.paired && <p className="error-text small">{sync.error}</p>}
       {ai.paired && ai.phase === "ready" && (
         <button type="button" className="button button-outline" onClick={() => void unpairPhone()}>断开这台电脑</button>
       )}

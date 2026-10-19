@@ -4,6 +4,7 @@
 import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
+import { startAutoSync, stopAutoSync } from "../sync/auto";
 import { type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
@@ -108,11 +109,14 @@ async function check(): Promise<void> {
     try {
       const status = await remote.status();
       backend = remote;
+      // Connected: lessons and the phrasebook sync in the background, AI or not.
+      startAutoSync(remote);
       const model = chooseModel(status.memoryBytes ? status.memoryBytes / 2 ** 30 : null);
       const phase = !status.serverRunning ? "stopped" : status.models.includes(model.name) ? "ready" : "needs-model";
       return update({ phase, model, paired: pairing.mac || "电脑", hasPairing: true, error: "" });
     } catch {
       backend = null;
+      stopAutoSync();
       return update({ phase: "unreachable", paired: null, hasPairing: true });
     }
   }
@@ -128,6 +132,7 @@ export async function pairPhone(pairing: Pairing): Promise<string> {
 }
 
 export async function unpairPhone(): Promise<void> {
+  stopAutoSync();
   await forgetPairing();
   backend = null;
   update({ phase: "unreachable", paired: null, hasPairing: false, error: "" });

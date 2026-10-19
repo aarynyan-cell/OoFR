@@ -30,6 +30,7 @@ use str0m::config::DtlsCert;
 use str0m::ice::IceCreds;
 use str0m::net::{Protocol, Receive};
 use str0m::{Candidate, Event, IceConnectionState, Input, Output, Rtc, RtcConfig};
+use tauri::{AppHandle, Emitter};
 
 pub const UFRAG_PREFIX: &str = "oofr+v1/";
 const PREFERRED_PORT: u16 = 47800;
@@ -63,6 +64,8 @@ struct Pending {
 pub struct PairState {
     running: Mutex<Option<Running>>,
     pending: Arc<Mutex<Vec<Pending>>>,
+    /// Answers from the page (syncs) to send to a phone.
+    outbox: Mutex<Option<Sender<Reply>>>,
 }
 
 struct Running {
@@ -249,8 +252,8 @@ fn base64url(bytes: &[u8]) -> String {
 
 impl PairState {
     /// Starts listening (if not yet) and returns a fresh one-time pairing code.
-    pub fn info(&self, client: reqwest::Client) -> Result<PairInfo, String> {
-        let (port, fingerprint) = self.ensure_running(client)?;
+    pub fn info(&self, client: reqwest::Client, app: Option<AppHandle>) -> Result<PairInfo, String> {
+        let (port, fingerprint) = self.ensure_running(client, app)?;
         let code = random_hex(12);
         {
             let mut pending = self.pending.lock().map_err(|_| "配对状态不可用")?;
@@ -280,15 +283,22 @@ impl PairState {
     }
 
     /// Listens only when a phone has been paired or a QR code is shown.
-    pub fn start_if_paired(&self, client: reqwest::Client) {
+    pub fn start_if_paired(&self, client: reqwest::Client, app: AppHandle) {
         if !load_saved().devices.is_empty() {
-            if let Err(error) = self.ensure_running(client) {
+            if let Err(error) = self.ensure_running(client, Some(app)) {
                 eprintln!("OoFR pairing listener: {error}");
             }
         }
     }
 
-    fn ensure_running(&self, client: reqwest::Client) -> Result<(u16, String), String> {
+    /// The page's answer to a phone's sync message.
+    pub fn send(&self, peer: &str, text: String) -> Result<(), String> {
+        let peer: SocketAddr = peer.parse().map_err(|_| "连接对象无效".to_string())?;
+        let outbox = self.outbox.lock().map_err(|_| "配对状态不可用")?;
+        outbox.as_ref().ok_or("还没有手机连接")?.send(Reply { peer, message: text }).map_err(|_| "连接已关闭".to_string())
+    }
+
+    fn ensure_running(&self, client: reqwest::Client, app: Option<AppHandle>) -> Result<(u16, String), String> {
         let mut running = self.running.lock().map_err(|_| "配对状态不可用")?;
         if let Some(current) = running.as_ref() {
             return Ok((current.port, current.fingerprint.clone()));
@@ -311,19 +321,31 @@ impl PairState {
         let stop = Arc::new(AtomicBool::new(false));
         let pending = self.pending.clone();
         let flag = stop.clone();
+        let (reply_to, replies) = channel();
+        *self.outbox.lock().map_err(|_| "配对状态不可用")? = Some(reply_to.clone());
         std::thread::Builder::new()
             .name("oofr-pair".into())
-            .spawn(move || serve(socket, port, cert, pending, flag, client))
+            .spawn(move || serve(socket, port, cert, pending, flag, client, app, reply_to, replies))
             .map_err(|error| error.to_string())?;
         *running = Some(Running { port, fingerprint: fingerprint.clone(), stop });
         Ok((port, fingerprint))
     }
 }
 
-fn serve(socket: UdpSocket, port: u16, cert: DtlsCert, pending: Arc<Mutex<Vec<Pending>>>, stop: Arc<AtomicBool>, client: reqwest::Client) {
+#[allow(clippy::too_many_arguments)]
+fn serve(
+    socket: UdpSocket,
+    port: u16,
+    cert: DtlsCert,
+    pending: Arc<Mutex<Vec<Pending>>>,
+    stop: Arc<AtomicBool>,
+    client: reqwest::Client,
+    app: Option<AppHandle>,
+    reply_to: Sender<Reply>,
+    replies: Receiver<Reply>,
+) {
     let _ = socket.set_read_timeout(Some(Duration::from_millis(20)));
     let mut sessions: HashMap<SocketAddr, Session> = HashMap::new();
-    let (reply_to, replies): (Sender<Reply>, Receiver<Reply>) = channel();
     let mut buf = vec![0u8; 2048];
     while !stop.load(Ordering::SeqCst) {
         if let Ok((size, peer)) = socket.recv_from(&mut buf) {
@@ -370,7 +392,7 @@ fn serve(socket: UdpSocket, port: u16, cert: DtlsCert, pending: Arc<Mutex<Vec<Pe
                             break;
                         }
                         let text = String::from_utf8_lossy(&data.data).to_string();
-                        if !handle(session, *peer, &text, &pending, &reply_to, &client) {
+                        if !handle(session, *peer, &text, &pending, &reply_to, &client, app.as_ref()) {
                             closed.push(*peer);
                             break;
                         }
@@ -413,7 +435,15 @@ fn send(session: &mut Session, message: &str) {
 }
 
 /// Handles one message; false closes the session (unknown phone, bad message).
-fn handle(session: &mut Session, peer: SocketAddr, text: &str, pending: &Arc<Mutex<Vec<Pending>>>, reply_to: &Sender<Reply>, client: &reqwest::Client) -> bool {
+fn handle(
+    session: &mut Session,
+    peer: SocketAddr,
+    text: &str,
+    pending: &Arc<Mutex<Vec<Pending>>>,
+    reply_to: &Sender<Reply>,
+    client: &reqwest::Client,
+    app: Option<&AppHandle>,
+) -> bool {
     let Ok(message) = serde_json::from_str::<Value>(text) else { return false };
     let kind = message.get("t").and_then(Value::as_str).unwrap_or("");
     #[cfg(debug_assertions)]
@@ -469,6 +499,16 @@ fn handle(session: &mut Session, peer: SocketAddr, text: &str, pending: &Arc<Mut
         }
         "ping" => {
             send(session, &json!({ "t": "pong", "id": id }).to_string());
+            true
+        }
+        // Syncing lessons is done by the page, which holds the data; parts of long messages go there as they are.
+        "sync-hello" | "sync-push" | "part" => {
+            match app {
+                Some(app) => {
+                    let _ = app.emit("pair-message", json!({ "peer": peer.to_string(), "text": text }));
+                }
+                None => send(session, &json!({ "t": "sync-error", "id": id, "message": "电脑上的 OoFR 窗口没有打开" }).to_string()),
+            }
             true
         }
         _ => true,

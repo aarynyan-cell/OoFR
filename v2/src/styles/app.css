@@ -1990,3 +1990,13 @@ mark.missed {
 .countdown {
   text-align: center;
 }
+
+.link-button {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: inherit;
+  text-decoration: underline;
+}

@@ -101,7 +101,7 @@ const optionalStamp = (value: unknown) => (typeof value === "string" && !Number.
 const count = (value: unknown) => Math.max(0, Math.floor(Number(value) || 0));
 const strings = (value: unknown) => (Array.isArray(value) ? value.map((item) => text(item, 2000)).filter(Boolean) : []);
 
-function sanitizeTape(raw: unknown): Tape | null {
+export function sanitizeTape(raw: unknown): Tape | null {
   if (!isObject(raw) || !id(raw.id) || !text(raw.title).trim()) return null;
   return {
     id: id(raw.id),
@@ -152,7 +152,7 @@ function sanitizeSentence(raw: unknown, index: number, materialId: string): Sent
   };
 }
 
-function sanitizeMaterial(raw: unknown): Material | null {
+export function sanitizeMaterial(raw: unknown): Material | null {
   if (!isObject(raw) || !id(raw.id) || !id(raw.tapeId)) return null;
   const materialId = id(raw.id);
   const sentences = (Array.isArray(raw.sentences) ? raw.sentences : []).map((sentence, index) => sanitizeSentence(sentence, index, materialId)).filter((sentence): sentence is Sentence => Boolean(sentence));
@@ -176,7 +176,7 @@ function sanitizeMaterial(raw: unknown): Material | null {
   };
 }
 
-function sanitizeCard(raw: unknown): Card | null {
+export function sanitizeCard(raw: unknown): Card | null {
   if (!isObject(raw) || !id(raw.id) || !text(raw.text).trim() || !text(raw.normalized).trim()) return null;
   const review = isObject(raw.review) && optionalStamp(raw.review.due)
     ? { due: stamp(raw.review.due), stability: Math.max(0, Number(raw.review.stability) || 0), difficulty: Math.min(10, Math.max(0, Number(raw.review.difficulty) || 0)), reps: count(raw.review.reps), lapses: count(raw.review.lapses), lastReview: optionalStamp(raw.review.lastReview) }
@@ -204,7 +204,7 @@ function sanitizeCard(raw: unknown): Card | null {
   };
 }
 
-function sanitizeWordbook(raw: unknown): Wordbook | null {
+export function sanitizeWordbook(raw: unknown): Wordbook | null {
   if (!isObject(raw) || !id(raw.id) || !text(raw.title).trim()) return null;
   return { id: id(raw.id), title: text(raw.title, 200).trim(), description: text(raw.description, 2000), createdAt: stamp(raw.createdAt), updatedAt: stamp(raw.updatedAt) };
 }

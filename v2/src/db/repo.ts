@@ -230,13 +230,43 @@ export async function applySentenceAi(materialId: string, updates: SentenceAi[])
   });
 }
 
+// ---------- deletions, remembered so a paired device deletes them too ----------
+
+export type SyncKind = "tape" | "material" | "card" | "wordbook";
+export interface Tombstone {
+  k: SyncKind;
+  id: string;
+  at: string;
+}
+export const DELETED_KEY = "sync.deleted";
+// Long enough for a phone that has not connected in months.
+const TOMBSTONE_DAYS = 365;
+
+export async function tombstones(): Promise<Tombstone[]> {
+  return ((await db.kv.get(DELETED_KEY))?.value as Tombstone[] | undefined) ?? [];
+}
+
+// Call inside a transaction that includes db.kv.
+export async function rememberDeleted(items: Omit<Tombstone, "at">[], at = nowIso()): Promise<void> {
+  if (!items.length) return;
+  const cutoff = Date.now() - TOMBSTONE_DAYS * 86400000;
+  const keep = (await tombstones()).filter((item) => Date.parse(item.at) > cutoff && !items.some((next) => next.k === item.k && next.id === item.id));
+  await db.kv.put({ key: DELETED_KEY, value: [...keep, ...items.map((item) => ({ ...item, at }))] });
+}
+
+// An item brought back (edited on another device after it was deleted here). Inside a transaction with db.kv.
+export async function forgetDeleted(k: SyncKind, id: string): Promise<void> {
+  await db.kv.put({ key: DELETED_KEY, value: (await tombstones()).filter((item) => !(item.k === k && item.id === id)) });
+}
+
 // Removes a material and its recordings. Saved words and sentences stay in the phrasebook.
 export async function deleteMaterial(materialId: string): Promise<void> {
-  await db.transaction("rw", db.materials, db.recordings, async () => {
+  await db.transaction("rw", db.materials, db.recordings, db.kv, async () => {
     const material = await db.materials.get(materialId);
     if (!material) return;
     await db.recordings.bulkDelete(material.sentences.map((sentence) => sentence.recordingKey).filter(Boolean));
     await db.materials.delete(materialId);
+    await rememberDeleted([{ k: "material", id: materialId }]);
   });
 }
 
@@ -251,7 +281,7 @@ export async function updateTape(tapeId: string, changes: { title?: string; colo
 // Deleting a tape never deletes lessons: they move to another tape (one called
 // 其他素材 is made if this was the last tape).
 export async function deleteTape(tapeId: string): Promise<{ movedTo: string | null; moved: number }> {
-  return db.transaction("rw", db.tapes, db.materials, async () => {
+  return db.transaction("rw", db.tapes, db.materials, db.kv, async () => {
     const tapes = (await db.tapes.orderBy("order").toArray()).filter((tape) => tape.id !== tapeId);
     const materials = await db.materials.where("tapeId").equals(tapeId).toArray();
     let target: Tape | undefined = tapes[0];
@@ -261,6 +291,7 @@ export async function deleteTape(tapeId: string): Promise<{ movedTo: string | nu
     }
     for (const material of materials) await db.materials.update(material.id, { tapeId: target!.id, updatedAt: nowIso() });
     await db.tapes.delete(tapeId);
+    await rememberDeleted([{ k: "tape", id: tapeId }]);
     await Promise.all(tapes.map((tape, index) => db.tapes.update(tape.id, { order: index })));
     return { movedTo: materials.length ? target!.title : null, moved: materials.length };
   });
@@ -457,7 +488,7 @@ export const TONE_LABEL: Record<Tone, string> = { new: "待学", learning: "学�
 export async function toggleSentence(material: Material, sentence: Sentence): Promise<boolean> {
   const existing = await findCard("phrase", sentence.text);
   if (existing) {
-    await db.cards.delete(existing.id);
+    await removeCard(existing.id);
     return false;
   }
   await saveSentence(material, sentence);
@@ -467,7 +498,7 @@ export async function toggleSentence(material: Material, sentence: Sentence): Pr
 export async function toggleWord(word: WordToSave, material: Material): Promise<boolean> {
   const existing = await findCard("word", word.lemma);
   if (existing) {
-    await db.cards.delete(existing.id);
+    await removeCard(existing.id);
     return false;
   }
   await saveWord(word, material);
@@ -491,15 +522,19 @@ export async function createWordbook(title: string): Promise<Wordbook> {
 
 // Removing a wordbook keeps its cards; they just leave that wordbook.
 export async function deleteWordbook(wordbookId: string): Promise<void> {
-  await db.transaction("rw", db.wordbooks, db.cards, async () => {
+  await db.transaction("rw", db.wordbooks, db.cards, db.kv, async () => {
     await db.wordbooks.delete(wordbookId);
+    await rememberDeleted([{ k: "wordbook", id: wordbookId }]);
     const cards = await db.cards.filter((card) => card.wordbookIds.includes(wordbookId)).toArray();
     for (const card of cards) await db.cards.update(card.id, { wordbookIds: card.wordbookIds.filter((id) => id !== wordbookId), updatedAt: nowIso() });
   });
 }
 
 export async function removeCard(cardId: string): Promise<void> {
-  await db.cards.delete(cardId);
+  await db.transaction("rw", db.cards, db.kv, async () => {
+    await db.cards.delete(cardId);
+    await rememberDeleted([{ k: "card", id: cardId }]);
+  });
 }
 
 export async function setCardStatus(cardId: string, status: CardStatus): Promise<void> {
