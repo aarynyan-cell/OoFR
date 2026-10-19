@@ -34,6 +34,8 @@ export interface Sentence {
   speakerId: string;
   speakerLabel: string;
   explanation: Explanation | null;
+  // "ai" when the local AI wrote the translation (shown as such; the learner's own is never replaced).
+  translationSource?: "ai";
   // Key in the recordings table; "" when the learner has not recorded this sentence.
   recordingKey: string;
   recordingMs: number;
@@ -158,6 +160,8 @@ export interface Settings {
   systemLanguage: "zh" | "en" | "fr";
   lastBackupAt: string;
   practiceKinds: ("listen" | "cloze" | "order")[];
+  // Let the local AI prepare translations and the next explanations while a lesson is open.
+  aiPrepare: boolean;
 }
 
 export interface StudyStats {

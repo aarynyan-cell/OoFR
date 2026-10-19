@@ -133,6 +133,7 @@ function sanitizeSentence(raw: unknown, index: number, materialId: string): Sent
     id: id(raw.id) || `${materialId}_s${index + 1}`,
     text: text(raw.text, 2000).trim(),
     translation: text(raw.translation, 2000),
+    ...(raw.translationSource === "ai" ? { translationSource: "ai" as const } : {}),
     speakerId: text(raw.speakerId, 40) || "a",
     speakerLabel: text(raw.speakerLabel, 60),
     explanation,
@@ -241,9 +242,11 @@ export function mergeMaterial(existing: Material, incoming: Material): Material 
       sentence.explanation && other.explanation
         ? Date.parse(other.explanation.generatedAt ?? "") > Date.parse(sentence.explanation.generatedAt ?? "") ? other.explanation : sentence.explanation
         : sentence.explanation ?? other.explanation;
+    const translation = sentence.translation ? sentence : other;
     return {
       ...sentence,
-      translation: sentence.translation || other.translation,
+      translation: translation.translation,
+      translationSource: translation.translationSource,
       explanation: newerExplanation,
       recordingKey: sentence.recordingKey || other.recordingKey,
       recordingMs: sentence.recordingKey ? sentence.recordingMs : other.recordingMs

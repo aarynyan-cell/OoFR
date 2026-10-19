@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { explainNow, planLesson, retryJob, useAiJob } from "../ai/enrich";
+import { useAi } from "../ai/state";
 import { useCardIndex } from "../app/cards";
 import { materialKey, playMaterial, togglePause, toggleSpeech, usePlayer } from "../app/audio";
 import { type LessonMode, href } from "../app/router";
@@ -6,8 +8,9 @@ import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
 import { getSettings, materialsOfTape, saveSettings, setPosition, toggleSentence, trackLabel } from "../db/repo";
-import type { Explanation, Material, Settings } from "../db/types";
+import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
+import { AiPanel } from "../ui/AiSheet";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
 import { SaveToggle } from "../ui/SaveToggle";
@@ -53,7 +56,8 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   const sentence = material.sentences[index];
   const cards = useCardIndex();
   const savedCard = sentence ? cards.phrase(sentence.text) : undefined;
-  const [explaining, setExplaining] = useState<Explanation | null>(null);
+  const [explaining, setExplaining] = useState<string | null>(null);
+  const ai = useAi();
   const [word, setWord] = useState<WordTarget | null>(null);
   const currentRef = useRef<HTMLElement>(null);
   const sentenceKey = `sentence:${material.id}:${sentence?.id}`;
@@ -68,6 +72,11 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   useEffect(() => {
     currentRef.current?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [index]);
+
+  // The local AI fills in missing translations and gets the next explanations ready.
+  useEffect(() => {
+    if (ai.phase === "ready" && settings.aiPrepare) planLesson(material, index);
+  }, [ai.phase, settings.aiPrepare, material.id, index]);
 
   // Leaving the lesson stops its audio.
   useEffect(() => () => {
@@ -108,10 +117,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     toggleSpeech(sentenceKey, sentence.text, settings, material.language);
   };
 
-  const explain = () => {
-    if (sentence.explanation) setExplaining(sentence.explanation);
-    else toast("这句还没有讲解。下一步会加入一键 AI：电脑上自动生成，手机也能看");
-  };
+  const explain = () => setExplaining(sentence.id);
 
   const save = async () => toast((await toggleSentence(material, sentence)) ? "已收藏到词句本" : "已取消收藏");
 
@@ -141,7 +147,12 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
               <p className="fr current-text" lang={material.language}>
                 <SentenceText text={item.text} cards={cards} onWord={openWord} active={word} />
               </p>
-              {settings.showTranslation && item.translation && <p className="current-translation">{item.translation}</p>}
+              {settings.showTranslation && item.translation && (
+                <p className="current-translation">
+                  {item.translation}
+                  {item.translationSource === "ai" && <span className="ai-tag" title="由本机 AI 翻译">AI 译</span>}
+                </p>
+              )}
               <div className="actions-3">
                 <button type="button" className={`action${sentenceState === "idle" ? "" : " action-on"}`} onClick={playSentence} aria-label={sentenceState === "playing" ? "暂停这一句" : "播放这一句"}>
                   {sentenceState === "playing" ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
@@ -186,13 +197,23 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
         </div>
       </section>
 
-      {explaining && <ExplanationSheet explanation={explaining} text={sentence.text} onClose={() => setExplaining(null)} />}
+      {explaining && <ExplanationSheet material={material} sentenceId={explaining} onClose={() => setExplaining(null)} />}
       {word && <WordSheet target={word} material={material} settings={settings} onClose={() => setWord(null)} />}
     </main>
   );
 }
 
-function ExplanationSheet({ explanation, text, onClose }: { explanation: Explanation; text: string; onClose: () => void }) {
+function ExplanationSheet({ material, sentenceId, onClose }: { material: Material; sentenceId: string; onClose: () => void }) {
+  const sentence = material.sentences.find((item) => item.id === sentenceId);
+  const explanation = sentence?.explanation ?? null;
+  const ai = useAi();
+  const job = useAiJob("explain", material.id, sentenceId);
+
+  // No explanation yet: ask for one as soon as the AI is ready (it goes ahead of the queue).
+  useEffect(() => {
+    if (sentence && !explanation && ai.phase === "ready" && !job) explainNow(material, sentence);
+  }, [ai.phase, Boolean(explanation)]);
+
   const section = (title: string, items: string[]) =>
     items.length > 0 && (
       <section className="stack-6">
@@ -204,13 +225,37 @@ function ExplanationSheet({ explanation, text, onClose }: { explanation: Explana
     <Modal title="句子讲解" onClose={onClose}>
       <div className="stack-16 sheet-scroll">
         <h2 className="sheet-title">句子讲解</h2>
-        <p className="fr explain-text" lang="fr">{text}</p>
-        {explanation.summary && <p>{explanation.summary}</p>}
-        {explanation.structure && section("句子结构", [explanation.structure])}
-        {section("语法点", explanation.grammarPoints)}
-        {section("易错点", explanation.pitfalls)}
-        {section("换个说法", explanation.examples)}
-        <span className="pill pill-ok">{explanation.model ? `本机 AI（${explanation.model}）生成` : "AI 生成"} · 已离线保存</span>
+        <p className="fr explain-text" lang={material.language}>{sentence?.text}</p>
+        {explanation ? (
+          <>
+            {explanation.summary && <p>{explanation.summary}</p>}
+            {explanation.structure && section("句子结构", [explanation.structure])}
+            {explanation.morphology && (
+              <section className="stack-6">
+                <h3 className="sheet-subtitle">词形（来自词典）</h3>
+                <p className="morphology small">{explanation.morphology}</p>
+              </section>
+            )}
+            {section("语法点", explanation.grammarPoints)}
+            {section("易错点", explanation.pitfalls)}
+            {section("换个说法", explanation.examples)}
+            <span className="pill pill-ok">{explanation.model ? `本机 AI（${explanation.model}）生成` : "AI 生成"} · 已离线保存</span>
+          </>
+        ) : ai.phase === "ready" ? (
+          job?.status === "failed" ? (
+            <>
+              <p className="error-text" role="alert">{job.error}</p>
+              <button type="button" className="button button-primary" onClick={() => retryJob("explain", material.id, sentenceId)}>再试一次</button>
+            </>
+          ) : (
+            <p className="thinking" aria-live="polite">本机 AI 正在写这句的讲解，大约半分钟…</p>
+          )
+        ) : (
+          <>
+            <p className="dim">这句还没有讲解。开启本机 AI 后会自动生成，之后不联网也能看。</p>
+            <AiPanel />
+          </>
+        )}
         <button type="button" className="button button-outline" onClick={onClose}>关闭</button>
       </div>
     </Modal>

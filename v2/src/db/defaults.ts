@@ -10,7 +10,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "night",
   systemLanguage: "zh",
   lastBackupAt: "",
-  practiceKinds: ["listen", "cloze", "order"]
+  practiceKinds: ["listen", "cloze", "order"],
+  aiPrepare: true
 };
 
 export const DEFAULT_STUDY: StudyStats = {

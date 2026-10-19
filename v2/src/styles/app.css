@@ -1868,3 +1868,66 @@ mark.missed {
 .summary-row.is-playing {
   background: var(--accent-soft);
 }
+
+/* ---------- Local AI ---------- */
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.check-row input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+.error-text {
+  color: var(--st-learning);
+}
+
+.ai-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-3);
+  vertical-align: 1px;
+}
+
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-2);
+}
+
+.thinking::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking::before { animation-duration: 3s; }
+}
+
+.morphology {
+  white-space: pre-line;
+  line-height: 1.6;
+}

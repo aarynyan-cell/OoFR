@@ -2,7 +2,7 @@
 
 import { db } from "./database";
 import { DEFAULT_SETTINGS, DEFAULT_STUDY, TAPE_COLORS, localDateKey, makeId, nowIso } from "./defaults";
-import type { Card, CardStatus, Material, Sentence, Settings, ShadowResult, StudyStats, Tape, Wordbook } from "./types";
+import type { Card, CardStatus, Explanation, Material, Sentence, Settings, ShadowResult, StudyStats, Tape, Wordbook } from "./types";
 import { type Grade, MASTERED_DAYS, review as scheduleReview } from "../review/fsrs";
 import { type MaterialType, guessLanguage, inferMaterialType, normalizeWord, splitSentences } from "../text/split";
 
@@ -184,6 +184,36 @@ export async function updateMaterial(materialId: string, changes: MaterialChange
     }
     await db.materials.put(next);
     return next;
+  });
+}
+
+export interface SentenceAi {
+  sentenceId: string;
+  // The text the AI worked from: a sentence edited since then is left alone.
+  text: string;
+  translation?: string;
+  explanation?: Explanation;
+}
+
+// Stores what the local AI produced. It only fills what is empty, so a
+// translation the learner wrote (or imported) is never replaced.
+export async function applySentenceAi(materialId: string, updates: SentenceAi[]): Promise<number> {
+  if (!updates.length) return 0;
+  return db.transaction("rw", db.materials, async () => {
+    const material = await db.materials.get(materialId);
+    if (!material) return 0;
+    let changed = 0;
+    const sentences = material.sentences.map((sentence) => {
+      const update = updates.find((item) => item.sentenceId === sentence.id && item.text === sentence.text);
+      if (!update) return sentence;
+      const next = { ...sentence };
+      if (update.translation && !sentence.translation.trim()) Object.assign(next, { translation: update.translation, translationSource: "ai" as const });
+      if (update.explanation && !sentence.explanation) next.explanation = update.explanation;
+      if (next.translation !== sentence.translation || next.explanation !== sentence.explanation) changed += 1;
+      return next;
+    });
+    if (changed) await db.materials.put({ ...material, sentences });
+    return changed;
   });
 }
 

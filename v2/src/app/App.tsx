@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { refreshAi } from "../ai/state";
 import { useLive } from "../db/live";
 import { getSettings } from "../db/repo";
 import { AddMaterialPage } from "../pages/AddMaterialPage";
@@ -22,6 +23,11 @@ export function App() {
   useEffect(() => {
     if (settings) applyTheme(settings.theme);
   }, [settings?.theme]);
+
+  // Finds the local AI once at start, so lessons can use it straight away.
+  useEffect(() => {
+    void refreshAi();
+  }, []);
 
   // Newer browsers return a promise from scrollTo, which an effect must not return.
   useEffect(() => {

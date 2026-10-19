@@ -22,6 +22,9 @@ function miniDictionary(failFirst = false) {
   put("forms", "marche", ["marcher", "verb", "indicative · present · third person · singular", "/maʁʃ/"]);
   put("forms", "ai", ["avoir", "verb", "indicative · present · first person · singular", "/e/"]);
   put("aliases", "ecole", ["école"]);
+  put("entries", "comment", ["comment", "/kɔ.mɑ̃/", "怎样；如何", "how", "adverb；intj；noun", "", ""]);
+  put("entries", "commer", ["commer", "/kɔ.me/", "比较", "to compare", "verb", "", ""]);
+  put("forms", "comment", ["commer", "verb", "indicative · plural · present · third person", "/kɔm/"]);
   put("entries", "bien sûr", ["bien sûr", "/bjɛ̃ syʁ/", "", "of course", "adv", "", ""]);
   put("entries", "sûr", ["sûr", "/syʁ/", "确定的", "sure", "adj", "", ""]);
   put("zh", "pratiquer", [{ pos: "verb", gender: "", zh: ["练习", "从事"] }]);
@@ -74,6 +77,15 @@ describe("looking up words (same rules as 1.0)", () => {
     const { dictionary } = miniDictionary();
     expect((await dictionary.lookup("marche", "fr", { context: "Mon téléphone marche bien." }))?.lemma).toBe("marcher");
     expect((await dictionary.lookup("marche", "fr", { context: "Une marche rapide." }))?.lemma).toBe("marche");
+  });
+
+  it("reads an adverb as the adverb, not as a rare verb form", async () => {
+    const { dictionary } = miniDictionary();
+    for (const context of ["Bonjour, comment allez-vous ?", "Comment tu t'appelles ?", "Je ne sais pas comment faire."]) {
+      const result = await dictionary.lookup(context.startsWith("Comment") ? "Comment" : "comment", "fr", { context });
+      expect(result?.lemma).toBe("comment");
+      expect(result?.isInflected).toBe(false);
+    }
   });
 
   it("treats 'allez' next to a subject as the verb, not the interjection", async () => {

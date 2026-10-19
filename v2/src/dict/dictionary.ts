@@ -372,7 +372,8 @@ export class Dictionary {
   private async preferVerbForm(surface: string, direct: DictEntry, form: FormInfo | null, options: LookupOptions): Promise<boolean> {
     if (!form?.lemma || form.pos !== "verb" || !options.context) return false;
     const parts = new Set(direct.posList);
-    if (parts.has("verb") || [...parts].some((part) => ["pronoun", "preposition", "conjunction", "determiner", "article"].includes(part))) return false;
+    // An adverb is read as itself: "comment" is "how", not a form of the archaic "commer".
+    if (parts.has("verb") || [...parts].some((part) => ["pronoun", "preposition", "conjunction", "determiner", "article", "adverb"].includes(part))) return false;
     if (![...parts].some((part) => ["noun", "proper noun", "adjective", "interjection"].includes(part))) return false;
     const key = normalize(surface);
     const tokens = contextTokens(options.context);

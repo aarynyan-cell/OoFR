@@ -1,4 +1,5 @@
 import { type ChangeEvent, useState } from "react";
+import { useAi } from "../ai/state";
 import { speakOnce, useVoices } from "../app/audio";
 import { useV1Migration } from "../app/migration";
 import { toast } from "../app/toast";
@@ -9,6 +10,8 @@ import type { ThemeChoice } from "../db/types";
 import { backupFileName, createBackup, importAnyFile, restoreSnapshot, snapshotInfo } from "../backup/backup";
 import { shareOrDownload } from "../app/download";
 import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
+import { AiSheet, aiSummary } from "../ui/AiSheet";
+import { ChevronIcon } from "../ui/icons";
 
 const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "night", label: "夜读" },
@@ -30,6 +33,8 @@ export function MePage() {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const undoInfo = useLive(() => snapshotInfo(), []);
+  const ai = useAi();
+  const [aiOpen, setAiOpen] = useState(false);
 
   // The joke voices (Grandma, Eddy…) stay out of the list unless one is already chosen.
   const french = frenchVoices(voices).filter((voice) => voiceQuality(voice) !== "novelty" || voiceId(voice) === settings?.voice);
@@ -140,9 +145,10 @@ export function MePage() {
           {canDownloadBetterVoice(voices, navigator.userAgent) && (
             <p className="list-note">iPhone / Mac 可以在 设置 → 辅助功能 → 朗读内容 → 声音 → 法语 里免费下载“增强版”声音，会自然很多。</p>
           )}
-          <div className="list-row">
-            <span className="grow stack-2"><span>AI 讲解</span><span className="dim small">下一步上线：电脑一键安装，手机自动连上电脑</span></span>
-          </div>
+          <button type="button" className="list-row list-button" onClick={() => setAiOpen(true)}>
+            <span className="grow stack-2"><span>本机 AI</span><span className="dim small">{aiSummary(ai)}</span></span>
+            <ChevronIcon size={18} />
+          </button>
         </div>
       </section>
 
@@ -162,6 +168,7 @@ export function MePage() {
           <span className="mono muted small">{__APP_VERSION__}</span>
         </div>
       </section>
+      {aiOpen && <AiSheet onClose={() => setAiOpen(false)} />}
     </main>
   );
 }
