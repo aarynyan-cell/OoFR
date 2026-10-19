@@ -1,9 +1,27 @@
 # OoFR 法语磁带
 
-OoFR 法语磁带是一个本地优先的法语/英语学习 PWA，也可以作为 Microsoft Edge / Google Chrome 插件使用。课程用于学习，磁带用于分类素材，词句本用于收藏和复习。
+OoFR 法语磁带是一个本地优先的法语学习应用：磁带用于分类素材，素材用来听读、跟读和练习，词句本用于收藏和复习。全部免费，数据只保存在自己的设备上。
 
-- 手机/网页：<https://aarynyan-cell.github.io/OoFR/>
-- macOS 测试版与浏览器插件：<https://github.com/aarynyan-cell/OoFR/releases/tag/v1.0.0>
+## 2.0
+
+- 手机 / 网页：<https://aarynyan-cell.github.io/OoFR/>（iPhone 用 Safari 打开 → 分享 → 添加到主屏幕；以后从主屏幕图标打开）
+- Mac 应用：<https://github.com/aarynyan-cell/OoFR/releases/tag/v2.0.0>（没有付费签名：第一次打开时，在“系统设置 → 隐私与安全性”里点“仍要打开”）
+
+2.0 的代码在 [`v2/`](v2/)（Vite + React + TypeScript + Dexie），网站由 GitHub Actions 从 `v2/` 构建发布。
+
+- **听读**：逐句朗读（系统声音，免费离线），点句子只播这一句，底部播放键从当前句播到最后；法 / 中 / 双语显示；点词查词典（释义按词性分组，常用词有本机 AI 依据维基词典翻译的中文释义）。
+- **跟读**：录音、自动和原句对比、总评与推荐收藏、全文/单句回放、导出跟读音频。
+- **练习**：选题型（听句选句、填空、排序），自动朗读，5 秒后显示答案，错题可收藏。
+- **复习**：词句本 FSRS 间隔复习，待学 / 学习中 / 已掌握三种颜色贯穿全应用。
+- **本机 AI**：译文和逐句讲解由这台电脑上的 Ollama 生成（默认 qwen3.5:9b，内存小的电脑用 qwen3.5:4b），不上传网络、不需要 API Key。Mac 应用一键安装和下载模型；讲解先用词典和固定规则确定时态、倒装、否定等事实，再交给 AI。
+- **连接手机**：Mac 应用里显示二维码，手机扫码配对。之后在同一个 Wi-Fi 下，手机的译文和讲解由电脑生成，磁带、素材、词句本自动双向同步。连接是手机和电脑直连（WebRTC），不经过任何服务器，Ollama 只监听本机 127.0.0.1。学校、公司等禁止设备互连的 Wi-Fi 下，让电脑连手机热点。
+- **从 1.0 搬过来**：在“我的”里一键导入 1.0 的素材、词句本和录音；1.0 的数据只读不删。也可以导入 2.0 / 1.0 备份和学习包。
+
+测试：`cd v2 && npm test`（Vitest），`cd v2/desktop/src-tauri && cargo test`，`python3 -m unittest discover -s v2/scripts -p "test_*.py"`。
+
+## 1.0
+
+1.0 的网页版已被 2.0 取代；1.0 的 macOS 测试版与浏览器插件仍在 <https://github.com/aarynyan-cell/OoFR/releases/tag/v1.0.0>。以下是 1.0 的说明。
 
 ## 当前能力
 

@@ -1,0 +1,52 @@
+# Builds OoFR 2.0 (v2/) and publishes it as the GitHub Pages site whenever
+# main changes. The dictionary shards come from dictionary/ at the repo root.
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_CONFIG_NATIVE_IGNORE_WARNING: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+      - name: Install
+        working-directory: v2
+        run: npm ci
+      - name: Test
+        working-directory: v2
+        run: npm test
+      - name: Build
+        working-directory: v2
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: v2/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

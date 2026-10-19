@@ -13,7 +13,14 @@ const ASSETS = __ASSETS__;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS.map((asset) => new Request(asset, { cache: "reload" }))))
+    caches.keys().then(async (keys) => {
+      // The first 2.0 worker replaces 1.0's straight away (1.0 pages cannot ask
+      // for the update); later 2.0 updates wait for the learner's "刷新".
+      const first = !keys.some((key) => key.startsWith(CACHE_PREFIX));
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(ASSETS.map((asset) => new Request(asset, { cache: "reload" })));
+      if (first) await self.skipWaiting();
+    })
   );
 });
 
