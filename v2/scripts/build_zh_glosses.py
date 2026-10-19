@@ -24,6 +24,7 @@ import argparse
 import gzip
 import json
 import re
+import subprocess
 import sys
 import time
 import unicodedata
@@ -97,15 +98,42 @@ def lexicon_keys() -> set[str]:
     return words
 
 
+def form_lemmas() -> dict[str, str]:
+    """Inflected form → dictionary form, from the dictionary's forms shards (est → être)."""
+    lemmas: dict[str, str] = {}
+    for path in sorted((OUT_DIR / "fr").glob("forms-*.json")):
+        for form, row in json.loads(path.read_text(encoding="utf-8")).items():
+            if row and row[0]:
+                lemmas[form] = normalize_key(row[0])
+    return lemmas
+
+
+TOKEN = re.compile(r"[a-zàâäçéèêëîïôöûùüÿœæ]+(?:['’-][a-zàâäçéèêëîïôöûùüÿœæ]+)*")
+ELISION = re.compile(r"^(?:c|d|j|l|m|n|qu|s|t|jusqu|lorsqu|puisqu)'")
+
+
 def load_words() -> dict[str, dict]:
-    """Word → {word, groups: [{pos, gender, senses}], score} from Kaikki."""
+    """Word → {word, groups: [{pos, gender, senses}], score} from Kaikki.
+    The score is how often the word (any of its forms) appears in the example
+    sentences across the whole French Wiktionary: a local stand-in for a
+    frequency list, since none is kept in the repository."""
     words: dict[str, dict] = {}
+    counts: dict[str, int] = {}
+    lemmas = form_lemmas()
     with gzip.open(kaikki_path(), "rt", encoding="utf-8") as source:
         for line in source:
             entry = json.loads(line)
+            for sense in entry.get("senses", []):
+                for example in sense.get("examples", []):
+                    for token in TOKEN.findall(str(example.get("text", "")).lower().replace("’", "'")):
+                        token = ELISION.sub("", token)
+                        counts[token] = counts.get(token, 0) + 1
+                        lemma = lemmas.get(token)
+                        if lemma and lemma != token:
+                            counts[lemma] = counts.get(lemma, 0) + 1
             pos = POS_NAMES.get(entry.get("pos", ""))
             word = entry.get("word", "")
-            if not pos or not word or entry.get("lang_code") != "fr":
+            if not pos or not word or entry.get("lang_code") != "fr" or word[:1].isupper():
                 continue
             senses, gender = [], ""
             for sense in entry.get("senses", []):
@@ -120,7 +148,7 @@ def load_words() -> dict[str, dict]:
             if not senses:
                 continue
             key = normalize_key(word)
-            record = words.setdefault(key, {"word": word, "groups": [], "score": 0.0})
+            record = words.setdefault(key, {"word": word, "groups": [], "score": 0})
             gender = gender if pos == "noun" else ""
             # Four senses per group, each trimmed: shorter prompts translate much faster.
             senses = [re.sub(r"\s+", " ", sense)[:90] for sense in senses[:4]]
@@ -131,13 +159,9 @@ def load_words() -> dict[str, dict]:
                 existing["senses"] = (existing["senses"] + [sense for sense in senses if sense not in existing["senses"]])[:6]
             else:
                 record["groups"].append({"pos": pos, "gender": gender, "senses": senses})
-            # Rough commonness among the frequent lemmas (no frequency list is kept locally):
-            # short words with several senses, a recorded pronunciation and many derived
-            # words come first; hyphenated and long words later.
-            audio = any(sound.get("audio") or sound.get("mp3_url") for sound in entry.get("sounds", []))
-            record["score"] += min(len(senses), 5) + 3 * audio + min(len(entry.get("derived", [])), 30) / 6
-            if "-" in word or len(word) > 11:
-                record["score"] -= 4
+    for key, record in words.items():
+        # An expression is as common as its rarest word.
+        record["score"] = min(counts.get(ELISION.sub("", part), 0) for part in key.split(" "))
     return words
 
 
@@ -160,7 +184,9 @@ def ask(batch: list[dict]) -> str:
     body = {
         # This Mac's Ollama keeps a model loaded for 30 minutes by default; let it go
         # two minutes after the last batch so it never sits in memory unused.
-        "model": MODEL, "stream": False, "think": False, "keep_alive": "2m", "options": {"temperature": 0.1, "num_ctx": 4096},
+        "model": MODEL, "stream": False, "think": False, "keep_alive": "2m",
+        # A batch needs a few hundred tokens; the cap stops a rambling answer early.
+        "options": {"temperature": 0.1, "num_ctx": 4096, "num_predict": 120 * len(batch)},
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
     }
     request = urllib.request.Request(OLLAMA, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
@@ -223,6 +249,9 @@ def translate(limit: int, batch_size: int) -> None:
         done = {json.loads(line)["key"] for line in PROGRESS.read_text(encoding="utf-8").splitlines() if line.strip()}
     frequent = lexicon_keys()
     words = load_words()
+    # Hand-reviewed words always win in the app; no need to translate them.
+    curated = set(json.loads((OUT_DIR / "curated.json").read_text(encoding="utf-8")).get("fr", {}))
+    done |= {normalize_key(key) for key in curated}
     singles = sorted((key for key in words if key in frequent and key not in done and " " not in key), key=lambda key: -words[key]["score"])
     # Then fixed expressions made only of frequent words ("bien sûr", "tout à l'heure").
     phrases = sorted(
@@ -233,22 +262,39 @@ def translate(limit: int, batch_size: int) -> None:
     print(f"{len(done)} done, {len(queue)} to translate with {MODEL}", flush=True)
     PROGRESS.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()
+    missed: list[str] = []
+    failures = PROGRESS.with_name("zh-glosses-failed.log")
+
+    def run_batch(keys: list[str], out) -> dict:
+        batch = [words[key] for key in keys]
+        try:
+            answer = ask(batch)
+        except Exception as error:  # Ollama restarted, timeout: these words are retried at the end
+            print(f"batch {keys[0]}: {error}", flush=True)
+            time.sleep(10)
+            return {}
+        results = parse(answer, batch)
+        if len(results) < len(batch):
+            with failures.open("a", encoding="utf-8") as log:
+                log.write(f"--- {[key for key in keys if key not in results]}\n{answer}\n")
+        stamp = datetime.now(timezone.utc).isoformat()
+        for key, groups in results.items():
+            out.write(json.dumps({"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp}, ensure_ascii=False) + "\n")
+        out.flush()
+        return results
+
     with PROGRESS.open("a", encoding="utf-8") as out:
         for index in range(0, len(queue), batch_size):
-            batch = [words[key] for key in queue[index:index + batch_size]]
-            try:
-                results = parse(ask(batch), batch)
-            except Exception as error:  # Ollama restarted, timeout: retry this batch once later
-                print(f"batch {index}: {error}", flush=True)
-                time.sleep(10)
-                continue
-            stamp = datetime.now(timezone.utc).isoformat()
-            for key, groups in results.items():
-                out.write(json.dumps({"key": key, "word": words[key]["word"], "groups": groups, "model": MODEL, "at": stamp}, ensure_ascii=False) + "\n")
-            out.flush()
-            finished = index + len(batch)
+            keys = queue[index:index + batch_size]
+            results = run_batch(keys, out)
+            missed += [key for key in keys if key not in results]
+            finished = index + len(keys)
             rate = (time.time() - started) / finished
-            print(f"{finished}/{len(queue)} · {len(results)}/{len(batch)} ok · {rate:.1f}s/word · ~{rate * (len(queue) - finished) / 3600:.1f}h left · {getattr(ask, 'timing', '')}", flush=True)
+            print(f"{finished}/{len(queue)} · {len(results)}/{len(keys)} ok · {rate:.1f}s/word · ~{rate * (len(queue) - finished) / 3600:.1f}h left · {getattr(ask, 'timing', '')}", flush=True)
+        # Words that did not come back in a batch get a second try, two at a time.
+        for index in range(0, len(missed), 2):
+            results = run_batch(missed[index:index + 2], out)
+            print(f"retry {index + 2}/{len(missed)} · {len(results)} ok", flush=True)
 
 
 def pack() -> None:
@@ -277,14 +323,31 @@ def pack() -> None:
     print(f"listed {len(expressions)} expressions")
 
 
+def status() -> None:
+    """Progress in plain words, for the owner."""
+    log = PROGRESS.with_name("zh-glosses.log")
+    lines = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+    done = sum(1 for line in PROGRESS.read_text(encoding="utf-8").splitlines() if line.strip()) if PROGRESS.exists() else 0
+    running = subprocess.run(["pgrep", "-f", "build_zh_glosses.py translate"], capture_output=True).returncode == 0
+    last = next((line for line in reversed(lines) if re.match(r"^\d+/\d+ ", line)), "")
+    match = re.match(r"^(\d+)/(\d+) .*~([\d.]+)h left", last)
+    print(f"词典中文释义：已翻译 {done} 个词。")
+    if match:
+        current, total, hours = int(match.group(1)), int(match.group(2)), float(match.group(3))
+        print(f"本轮进度 {current}/{total}（{current * 100 // total}%），预计还要约 {hours:.1f} 小时。")
+    print("后台任务正在运行。" if running else "后台任务没有在运行。")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("step", choices=["translate", "pack"])
+    parser.add_argument("step", choices=["translate", "pack", "status"])
     parser.add_argument("--limit", type=int, default=30000)
     parser.add_argument("--batch", type=int, default=10)
     args = parser.parse_args()
     if args.step == "translate":
         translate(args.limit, args.batch)
+    elif args.step == "status":
+        status()
     else:
         pack()
 
