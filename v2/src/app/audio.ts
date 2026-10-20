@@ -57,7 +57,7 @@ export function playMaterial(material: Material, startIndex: number, settings: S
   const items = material.sentences.map((sentence) => ({ text: sentence.text, lang: material.language === "en" ? "en-US" : "fr-FR" }));
   void markStudiedToday();
   void setPosition(material.id, startIndex);
-  if (typeof MediaMetadata !== "undefined" && navigator.mediaSession) navigator.mediaSession.metadata = new MediaMetadata({ title: material.title, artist: "OoFR 法语磁带" });
+  if (typeof MediaMetadata !== "undefined" && navigator.mediaSession) navigator.mediaSession.metadata = new MediaMetadata({ title: material.title, artist: import.meta.env.DEV ? "OoFR 测试版" : "OoFR 法语磁带" });
   // The Mac app (and a phone paired with it) prepares the coming sentences while one plays.
   const lang = material.language === "en" ? "en-US" : "fr-FR";
   prefetchSpeech([...items.slice(startIndex), ...items.slice(0, startIndex)].map((item) => item.text), pickVoice(voices, settings.voice), lang, settings.rate);

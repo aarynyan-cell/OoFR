@@ -17,15 +17,26 @@ class FakeAudio {
   starts: string[] = [];
   onended: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  // Like a browser: a play() still getting going fails when the element is emptied.
+  private abort: (() => void) | null = null;
   play() {
     this.paused = false;
     if (!this.src.startsWith("data:")) this.starts.push(this.src);
-    return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      this.abort = () => reject(new DOMException("The operation was aborted.", "AbortError"));
+      setTimeout(() => {
+        this.abort = null;
+        resolve();
+      }, 5);
+    });
   }
   pause() {
     this.paused = true;
   }
-  load() {}
+  load() {
+    this.abort?.();
+    this.abort = null;
+  }
   removeAttribute(name: string) {
     if (name === "src") this.src = "";
   }
@@ -168,6 +179,56 @@ describe("phone playback with the Mac's voices", () => {
     await sleep(200);
     expect(web.spoken).toEqual(["Bonjour.", "Bonjour."]);
     player.stop();
+  });
+
+  it("pausing leaves nothing in the phone's media player, wherever the pause comes", async () => {
+    const reading = setup(10);
+    void reading.player.play("lesson", items, 0, options());
+    await sleep(40);
+    reading.player.pause();
+    expect(reading.audio.src).toBe("");
+    reading.player.stop();
+
+    const between = setup(10);
+    void between.player.play("lesson", items, 0, options(200));
+    await sleep(40);
+    between.audio.finish();
+    await sleep(20);
+    between.player.pause();
+    expect(between.audio.src).toBe("");
+    between.player.stop();
+
+    const browserVoice = setup(null);
+    void browserVoice.player.play("lesson", items, 0, options());
+    await sleep(30);
+    browserVoice.player.pause();
+    expect(browserVoice.audio.src).toBe("");
+    browserVoice.player.stop();
+  });
+
+  it("a pause just as a sentence starts neither fails nor switches to the browser voice", async () => {
+    const { audio, web, player } = setup(10);
+    void player.play("lesson", items, 0, options());
+    await sleep(12);
+    expect(audio.starts).toHaveLength(1);
+    player.pause();
+    await sleep(200);
+    expect(web.spoken).toEqual([]);
+    expect(player.getState().status).toBe("paused");
+    player.resume();
+    expect(audio.starts).toHaveLength(2);
+    expect(audio.starts[1]).toBe(audio.starts[0]);
+    player.stop();
+  });
+
+  it("a single sentence that has finished leaves nothing behind", async () => {
+    const { audio, player } = setup(10);
+    void player.play("once", [items[0]], 0, { ...options(), repeat: 1 });
+    await sleep(40);
+    audio.finish();
+    await sleep(100);
+    expect(player.getState().status).toBe("idle");
+    expect(audio.src).toBe("");
   });
 
   it("stopping leaves nothing for the system's media controls to start again", async () => {

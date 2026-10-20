@@ -23,11 +23,20 @@ function set(next: RecordingPlayback) {
   listeners.forEach((listener) => listener());
 }
 
+// Emptied, so the phone's Dynamic Island and lock screen do not keep a finished recording.
+function letGo(audio: HTMLAudioElement): void {
+  audio.pause();
+  audio.onended = null;
+  audio.onerror = null;
+  URL.revokeObjectURL(audio.src);
+  audio.removeAttribute("src");
+  audio.load();
+}
+
 export function stopRecordingAudio(): void {
   run += 1;
   if (element) {
-    element.pause();
-    URL.revokeObjectURL(element.src);
+    letGo(element);
     element = null;
   }
   if (state.status !== "idle") set(IDLE);
@@ -39,7 +48,7 @@ function playOne(blob: Blob, token: number): Promise<void> {
     const audio = new Audio(URL.createObjectURL(blob));
     element = audio;
     const done = () => {
-      URL.revokeObjectURL(audio.src);
+      letGo(audio);
       if (element === audio) element = null;
       resolve();
     };

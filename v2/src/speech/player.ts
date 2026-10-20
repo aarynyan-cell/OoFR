@@ -119,6 +119,8 @@ export class SpeechPlayer {
     } finally {
       if (token === this.runToken) {
         this.current = null;
+        // Done: the engine lets go of its audio, so the phone's Dynamic Island and lock screen clear.
+        synth.cancel();
         this.set({ ...IDLE, message });
       }
     }

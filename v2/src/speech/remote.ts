@@ -49,6 +49,8 @@ export class RemoteSynth {
   private unlocked = false;
   private queue: { text: string; voice: string; rate: number }[] = [];
   private prefetching = false;
+  // The sentence whose audio is playing (or waiting for resume).
+  private current: { url: string; utterance: RemoteUtterance; number: number } | null = null;
 
   constructor(
     private readonly web: SpeechSynthesis | undefined = globalThis.speechSynthesis,
@@ -181,6 +183,7 @@ export class RemoteSynth {
     this.mode = "audio";
     this.audioPaused = false;
     this.pending = true;
+    this.dropCurrent();
     // Still inside the learner's tap the first time: start the element now, so
     // the sentence can play when its audio arrives.
     if (this.audio && !this.unlocked) {
@@ -191,21 +194,38 @@ export class RemoteSynth {
     void this.audioFor(utterance).then((blob) => {
       if (number !== this.number) return;
       this.pending = false;
-      const audio = this.audio;
-      if (!blob || !audio) return this.speakWithBrowser(utterance, number);
-      const url = URL.createObjectURL(blob);
-      const done = (finish: () => void) => {
-        URL.revokeObjectURL(url);
-        if (number !== this.number) return;
-        this.mode = "";
-        finish();
-      };
-      audio.onended = () => done(() => utterance.onend?.());
-      audio.onerror = () => done(() => this.speakWithBrowser(utterance, number));
-      audio.src = url;
+      if (!blob || !this.audio) return this.speakWithBrowser(utterance, number);
+      this.current = { url: URL.createObjectURL(blob), utterance, number };
       // Paused while the audio was on its way: it starts on resume, not before.
-      if (!this.audioPaused) void audio.play().catch(() => done(() => this.speakWithBrowser(utterance, number)));
+      if (!this.audioPaused) this.startCurrent();
     });
+  }
+
+  // Plays the current sentence's audio from its start.
+  private startCurrent(): void {
+    const audio = this.audio;
+    const current = this.current;
+    if (!audio || !current) return;
+    const { url, utterance, number } = current;
+    const done = (finish: () => void) => {
+      if (number !== this.number) return;
+      this.dropCurrent();
+      this.mode = "";
+      finish();
+    };
+    audio.onended = () => done(() => utterance.onend?.());
+    audio.onerror = () => done(() => this.speakWithBrowser(utterance, number));
+    audio.src = url;
+    void audio.play().catch(() => {
+      // Paused or stopped before it got going: not a failure.
+      if (this.audioPaused || number !== this.number) return;
+      done(() => this.speakWithBrowser(utterance, number));
+    });
+  }
+
+  private dropCurrent(): void {
+    if (this.current) URL.revokeObjectURL(this.current.url);
+    this.current = null;
   }
 
   private speakWithBrowser(utterance: RemoteUtterance, number: number): void {
@@ -251,24 +271,24 @@ export class RemoteSynth {
     this.pending = false;
     this.audioPaused = false;
     this.release();
+    this.dropCurrent();
     this.web?.cancel();
   }
 
+  // A paused sentence leaves nothing in the phone's media player, so the
+  // Dynamic Island and lock screen have nothing to show or start on their own;
+  // the sentence plays again from its start on resume.
   pause(): void {
-    if (this.mode === "audio") {
-      this.audioPaused = true;
-      this.audio?.pause();
-    } else if (this.mode === "web") {
-      // The iPhone's speech often ignores pause(): stop it for sure; the player
-      // reads the sentence again from its start on resume.
-      this.web?.cancel();
-    }
+    if (this.mode === "audio") this.audioPaused = true;
+    // The iPhone's speech often ignores pause(): stop it for sure; the player
+    // reads the sentence again on resume.
+    else if (this.mode === "web") this.web?.cancel();
+    this.release();
   }
 
   resume(): void {
-    if (this.mode === "audio") {
-      this.audioPaused = false;
-      if (!this.pending) void this.audio?.play().catch(() => undefined);
-    }
+    if (this.mode !== "audio") return;
+    this.audioPaused = false;
+    if (!this.pending) this.startCurrent();
   }
 }
