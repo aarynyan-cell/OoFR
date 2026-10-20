@@ -10,7 +10,6 @@ import { markStudiedToday, saveRecording, setPosition, toggleSentence } from "..
 import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
 import { type Listening, canRecognize, listen, recognitionSettled } from "../speech/recognizer";
-import { holdRecordingSession, restartRecordingSession } from "../speech/audioSession";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
 import { type MicState, askMicrophone, canOpenSystemSettings, micState, micSteps, openSystemSettings } from "../speech/microphone";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
@@ -90,9 +89,6 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
 
   useEffect(() => () => stopRecordingAudio(), []);
 
-  // The iPhone plays the original and records the learner in turns without switching modes.
-  useEffect(() => holdRecordingSession(), []);
-
   useEffect(() => {
     if (phase !== "recording") return;
     const started = Date.now();
@@ -146,13 +142,9 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
       else listening.current?.cancel();
       listening.current = null;
       devLog("take-failed", { error: error instanceof Error ? error.message : String(error) });
-      if (error instanceof RecorderError && error.silent) {
-        // The microphone gave nothing: start it afresh for the next take.
-        await restartRecordingSession();
-        toast("这次没录到声音，麦克风已重新打开，请再录一次");
-      } else {
-        toast(error instanceof RecorderError ? error.message : "这次没录好，请再试一次");
-      }
+      // An empty take on an iPhone (known issue, docs/known-issues.md): reopening brings the microphone back.
+      if (error instanceof RecorderError && error.silent && /iPhone|iPad/.test(navigator.userAgent)) toast("没有录到声音。iPhone 有时会卡住麦克风：关掉 OoFR 再打开（网页版刷新一下）就好了");
+      else toast(error instanceof RecorderError ? error.message : "这次没录好，请再试一次");
     } finally {
       setPhase("idle");
     }
