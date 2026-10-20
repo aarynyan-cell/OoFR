@@ -140,7 +140,9 @@ struct AiStatus {
 }
 
 fn support_dir() -> Result<PathBuf, String> {
-    #[cfg(test)]
+    // Tests, and a test copy run beside the installed app (its own pairing identity
+    // and devices, so a phone paired with the real app never reaches the test copy).
+    #[cfg(any(test, debug_assertions))]
     if let Some(dir) = std::env::var_os("OOFR_SUPPORT_DIR") {
         return Ok(PathBuf::from(dir));
     }
