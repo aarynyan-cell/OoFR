@@ -34,7 +34,8 @@ async function cacheKey(voice: string, rate: number, text: string): Promise<stri
   return `${location.origin}/__oofr_voice__/${hex}`;
 }
 
-// A sliver of silence played on the first tap, so later sentences may start on their own (iPhone).
+// A sliver of silence played inside the tap that starts playback, so the
+// sentences that follow may start on their own (iPhone).
 const SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
 
 export class RemoteSynth {
@@ -42,28 +43,23 @@ export class RemoteSynth {
   private macVoices: SpeechSynthesisVoice[] = [];
   private listeners = new Set<() => void>();
   private number = 0;
-  private audio: HTMLAudioElement | null = typeof Audio === "undefined" ? null : new Audio();
   // "audio" while a Mac (or kept) recording plays, "web" while the browser voice speaks.
   private mode: "audio" | "web" | "" = "";
   private audioPaused = false;
+  private unlocked = false;
   private queue: { text: string; voice: string; rate: number }[] = [];
   private prefetching = false;
 
-  constructor(private readonly web: SpeechSynthesis | undefined = globalThis.speechSynthesis) {
+  constructor(
+    private readonly web: SpeechSynthesis | undefined = globalThis.speechSynthesis,
+    private readonly audio: HTMLAudioElement | null = typeof Audio === "undefined" ? null : new Audio()
+  ) {
     web?.addEventListener?.("voiceschanged", () => this.notify());
     // A new connection may bring other voices: fetch them again before the next sentence.
     onPairedMac(() => {
       this.macVoices = [];
       void this.macVoicesReady();
     });
-    if (typeof document !== "undefined") {
-      const unlock = () => {
-        if (!this.audio || this.mode) return;
-        this.audio.src = SILENCE;
-        void this.audio.play().then(() => this.audio?.pause(), () => undefined);
-      };
-      document.addEventListener("pointerdown", unlock, { once: true, capture: true });
-    }
   }
 
   private notify(): void {
@@ -150,7 +146,7 @@ export class RemoteSynth {
   }
 
   // The audio for a sentence: kept on the phone, or read by the paired Mac now.
-  private async audioFor(utterance: RemoteUtterance): Promise<Blob | null> {
+  protected async audioFor(utterance: RemoteUtterance): Promise<Blob | null> {
     await Promise.race([this.macVoicesReady(), new Promise((resolve) => setTimeout(resolve, 3000))]);
     const voice = this.macVoiceFor(utterance.voice, utterance.lang);
     if (!voice) return null;
@@ -184,8 +180,17 @@ export class RemoteSynth {
     const number = (this.number += 1);
     this.mode = "audio";
     this.audioPaused = false;
+    this.pending = true;
+    // Still inside the learner's tap the first time: start the element now, so
+    // the sentence can play when its audio arrives.
+    if (this.audio && !this.unlocked) {
+      this.unlocked = true;
+      this.audio.src = SILENCE;
+      void this.audio.play().catch(() => undefined);
+    }
     void this.audioFor(utterance).then((blob) => {
       if (number !== this.number) return;
+      this.pending = false;
       const audio = this.audio;
       if (!blob || !audio) return this.speakWithBrowser(utterance, number);
       const url = URL.createObjectURL(blob);
@@ -198,12 +203,14 @@ export class RemoteSynth {
       audio.onended = () => done(() => utterance.onend?.());
       audio.onerror = () => done(() => this.speakWithBrowser(utterance, number));
       audio.src = url;
+      // Paused while the audio was on its way: it starts on resume, not before.
       if (!this.audioPaused) void audio.play().catch(() => done(() => this.speakWithBrowser(utterance, number)));
     });
   }
 
   private speakWithBrowser(utterance: RemoteUtterance, number: number): void {
     if (number !== this.number) return;
+    this.pending = false;
     if (!this.web) {
       this.mode = "";
       utterance.onerror?.({ error: "voice-unavailable" });
@@ -228,11 +235,22 @@ export class RemoteSynth {
     this.web.speak(spoken);
   }
 
+  // Nothing left for the system's media controls (Dynamic Island, lock screen) to start again.
+  private release(): void {
+    if (!this.audio) return;
+    this.audio.pause();
+    this.audio.onended = null;
+    this.audio.onerror = null;
+    this.audio.removeAttribute("src");
+    this.audio.load();
+  }
+
   cancel(): void {
     this.number += 1;
     this.mode = "";
+    this.pending = false;
     this.audioPaused = false;
-    this.audio?.pause();
+    this.release();
     this.web?.cancel();
   }
 
@@ -240,13 +258,17 @@ export class RemoteSynth {
     if (this.mode === "audio") {
       this.audioPaused = true;
       this.audio?.pause();
-    } else this.web?.pause();
+    } else if (this.mode === "web") {
+      // The iPhone's speech often ignores pause(): stop it for sure; the player
+      // reads the sentence again from its start on resume.
+      this.web?.cancel();
+    }
   }
 
   resume(): void {
     if (this.mode === "audio") {
       this.audioPaused = false;
-      void this.audio?.play().catch(() => undefined);
-    } else this.web?.resume();
+      if (!this.pending) void this.audio?.play().catch(() => undefined);
+    }
   }
 }

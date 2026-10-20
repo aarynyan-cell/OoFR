@@ -115,9 +115,11 @@ export class NativeSynth {
       this.speaking = false;
       utterance.onerror?.({ error });
     };
+    this.pending = true;
     this.render(utterance.text, this.voiceFor(utterance), utterance.rate).then((url) => {
       const audio = this.audio;
       if (number !== this.number || !audio) return;
+      this.pending = false;
       audio.onended = () => {
         if (number !== this.number) return;
         this.speaking = false;
@@ -127,14 +129,19 @@ export class NativeSynth {
       audio.src = url;
       // Paused while the sentence was being rendered: it starts on resume.
       if (!this.paused) void audio.play().catch(() => fail("not-allowed"));
-    }, () => fail("synthesis-failed"));
+    }, () => {
+      this.pending = false;
+      fail("synthesis-failed");
+    });
   }
 
   cancel(): void {
     this.number += 1;
     this.speaking = false;
     this.paused = false;
+    this.pending = false;
     this.audio?.pause();
+    this.audio?.removeAttribute("src");
   }
 
   pause(): void {

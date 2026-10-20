@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { explainNow, planLesson, retryJob, translateNow, useAiJob } from "../ai/enrich";
 import { onPairedMac, useAi } from "../ai/state";
 import { useCardIndex } from "../app/cards";
+import { stopRecordingAudio } from "../app/recordings";
 import { materialKey, playMaterial, prepareLessonSpeech, speakOnce, togglePause, toggleSpeech, usePlayer } from "../app/audio";
 import { type LessonMode, href } from "../app/router";
 import { toast } from "../app/toast";
@@ -32,6 +33,11 @@ const pad = (value: number) => String(value).padStart(2, "0");
 export function LessonPage({ id, mode = "listen" }: { id: string; mode?: LessonMode }) {
   // null: not found; undefined: still loading.
   const material = useLive(async () => (await db.materials.get(id)) ?? null, [id]);
+  // Leaving the lesson, or switching 听读 / 跟读 / 练习, stops everything it was saying.
+  useEffect(() => () => {
+    player.stop();
+    stopRecordingAudio();
+  }, [id, mode]);
   const settings = useLive(() => getSettings(), []);
   const siblings = useLive(async () => (material ? materialsOfTape(await db.materials.where("tapeId").equals(material.tapeId).toArray(), material.tapeId) : []), [material?.tapeId]);
   const tape = useLive(async () => (material ? db.tapes.get(material.tapeId) : undefined), [material?.tapeId]);
@@ -100,8 +106,10 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
 
   const goTo = (next: number) => {
     const target = Math.min(Math.max(0, next), total - 1);
-    if (running) playMaterial(material, target, settings);
-    else void setPosition(material.id, target);
+    // Playing: carry on from there. Paused: move there and stay quiet until 播放.
+    if (running && state.status === "playing") return playMaterial(material, target, settings);
+    if (running) player.stop();
+    void setPosition(material.id, target);
   };
 
   const playPause = () => {

@@ -193,7 +193,8 @@ export class SpeechPlayer {
       const fallback = (delay: number) => {
         timer = setTimeout(() => {
           if (token !== this.runToken) return finish({ status: "cancelled" });
-          if (this.state.status === "paused") return fallback(estimate);
+          // Paused, or the engine is still fetching this sentence's audio: keep waiting.
+          if (this.state.status === "paused" || (synth as { pending?: boolean }).pending) return fallback(estimate);
           if (synth.speaking && !extended) {
             extended = true;
             return fallback(3000);
