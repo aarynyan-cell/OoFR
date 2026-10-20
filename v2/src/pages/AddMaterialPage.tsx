@@ -8,6 +8,7 @@ import { db } from "../db/database";
 import { createMaterial, createTape, deleteMaterial, getSettings, listTapes, materialText, updateMaterial } from "../db/repo";
 import { MATERIAL_TYPES, type MaterialType, countSpeakers, guessLanguage, inferMaterialType, splitSentences } from "../text/split";
 import { BackIcon, FileIcon } from "../ui/icons";
+import { confirmAction } from "../ui/Confirm";
 
 const MAX_FILE_BYTES = 2_000_000;
 
@@ -83,7 +84,7 @@ export function AddMaterialPage({ tapeId, editId }: { tapeId?: string; editId?: 
   };
 
   const remove = async () => {
-    if (!editing || !window.confirm(`删除「${editing.title}」？这条素材和它的录音会一起删除，收藏到词句本的内容会保留。`)) return;
+    if (!editing || !(await confirmAction(`删除「${editing.title}」？这条素材和它的录音会一起删除，收藏到词句本的内容会保留。`, { confirmLabel: "删除", danger: true }))) return;
     await deleteMaterial(editing.id);
     toast(`已删除「${editing.title}」`);
     navigate({ name: "tapes", tapeId: editing.tapeId }, { replace: true });

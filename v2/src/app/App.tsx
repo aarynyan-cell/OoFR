@@ -11,6 +11,7 @@ import { PhrasebookPage } from "../pages/PhrasebookPage";
 import { ReviewPage } from "../pages/ReviewPage";
 import { TapesPage } from "../pages/TapesPage";
 import { TodayPage } from "../pages/TodayPage";
+import { ConfirmHost } from "../ui/Confirm";
 import { TabBar } from "../ui/TabBar";
 import { useRoute } from "./router";
 import { applyTheme } from "./theme";
@@ -52,6 +53,7 @@ export function App() {
       {route.name === "pair" && <PairPage payload={route.payload} />}
       {withTabs && <TabBar active={route.name} />}
       <UpdateNotice />
+      <ConfirmHost />
       <div className={`toast${message ? " toast-show" : ""}`} role="status" aria-live="polite">{message}</div>
     </div>
   );

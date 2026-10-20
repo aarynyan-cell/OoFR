@@ -13,6 +13,7 @@ import { shareOrDownload } from "../app/download";
 import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
 import { AiSheet, aiSummary } from "../ui/AiSheet";
 import { ChevronIcon } from "../ui/icons";
+import { confirmAction } from "../ui/Confirm";
 
 const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "night", label: "夜读" },
@@ -88,7 +89,7 @@ export function MePage() {
   };
 
   const undoImport = async () => {
-    if (!undoInfo || !window.confirm(`把素材和词句本恢复到 ${new Date(undoInfo.at).toLocaleString("zh-CN")} 导入之前的样子？之后新增的内容会一起撤回。`)) return;
+    if (!undoInfo || !(await confirmAction(`把素材和词句本恢复到 ${new Date(undoInfo.at).toLocaleString("zh-CN")} 导入之前的样子？之后新增的内容会一起撤回。`, { confirmLabel: "撤回" }))) return;
     toast((await restoreSnapshot()) ? "已恢复到导入之前" : "没有可以恢复的数据");
   };
 

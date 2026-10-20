@@ -2011,3 +2011,13 @@ mark.missed {
   background: var(--surface-2);
   color: var(--text-2);
 }
+
+/* OoFR's own confirm dialog */
+.confirm-message {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.confirm-actions > .button {
+  flex: 1;
+}

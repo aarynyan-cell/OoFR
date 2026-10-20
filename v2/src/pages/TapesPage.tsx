@@ -9,6 +9,7 @@ import type { Material, Tape } from "../db/types";
 import { Modal } from "../ui/Modal";
 import { inkFor } from "../ui/color";
 import { ChevronIcon, SearchIcon } from "../ui/icons";
+import { confirmAction } from "../ui/Confirm";
 
 export function TapesPage({ tapeId }: { tapeId?: string }) {
   const tapes = useLive(() => listTapes(), []);
@@ -121,7 +122,7 @@ function TapeSheet({ tape, onClose }: { tape?: Tape; onClose: () => void }) {
     navigate({ name: "tapes", tapeId: created.id });
   };
   const remove = async () => {
-    if (!tape || !window.confirm(`删除磁带「${tape.title}」？里面的素材不会删除，会移到另一盘磁带。`)) return;
+    if (!tape || !(await confirmAction(`删除磁带「${tape.title}」？里面的素材不会删除，会移到另一盘磁带。`, { confirmLabel: "删除", danger: true }))) return;
     const { movedTo, moved } = await deleteTape(tape.id);
     toast(moved ? `已删除，${moved} 条素材移到了「${movedTo}」` : "已删除");
     onClose();

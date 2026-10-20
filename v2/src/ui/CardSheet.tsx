@@ -6,6 +6,7 @@ import type { Card, Settings, Wordbook } from "../db/types";
 import { frenchSpacing } from "../text/typography";
 import { Modal } from "./Modal";
 import { SpeakerIcon } from "./icons";
+import { confirmAction } from "./Confirm";
 
 // One phrasebook entry: fill in its meaning, mark it, sort it into wordbooks.
 export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; wordbooks: Wordbook[]; settings: Settings; onClose: () => void }) {
@@ -31,7 +32,7 @@ export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; 
   };
 
   const remove = async () => {
-    if (!window.confirm(`从词句本删除「${card.text}」？`)) return;
+    if (!(await confirmAction(`从词句本删除「${card.text}」？`, { confirmLabel: "删除", danger: true }))) return;
     await removeCard(card.id);
     toast("已删除");
     onClose();

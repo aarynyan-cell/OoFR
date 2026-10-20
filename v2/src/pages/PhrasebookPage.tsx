@@ -10,6 +10,7 @@ import { frenchSpacing } from "../text/typography";
 import { CardSheet } from "../ui/CardSheet";
 import { Modal } from "../ui/Modal";
 import { PlayIcon, SearchIcon } from "../ui/icons";
+import { confirmAction } from "../ui/Confirm";
 
 const FILTERS: { value: CardFilter; label: string }[] = [
   { value: "all", label: "全部" },
@@ -40,7 +41,7 @@ export function PhrasebookPage() {
   };
 
   const removeBook = async () => {
-    if (!selectedBook || !window.confirm(`删除词本「${selectedBook.title}」？里面的词句不会删除。`)) return;
+    if (!selectedBook || !(await confirmAction(`删除词本「${selectedBook.title}」？里面的词句不会删除。`, { confirmLabel: "删除", danger: true }))) return;
     await deleteWordbook(selectedBook.id);
     setWordbookId("");
     toast("词本已删除");
