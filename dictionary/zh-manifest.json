@@ -1,9 +1,9 @@
 {
   "type": "oofr.dictionary.zh",
-  "version": "2026.10.20.0057",
+  "version": "2026.10.20.2101",
   "model": "qwen3.5:9b",
   "source": "Kaikki/Wiktionary English senses, translated by the local AI",
-  "entries": 14633,
+  "entries": 18119,
   "shards": [
     "00",
     "01",
