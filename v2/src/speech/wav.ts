@@ -1,6 +1,8 @@
 // Joins the learner's recordings into one WAV file to keep or share.
 // Recordings come as MP4 (iPhone) or WebM (Chrome); WAV plays everywhere.
 
+import { canDecode, decodeAudio } from "./decode";
+
 // 16-bit mono PCM WAV.
 export function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
@@ -42,27 +44,21 @@ export function resample(samples: Float32Array, from: number, to: number): Float
 
 // Takes in order with a short silence between them, at 22 kHz mono (about 2.6 MB a minute).
 export async function mergeRecordings(blobs: Blob[], gapSeconds = 0.6, sampleRate = 22050): Promise<{ wav: Blob; skipped: number }> {
-  const AudioContextClass = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) throw new Error("这个浏览器不能合并录音");
-  const context = new AudioContextClass();
+  if (!canDecode()) throw new Error("这个浏览器不能合并录音");
   const parts: Float32Array[] = [];
   let skipped = 0;
-  try {
-    for (const blob of blobs) {
-      try {
-        const audio = await context.decodeAudioData(await blob.arrayBuffer());
-        const mono = new Float32Array(audio.length);
-        for (let channel = 0; channel < audio.numberOfChannels; channel += 1) {
-          const data = audio.getChannelData(channel);
-          for (let index = 0; index < data.length; index += 1) mono[index] += data[index] / audio.numberOfChannels;
-        }
-        parts.push(resample(mono, audio.sampleRate, sampleRate), new Float32Array(Math.round(gapSeconds * sampleRate)));
-      } catch {
-        skipped += 1;
-      }
+  for (const blob of blobs) {
+    const audio = await decodeAudio(blob);
+    if (!audio) {
+      skipped += 1;
+      continue;
     }
-  } finally {
-    void context.close?.();
+    const mono = new Float32Array(audio.length);
+    for (let channel = 0; channel < audio.numberOfChannels; channel += 1) {
+      const data = audio.getChannelData(channel);
+      for (let index = 0; index < data.length; index += 1) mono[index] += data[index] / audio.numberOfChannels;
+    }
+    parts.push(resample(mono, audio.sampleRate, sampleRate), new Float32Array(Math.round(gapSeconds * sampleRate)));
   }
   if (!parts.length) throw new Error("录音无法解码，合并失败");
   const total = parts.reduce((sum, part) => sum + part.length, 0);

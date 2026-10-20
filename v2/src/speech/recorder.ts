@@ -2,6 +2,7 @@
 // The microphone is released as soon as a take ends.
 
 import { devLog } from "../app/devlog";
+import { decodeAudio } from "./decode";
 
 export interface Take {
   blob: Blob;
@@ -14,11 +15,9 @@ export interface RecordingSession {
   cancel(): void;
 }
 
-// The plain microphone, without the phone-call processing (echo removal):
-// nothing plays while the learner records, and on an iPhone that processing
-// froze after a sentence had played (takes came back empty for a minute) and
-// turned other sounds down while it ran.
-const MICROPHONE: MediaStreamConstraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+// With the phone's voice processing: without it an iPhone records about 15
+// times quieter (tried on a real iPhone: takes were hard to hear).
+const MICROPHONE: MediaStreamConstraints = { audio: { echoCancellation: true, noiseSuppression: true } };
 
 // iPhone records AAC in MP4; Chrome and Firefox record Opus in WebM.
 const MIME_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
@@ -112,40 +111,25 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
 
 // How loud the loudest moment of a take is (0 = silence; test versions only).
 async function loudness(blob: Blob): Promise<number> {
-  const AudioContextClass = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) return -1;
-  const context = new AudioContextClass();
-  try {
-    const data = (await context.decodeAudioData(await blob.arrayBuffer())).getChannelData(0);
-    let peak = 0;
-    for (let index = 0; index < data.length; index += 1) peak = Math.max(peak, Math.abs(data[index]));
-    return Math.round(peak * 1000) / 1000;
-  } catch {
-    return -1;
-  } finally {
-    void context.close?.();
-  }
+  const audio = await decodeAudio(blob);
+  if (!audio) return -1;
+  const data = audio.getChannelData(0);
+  let peak = 0;
+  for (let index = 0; index < data.length; index += 1) peak = Math.max(peak, Math.abs(data[index]));
+  return Math.round(peak * 1000) / 1000;
 }
 
 // Loudness bars for the waveform under a take (empty when the audio cannot be decoded).
 export async function waveform(blob: Blob, bars = 36): Promise<number[]> {
-  const AudioContextClass = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) return [];
-  const context = new AudioContextClass();
-  try {
-    const audio = await context.decodeAudioData(await blob.arrayBuffer());
-    const data = audio.getChannelData(0);
-    const size = Math.max(1, Math.floor(data.length / bars));
-    const peaks = Array.from({ length: bars }, (_, bar) => {
-      let peak = 0;
-      for (let index = bar * size; index < Math.min(data.length, (bar + 1) * size); index += 1) peak = Math.max(peak, Math.abs(data[index]));
-      return peak;
-    });
-    const loudest = Math.max(...peaks, 0.001);
-    return peaks.map((peak) => peak / loudest);
-  } catch {
-    return [];
-  } finally {
-    void context.close?.();
-  }
+  const audio = await decodeAudio(blob);
+  if (!audio) return [];
+  const data = audio.getChannelData(0);
+  const size = Math.max(1, Math.floor(data.length / bars));
+  const peaks = Array.from({ length: bars }, (_, bar) => {
+    let peak = 0;
+    for (let index = bar * size; index < Math.min(data.length, (bar + 1) * size); index += 1) peak = Math.max(peak, Math.abs(data[index]));
+    return peak;
+  });
+  const loudest = Math.max(...peaks, 0.001);
+  return peaks.map((peak) => peak / loudest);
 }
