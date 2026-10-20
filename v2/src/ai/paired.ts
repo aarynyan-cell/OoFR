@@ -97,9 +97,25 @@ export function answerFor(pairing: Pairing, localSdp: string): string {
     "a=setup:passive",
     "a=sctp-port:5000",
     "a=max-message-size:262144",
-    ...pairing.ips.map((ip, index) => `a=candidate:${index + 1} 1 udp ${2130706431 - index} ${ip} ${pairing.port} typ host`),
+    ...candidates(pairing),
     ""
   ].join("\r\n");
+}
+
+// The Mac app's usual port.
+const USUAL_PORT = 47800;
+
+// Where the phone looks for the Mac: the port from the QR code first, then the
+// usual one, so a Mac app that had to change ports is still found (its
+// certificate fingerprint still has to match).
+function candidates(pairing: Pairing): string[] {
+  const ports = [...new Set([pairing.port, USUAL_PORT])];
+  return ports.flatMap((port, portIndex) =>
+    pairing.ips.map((ip, ipIndex) => {
+      const index = portIndex * pairing.ips.length + ipIndex;
+      return `a=candidate:${index + 1} 1 udp ${2130706431 - index} ${ip} ${port} typ host`;
+    })
+  );
 }
 
 type Message = Record<string, unknown> & { t?: string; id?: number };

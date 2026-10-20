@@ -283,6 +283,17 @@ describe("pairing a phone with the Mac", () => {
     expect(answer).toContain("a=setup:passive");
     expect(answer).toContain("a=candidate:1 1 udp 2130706431 172.20.10.4 47800 typ host");
     expect(answer).toContain("a=candidate:2 1 udp 2130706430 192.168.1.5 47800 typ host");
+    expect(answer.match(/a=candidate:/g)).toHaveLength(2);
+  });
+
+  it("also looks for the Mac on its usual port, after the one from the QR code", async () => {
+    const { answerFor } = await import("../src/ai/paired");
+    const local = "v=0\r\na=ice-ufrag:Dkhu\r\na=ice-pwd:abcdefghijklmnopqrstuvwx\r\na=mid:0\r\n";
+    const answer = answerFor({ ips: ["192.168.1.28"], host: "", port: 63590, fp }, local);
+    expect(answer).toContain("m=application 63590 ");
+    expect(answer).toContain("a=candidate:1 1 udp 2130706431 192.168.1.28 63590 typ host");
+    expect(answer).toContain("a=candidate:2 1 udp 2130706430 192.168.1.28 47800 typ host");
+    expect(answer).toContain(`a=fingerprint:sha-256 ${fp}`);
   });
 
   it("keeps the phone's pairing key out of backups", async () => {

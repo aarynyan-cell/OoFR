@@ -54,6 +54,8 @@ export function App() {
       {withTabs && <TabBar active={route.name} />}
       <UpdateNotice />
       <ConfirmHost />
+      {/* Test versions (the Mac's dev server) say so, so they are never taken for the real app. */}
+      {import.meta.env.DEV && <div className="test-badge" aria-hidden="true">测试版</div>}
       <div className={`toast${message ? " toast-show" : ""}`} role="status" aria-live="polite">{message}</div>
     </div>
   );
