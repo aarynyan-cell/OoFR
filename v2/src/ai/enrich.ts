@@ -99,6 +99,14 @@ export function explainNow(material: Material, sentence: Sentence): void {
   void pump();
 }
 
+// The learner asked for this lesson's translations (法 / 中 / 双语): they go first.
+export function translateNow(material: Material, index = 0): boolean {
+  if (!missingTranslation(material)) return false;
+  enqueue({ kind: "translate", materialId: material.id, sentenceId: "", tier: 0, from: index });
+  void pump();
+  return true;
+}
+
 // A lesson was just added: translate it in the background straight away.
 export function prepareMaterial(material: Material): void {
   if (missingTranslation(material)) enqueue({ kind: "translate", materialId: material.id, sentenceId: "", tier: 2 });

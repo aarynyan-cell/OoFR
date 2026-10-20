@@ -1,8 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { markFinished, markStudiedToday, setPosition } from "../db/repo";
 import type { Material, Settings } from "../db/types";
-import { type PlayerState, loadVoices, player, speechEngine } from "../speech/player";
-import { nativeSynth } from "../speech/native";
+import { type PlayerState, loadVoices, player, prefetchSpeech, speechEngine } from "../speech/player";
 import { pickVoice } from "../speech/voices";
 import { stopRecordingAudio } from "./recordings";
 
@@ -55,9 +54,9 @@ export function playMaterial(material: Material, startIndex: number, settings: S
   const items = material.sentences.map((sentence) => ({ text: sentence.text, lang: material.language === "en" ? "en-US" : "fr-FR" }));
   void markStudiedToday();
   void setPosition(material.id, startIndex);
-  // The Mac app renders the coming sentences while one plays.
+  // The Mac app (and a phone paired with it) prepares the coming sentences while one plays.
   const lang = material.language === "en" ? "en-US" : "fr-FR";
-  nativeSynth()?.prefetch([...items.slice(startIndex), ...items.slice(0, startIndex)].map((item) => item.text), pickVoice(voices, settings.voice), lang, settings.rate);
+  prefetchSpeech([...items.slice(startIndex), ...items.slice(0, startIndex)].map((item) => item.text), pickVoice(voices, settings.voice), lang, settings.rate);
   let lastIndex = startIndex;
   const unsubscribe = player.subscribe(() => {
     const state = player.getState();
@@ -72,6 +71,13 @@ export function playMaterial(material: Material, startIndex: number, settings: S
       void markFinished(material.id);
     })
     .finally(unsubscribe);
+}
+
+// Opening a lesson: the Mac app, or a phone paired with it, prepares its sentences' audio
+// (a phone keeps them, so they also play later without the Mac).
+export function prepareLessonSpeech(material: Material, settings: Settings, from = 0): void {
+  const texts = material.sentences.map((sentence) => sentence.text);
+  prefetchSpeech([...texts.slice(from), ...texts.slice(0, from)], pickVoice(voices, settings.voice), material.language === "en" ? "en-US" : "fr-FR", settings.rate);
 }
 
 // A single sentence or word, outside a lesson run (词句本, word card, review).

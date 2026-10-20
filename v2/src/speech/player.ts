@@ -7,6 +7,7 @@
 //  - three failures in a row stop playback with a clear message.
 
 import { nativeSynth, nativeUtterance } from "./native";
+import { RemoteSynth, remoteUtterance } from "./remote";
 
 export interface PlayItem {
   text: string;
@@ -236,14 +237,23 @@ export class SpeechPlayer {
   }
 }
 
-// In the Mac app, the Mac's own speech (enhanced voices); elsewhere the browser's.
-const system = nativeSynth();
-export const player = system
-  ? new SpeechPlayer(() => system as unknown as SpeechSynthesis, (text) => nativeUtterance(text) as unknown as SpeechSynthesisUtterance)
-  : new SpeechPlayer();
+// In the Mac app, the Mac's own voices. In a browser, the paired Mac's voices as
+// audio when it is connected (or kept from before), else the browser's own.
+const native = nativeSynth();
+const remote = !native && typeof window !== "undefined" && globalThis.speechSynthesis ? new RemoteSynth() : null;
+export const player = native
+  ? new SpeechPlayer(() => native as unknown as SpeechSynthesis, (text) => nativeUtterance(text) as unknown as SpeechSynthesisUtterance)
+  : remote
+    ? new SpeechPlayer(() => remote as unknown as SpeechSynthesis, (text) => remoteUtterance(text) as unknown as SpeechSynthesisUtterance)
+    : new SpeechPlayer();
 
 export function speechEngine(): SpeechSynthesis | undefined {
-  return (system as unknown as SpeechSynthesis | null) ?? globalThis.speechSynthesis;
+  return ((native ?? remote) as unknown as SpeechSynthesis | null) ?? globalThis.speechSynthesis;
+}
+
+// The Mac app and a paired phone fetch the coming sentences' audio while one plays.
+export function prefetchSpeech(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number): void {
+  (native ?? remote)?.prefetch(texts, voice, lang, rate);
 }
 
 // Voices arrive asynchronously on most engines.

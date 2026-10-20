@@ -629,6 +629,11 @@ fn tts_voices() -> Vec<SystemVoice> {
 /// almost two seconds of start-up per sentence).
 #[tauri::command]
 async fn tts_render(text: String, voice: String, rate: f64) -> Result<tauri::ipc::Response, String> {
+    Ok(tauri::ipc::Response::new(render_voice(text, voice, rate).await?))
+}
+
+/// Shared by this window and paired phones (their web app may only use the basic voices).
+async fn render_voice(text: String, voice: String, rate: f64) -> Result<Vec<u8>, String> {
     if text.trim().is_empty() || text.len() > 5000 || voice.len() > 100 {
         return Err("朗读内容无效".to_string());
     }
@@ -653,7 +658,7 @@ async fn tts_render(text: String, voice: String, rate: f64) -> Result<tauri::ipc
     if !status.success() {
         return Err("这个声音不能朗读，请换一个声音".to_string());
     }
-    Ok(tauri::ipc::Response::new(bytes.map_err(|error| format!("朗读失败：{error}"))?))
+    bytes.map_err(|error| format!("朗读失败：{error}"))
 }
 
 /// Development only: lets OOFR_EVAL scripts report back.

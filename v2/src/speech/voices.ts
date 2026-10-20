@@ -6,7 +6,11 @@ export interface VoiceLike {
   lang: string;
   localService?: boolean;
   default?: boolean;
+  // "mac:…" for a paired Mac's voice (src/speech/remote.ts).
+  voiceURI?: string;
 }
+
+const fromMac = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("mac:"));
 
 export type VoiceQuality = "premium" | "enhanced" | "natural" | "standard" | "novelty";
 
@@ -14,7 +18,7 @@ export type VoiceQuality = "premium" | "enhanced" | "natural" | "standard" | "no
 const NOVELTY = /\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|kathy|ralph)\b/i;
 
 export function voiceId(voice: VoiceLike): string {
-  return `${voice.name}|${voice.lang}`;
+  return `${fromMac(voice) ? "mac:" : ""}${voice.name}|${voice.lang}`;
 }
 
 export function isFrench(voice: VoiceLike): boolean {
@@ -70,7 +74,7 @@ export function voiceLabel(voice: VoiceLike): string {
   const quality = voiceQuality(voice);
   const tag = quality === "premium" ? " · 高品质" : quality === "enhanced" ? " · 增强版" : quality === "natural" ? " · 自然" : "";
   const region = /ca/i.test(voice.lang) ? "（加拿大）" : /be/i.test(voice.lang) ? "（比利时）" : /ch/i.test(voice.lang) ? "（瑞士）" : "";
-  return `${voice.name.replace(/\s*\((premium|enhanced|amélioré[e]?)\)\s*/i, " ").trim()}${region}${tag}`;
+  return `${voice.name.replace(/\s*\((premium|enhanced|amélioré[e]?)\)\s*/i, " ").trim()}${region}${tag}${fromMac(voice) ? "（电脑朗读）" : ""}`;
 }
 
 // Worth telling iPhone and Mac users about: these systems ship small default

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { explainNow, planLesson, retryJob, useAiJob } from "../ai/enrich";
-import { useAi } from "../ai/state";
+import { explainNow, planLesson, retryJob, translateNow, useAiJob } from "../ai/enrich";
+import { onPairedMac, useAi } from "../ai/state";
 import { useCardIndex } from "../app/cards";
-import { materialKey, playMaterial, speakOnce, togglePause, toggleSpeech, usePlayer } from "../app/audio";
+import { materialKey, playMaterial, prepareLessonSpeech, speakOnce, togglePause, toggleSpeech, usePlayer } from "../app/audio";
 import { type LessonMode, href } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
@@ -10,7 +10,7 @@ import { useLive } from "../db/live";
 import { getSettings, materialsOfTape, saveSettings, setPosition, toggleSentence, trackLabel } from "../db/repo";
 import type { Material, Sentence, Settings, TextMode } from "../db/types";
 import { player } from "../speech/player";
-import { AiPanel } from "../ui/AiSheet";
+import { AiPanel, AiSheet } from "../ui/AiSheet";
 import { CounterReels } from "../ui/Cassette";
 import { Modal } from "../ui/Modal";
 import { SaveToggle } from "../ui/SaveToggle";
@@ -78,6 +78,12 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
     currentRef.current?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [index]);
 
+  // The Mac's voices: the lesson's audio is prepared as soon as it opens (and when the Mac connects).
+  useEffect(() => {
+    prepareLessonSpeech(material, settings, index);
+    return onPairedMac(() => prepareLessonSpeech(material, settings, index));
+  }, [material.id, settings.voice, settings.rate]);
+
   // The local AI fills in missing translations and gets the next explanations ready.
   useEffect(() => {
     if (ai.phase === "ready" && settings.aiPrepare) planLesson(material, index);
@@ -129,11 +135,28 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   };
 
   const textMode = settings.textMode;
+  const missing = material.sentences.filter((item) => !item.translation.trim()).length;
+  const translateJob = useAiJob("translate", material.id);
+  const [aiOpen, setAiOpen] = useState(false);
+
+  // No translations yet: ask the AI now, or say plainly why it cannot.
+  const ensureTranslations = () => {
+    if (!missing) return false;
+    if (ai.phase === "ready") {
+      translateNow(material, index);
+      toast(`正在用 AI 翻译这课，还差 ${missing} 句`);
+    } else {
+      toast("这课还没有中文译文，需要先开启 AI");
+      setAiOpen(true);
+    }
+    return true;
+  };
+
   const cycleText = () => {
     const at = TEXT_MODES.findIndex((item) => item.mode === textMode);
     const next = TEXT_MODES[(at + 1) % TEXT_MODES.length];
     void saveSettings({ textMode: next.mode, showTranslation: next.mode !== "fr" });
-    toast(next.hint);
+    if (!ensureTranslations()) toast(next.hint);
   };
   // In 中 mode a sentence without a translation yet still shows its French.
   const chineseOnly = (item: Sentence) => textMode === "zh" && Boolean(item.translation);
@@ -153,6 +176,29 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
   return (
     <main className="page page-lesson">
       <LessonTop material={material} mode="listen" trackName={trackName} tapeTitle={tapeTitle} />
+
+      {missing > 0 && textMode !== "fr" && (
+        <div className="translate-bar small" role="status" aria-live="polite">
+          {ai.phase !== "ready" ? (
+            <>
+              <span className="grow">这课还有 {missing} 句没有中文译文，开启 AI 后会自动翻译。</span>
+              <button type="button" className="link-button" onClick={() => setAiOpen(true)}>开启 AI</button>
+            </>
+          ) : translateJob?.status === "failed" ? (
+            <>
+              <span className="grow error-text">AI 翻译没有完成：{translateJob.error}</span>
+              <button type="button" className="link-button" onClick={() => retryJob("translate", material.id)}>再试一次</button>
+            </>
+          ) : translateJob ? (
+            <span className="grow thinking">AI 正在翻译这课，还差 {missing} 句…</span>
+          ) : (
+            <>
+              <span className="grow">这课还有 {missing} 句没有中文译文。</span>
+              <button type="button" className="link-button" onClick={() => ensureTranslations()}>现在翻译</button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="reading">
         {material.sentences.map((item, itemIndex) =>
@@ -220,6 +266,7 @@ function Lesson({ material, settings, trackName, tapeTitle }: { material: Materi
 
       {explaining && <ExplanationSheet material={material} sentenceId={explaining} onClose={() => setExplaining(null)} />}
       {word && <WordSheet target={word} material={material} settings={settings} onClose={() => setWord(null)} />}
+      {aiOpen && <AiSheet onClose={() => setAiOpen(false)} />}
     </main>
   );
 }

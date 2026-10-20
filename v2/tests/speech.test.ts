@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type PlayOptions, SpeechPlayer } from "../src/speech/player";
-import { canDownloadBetterVoice, pickVoice, voiceId, voiceLabel } from "../src/speech/voices";
+import { type VoiceLike, canDownloadBetterVoice, pickVoice, voiceId, voiceLabel } from "../src/speech/voices";
 
 const voice = (name: string, lang = "fr-FR", extra = {}) => ({ name, lang, localService: true, default: false, ...extra });
 
@@ -129,5 +129,21 @@ describe("playing a lesson", () => {
     const player = new SpeechPlayer(() => undefined);
     await player.play("lesson", items, 0, options);
     expect(player.getState().message).toBe("这个浏览器不支持朗读");
+  });
+});
+
+describe("voices read by a paired Mac", () => {
+  const mac = (name: string, lang = "fr-FR") => ({ name, lang, localService: false, default: false, voiceURI: `mac:${name}` });
+
+  it("keeps the Mac's voices apart from the browser's and labels them", () => {
+    expect(voiceId(mac("Thomas"))).toBe("mac:Thomas|fr-FR");
+    expect(voiceId(voice("Thomas"))).toBe("Thomas|fr-FR");
+    expect(voiceLabel(mac("Thomas (Enhanced)"))).toBe("Thomas · 增强版（电脑朗读）");
+  });
+
+  it("moves to the Mac's enhanced voice while connected, and back to the browser's without it", () => {
+    const browser = [voice("Thomas"), voice("Amélie", "fr-CA")];
+    expect(voiceId(pickVoice<VoiceLike>([mac("Thomas (Enhanced)"), ...browser], "Thomas|fr-FR")!)).toBe("mac:Thomas (Enhanced)|fr-FR");
+    expect(pickVoice(browser, "mac:Thomas (Enhanced)|fr-FR")?.name).toBe("Thomas");
   });
 });

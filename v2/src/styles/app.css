@@ -2000,3 +2000,14 @@ mark.missed {
   font-size: inherit;
   text-decoration: underline;
 }
+
+.translate-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}

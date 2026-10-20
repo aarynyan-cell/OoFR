@@ -240,6 +240,32 @@ pub struct PairInfo {
     port: u16,
 }
 
+// Standard base64 (the page decodes it with atob).
+fn base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let n = (chunk[0] as u32) << 16 | (*chunk.get(1).unwrap_or(&0) as u32) << 8 | *chunk.get(2).unwrap_or(&0) as u32;
+        for index in 0..4 {
+            out.push(if index <= chunk.len() { TABLE[(n >> (18 - 6 * index) & 63) as usize] as char } else { '=' });
+        }
+    }
+    out
+}
+
+/// A long answer split into the numbered parts the page puts back together (src/sync/frames.ts).
+fn frames(text: &str) -> Vec<String> {
+    const PART_CHARS: usize = 40000;
+    if text.len() <= PART_CHARS {
+        return vec![text.to_string()];
+    }
+    let pid = random_hex(6);
+    // The text is JSON with base64 inside: plain ASCII, so splitting by bytes is safe.
+    let parts: Vec<&str> = text.as_bytes().chunks(PART_CHARS).map(|chunk| std::str::from_utf8(chunk).unwrap_or("")).collect();
+    let n = parts.len();
+    parts.iter().enumerate().map(|(i, data)| json!({ "t": "part", "pid": pid, "i": i, "n": n, "data": data }).to_string()).collect()
+}
+
 fn base64url(bytes: &[u8]) -> String {
     const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     let mut out = String::new();
@@ -521,6 +547,27 @@ fn handle(
             send(session, &json!({ "t": "pong", "id": id }).to_string());
             true
         }
+        // The phone's web app may only use the two basic voices; it gets this Mac's (enhanced) voices as audio.
+        "tts-voices" => {
+            let voices = crate::tts_voices();
+            send(session, &json!({ "t": "tts-voices", "id": id, "voices": voices }).to_string());
+            true
+        }
+        "tts" => {
+            let text = message.get("text").and_then(Value::as_str).unwrap_or("").to_string();
+            let voice = message.get("voice").and_then(Value::as_str).unwrap_or("").to_string();
+            let rate = message.get("rate").and_then(Value::as_f64).unwrap_or(1.0);
+            tauri::async_runtime::spawn(async move {
+                let message = match crate::render_voice(text, voice, rate).await {
+                    Ok(audio) => json!({ "t": "tts", "id": id, "mime": "audio/mp4", "audio": base64(&audio) }),
+                    Err(error) => json!({ "t": "error", "id": id, "message": error }),
+                };
+                for frame in frames(&message.to_string()) {
+                    let _ = reply_to.send(Reply { peer, message: frame });
+                }
+            });
+            true
+        }
         // Syncing lessons is done by the page, which holds the data; parts of long messages go there as they are.
         "sync-hello" | "sync-push" | "part" => {
             match app {
@@ -601,6 +648,17 @@ mod tests {
         for username in ["other/abcdefghijklmnopqrstuvwx:Dkhu", "oofr+v1/short:Dkhu", "oofr+v1/abcdefghijklmnopqrstuvwx:bad\r\nline", "no-colon"] {
             assert!(inferred_offer(username, "10.0.0.2".parse().unwrap()).is_none(), "{username:?}");
         }
+    }
+
+    #[test]
+    fn sends_audio_as_base64_in_parts_the_page_can_join() {
+        assert_eq!(base64(b"hello"), "aGVsbG8=");
+        assert_eq!(base64(b"\xfb\xff"), "+/8=");
+        let long = json!({ "t": "tts", "id": 1, "audio": "A".repeat(100000) }).to_string();
+        let parts = frames(&long);
+        assert_eq!(parts.len(), 3);
+        let joined: String = parts.iter().map(|part| serde_json::from_str::<Value>(part).unwrap()["data"].as_str().unwrap().to_string()).collect();
+        assert_eq!(joined, long);
     }
 
     #[test]

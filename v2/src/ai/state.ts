@@ -86,6 +86,25 @@ function browserMemoryGb(): number | null {
   return typeof value === "number" && value < 8 ? value : null;
 }
 
+// The paired Mac while it answers (its voices read for this phone); null otherwise.
+let connectedMac: PairedBackend | null = null;
+const macListeners = new Set<() => void>();
+
+export function pairedMac(): PairedBackend | null {
+  return connectedMac;
+}
+
+export function onPairedMac(listener: () => void): () => void {
+  macListeners.add(listener);
+  return () => macListeners.delete(listener);
+}
+
+function setConnectedMac(mac: PairedBackend | null): void {
+  if (mac === connectedMac) return;
+  connectedMac = mac;
+  macListeners.forEach((listener) => listener());
+}
+
 async function check(): Promise<void> {
   const app = tauri();
   if (app) {
@@ -122,12 +141,14 @@ async function check(): Promise<void> {
       backend = mac;
       // Connected: lessons and the phrasebook sync in the background, AI or not.
       startAutoSync(mac);
+      setConnectedMac(mac);
       const model = chooseModel(status.memoryBytes ? status.memoryBytes / 2 ** 30 : null);
       const phase = !status.serverRunning ? "stopped" : status.models.includes(model.name) ? "ready" : "needs-model";
       return update({ phase, model, paired: pairing.mac || "电脑", hasPairing: true, error: "" });
     } catch {
       backend = null;
       stopAutoSync();
+      setConnectedMac(null);
       return update({ phase: "unreachable", paired: null, hasPairing: true });
     }
   }
@@ -144,6 +165,7 @@ export async function pairPhone(pairing: Pairing): Promise<string> {
 
 export async function unpairPhone(): Promise<void> {
   stopAutoSync();
+  setConnectedMac(null);
   remote?.backend.close();
   remote = null;
   await forgetPairing();

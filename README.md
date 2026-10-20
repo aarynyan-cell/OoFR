@@ -5,7 +5,7 @@ OoFR 法语磁带是一个本地优先的法语学习应用：磁带用于分类
 ## 2.0
 
 - 手机 / 网页：<https://aarynyan-cell.github.io/OoFR/>（iPhone 用 Safari 打开 → 分享 → 添加到主屏幕；以后从主屏幕图标打开）
-- Mac 应用：<https://github.com/aarynyan-cell/OoFR/releases/tag/v2.0.0>（没有付费签名：第一次打开时，在“系统设置 → 隐私与安全性”里点“仍要打开”）
+- Mac 应用：<https://github.com/aarynyan-cell/OoFR/releases/latest>（没有付费签名：第一次打开时，在“系统设置 → 隐私与安全性”里点“仍要打开”）
 
 2.0 的代码在 [`v2/`](v2/)（Vite + React + TypeScript + Dexie），网站由 GitHub Actions 从 `v2/` 构建发布。
 

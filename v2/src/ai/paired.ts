@@ -214,7 +214,19 @@ export interface MacStatus {
   memoryBytes: number;
 }
 
-export type PairedBackend = AiBackend & { status(): Promise<MacStatus>; exchange(message: Message, timeout?: number): Promise<Message>; close(): void };
+export interface MacVoice {
+  name: string;
+  lang: string;
+}
+
+export type PairedBackend = AiBackend & {
+  status(): Promise<MacStatus>;
+  exchange(message: Message, timeout?: number): Promise<Message>;
+  close(): void;
+  // The Mac's voices, and one sentence read by it as audio (phones may only use the basic voices).
+  voices(): Promise<MacVoice[]>;
+  speech(text: string, voice: string, rate: number): Promise<Blob>;
+};
 
 export function pairedBackend(pairing: Pairing): PairedBackend {
   let link: Link | null = null;
@@ -265,6 +277,18 @@ export function pairedBackend(pairing: Pairing): PairedBackend {
     close() {
       link?.close();
       link = null;
+    },
+    async voices() {
+      const answer = await (await connect()).request({ t: "tts-voices" }, 10000);
+      return (Array.isArray(answer.voices) ? answer.voices : [])
+        .filter((voice): voice is MacVoice => Boolean(voice) && typeof (voice as MacVoice).name === "string" && typeof (voice as MacVoice).lang === "string")
+        .map((voice) => ({ name: voice.name, lang: voice.lang }));
+    },
+    async speech(text: string, voice: string, rate: number) {
+      const answer = await (await connect()).request({ t: "tts", text, voice, rate }, 30000);
+      if (answer.t !== "tts" || typeof answer.audio !== "string") throw new AiError(String(answer.message ?? "电脑没有读出这句"));
+      const bytes = Uint8Array.from(atob(answer.audio), (char) => char.charCodeAt(0));
+      return new Blob([bytes], { type: typeof answer.mime === "string" ? answer.mime : "audio/mp4" });
     }
   };
 }

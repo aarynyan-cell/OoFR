@@ -25,7 +25,8 @@ const THEMES: { value: ThemeChoice; label: string }[] = [
 function voiceNote(voices: SpeechSynthesisVoice[]): string {
   const apple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
   const webkitOnly = apple && !/Chrome|Edg\//.test(navigator.userAgent) && !tauri();
-  if (webkitOnly) return "苹果只允许网页使用两个基础声音，系统里下载的“增强版”只有应用能用。电脑上用 OoFR 应用或 Edge / Chrome，就能用增强版声音。";
+  if (voices.some((voice) => voice.voiceURI?.startsWith("mac:"))) return "已连接电脑：选带“电脑朗读”的声音，由电脑用增强版声音读，读过的句子会存在这台设备上，之后不连电脑也能用。";
+  if (webkitOnly) return "苹果只允许网页使用两个基础声音，系统里下载的“增强版”只有应用能用。手机和电脑上的 OoFR 应用扫码连接后，就会用电脑的增强版声音朗读。";
   if (canDownloadBetterVoice(voices, navigator.userAgent)) return "可以在 系统设置 → 辅助功能 → 朗读内容 → 系统声音 → 管理声音 里免费下载法语“增强版”声音，会自然很多。";
   return "";
 }
