@@ -4,11 +4,13 @@ import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
 import { useCardIndex } from "../app/cards";
+import { devLog } from "../app/devlog";
 import { stopRecordingAudio, toggleRecordings, useRecordingPlayback } from "../app/recordings";
 import { markStudiedToday, saveRecording, setPosition, toggleSentence } from "../db/repo";
 import type { Material, Settings } from "../db/types";
 import { player } from "../speech/player";
 import { type Listening, canRecognize, listen, recognitionSettled } from "../speech/recognizer";
+import { holdRecordingSession, restartRecordingSession } from "../speech/audioSession";
 import { type RecordingSession, RecorderError, recordingProblem, startRecording, waveform } from "../speech/recorder";
 import { type MicState, askMicrophone, canOpenSystemSettings, micState, micSteps, openSystemSettings } from "../speech/microphone";
 import { type SpeechCheck, compareSpeech } from "../text/compare";
@@ -83,6 +85,9 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
 
   useEffect(() => () => stopRecordingAudio(), []);
 
+  // The iPhone plays the original and records the learner in turns without switching modes.
+  useEffect(() => holdRecordingSession(), []);
+
   useEffect(() => {
     if (phase !== "recording") return;
     const started = Date.now();
@@ -90,9 +95,13 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
     return () => clearInterval(timer);
   }, [phase]);
 
-  const playMine = () => recording && toggleRecordings(mineKey, [recording.blob]);
+  const playMine = () => {
+    devLog("play-mine");
+    if (recording) toggleRecordings(mineKey, [recording.blob]);
+  };
 
   const begin = async () => {
+    devLog("take-begin", { take: recording ? "again" : "first", voice: player.getState().status, speaking: globalThis.speechSynthesis?.speaking });
     player.stop();
     stopRecordingAudio();
     setAttempt(null);
@@ -122,13 +131,21 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
       listening.current = null;
       const bars = await waveform(take.blob);
       const check = heard ? compareSpeech(sentence.text, heard) : null;
+      devLog("take-done", { size: take.blob.size, ms: take.durationMs, heard: heard.length, bars: bars.length, score: check?.score ?? null });
       await saveRecording(material.id, sentence.id, take, { score: check ? check.score : null, missed: check?.missed ?? [], heard });
       void markStudiedToday();
       setAttempt({ heard, bars, check });
     } catch (error) {
       listening.current?.cancel();
       listening.current = null;
-      toast(error instanceof RecorderError ? error.message : "这次没录好，请再试一次");
+      devLog("take-failed", { error: error instanceof Error ? error.message : String(error) });
+      if (error instanceof RecorderError && error.silent) {
+        // The microphone gave nothing: start it afresh for the next take.
+        await restartRecordingSession();
+        toast("这次没录到声音，麦克风已重新打开，请再录一次");
+      } else {
+        toast(error instanceof RecorderError ? error.message : "这次没录好，请再试一次");
+      }
     } finally {
       setPhase("idle");
     }
@@ -178,7 +195,10 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
             )}
 
             <section className="record-row" aria-label="录音控制">
-              <button type="button" className="record-side" onClick={() => speakOnce(sentence.text, settings, material.language)}>
+              <button type="button" className="record-side" onClick={() => {
+                devLog("play-original");
+                speakOnce(sentence.text, settings, material.language);
+              }}>
                 <span className="round-button round-outline round-medium"><PlayIcon size={22} /></span>听原声
               </button>
               <button

@@ -2,6 +2,8 @@
 // Chrome, Edge). It listens while the learner records; where it is missing or
 // refuses, shadowing still works and only the automatic check is skipped.
 
+import { devLog } from "../app/devlog";
+
 interface RecognitionResultLike {
   isFinal: boolean;
   length: number;
@@ -44,7 +46,8 @@ export async function recognitionSettled(): Promise<void> {
   const done = await Promise.race([last.ended.then(() => true), sleep(600).then(() => false)]);
   if (!done) {
     last.abort();
-    await Promise.race([last.ended, sleep(800)]);
+    const ended = await Promise.race([last.ended.then(() => true), sleep(800).then(() => false)]);
+    devLog("recognition-aborted", { ended });
   }
   if (previous === last) previous = null;
 }
@@ -72,8 +75,15 @@ export function listen(lang = "fr-FR"): Listening | null {
     parts.length = 0;
     for (const result of Array.from(event.results)) if (result.isFinal && result[0]) parts.push(result[0].transcript);
   };
-  recognition.onerror = () => resolveEnded();
-  recognition.onend = () => resolveEnded();
+  const began = Date.now();
+  recognition.onerror = (event) => {
+    devLog("recognition-error", { error: event.error, ms: Date.now() - began });
+    resolveEnded();
+  };
+  recognition.onend = () => {
+    devLog("recognition-end", { ms: Date.now() - began, heard: parts.length });
+    resolveEnded();
+  };
   try {
     recognition.start();
   } catch {

@@ -4,19 +4,62 @@
     {
       "name": "oofr-v2-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "v2", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "v2",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
     },
     {
       "name": "oofr-v2-phone",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:phone", "--prefix", "v2", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev:phone",
+        "--prefix",
+        "v2",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "oofr-v2-phone-https",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:phone-https",
+        "--prefix",
+        "v2",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174,
+      "url": "https://localhost:5174"
     },
     {
       "name": "oofr-v2-preview",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview", "--prefix", "v2", "--", "--port", "4173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--prefix",
+        "v2",
+        "--",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
       "port": 4173
     }
   ]
