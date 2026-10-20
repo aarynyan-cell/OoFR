@@ -14,6 +14,12 @@ export interface RecordingSession {
   cancel(): void;
 }
 
+// The plain microphone, without the phone-call processing (echo removal):
+// nothing plays while the learner records, and on an iPhone that processing
+// froze after a sentence had played (takes came back empty for a minute) and
+// turned other sounds down while it ran.
+const MICROPHONE: MediaStreamConstraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+
 // iPhone records AAC in MP4; Chrome and Firefox record Opus in WebM.
 const MIME_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
 
@@ -34,7 +40,7 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
   if (problem) throw new RecorderError(problem);
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    stream = await navigator.mediaDevices.getUserMedia(MICROPHONE);
   } catch (error) {
     const name = error instanceof DOMException ? error.name : "";
     throw new RecorderError(name === "NotAllowedError" ? "需要允许使用麦克风：请在浏览器或系统设置里打开" : name === "NotFoundError" ? "没有找到麦克风" : "麦克风打不开，请稍后再试");
@@ -42,7 +48,7 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
   const startedAt = performance.now();
   // A microphone still held by the last take can come back muted: wait a moment, then ask again once.
   const track = stream.getAudioTracks()[0];
-  devLog("mic", { muted: track?.muted, state: track?.readyState, label: track?.label, session: (navigator as { audioSession?: { type?: string } }).audioSession?.type });
+  devLog("mic", { muted: track?.muted, state: track?.readyState, label: track?.label, session: (navigator as { audioSession?: { type?: string } }).audioSession?.type, echo: track?.getSettings?.().echoCancellation });
   if (track?.muted) {
     await new Promise<void>((resolve) => {
       const timer = setTimeout(resolve, 800);
@@ -54,7 +60,7 @@ export async function startRecording(maxMs = 20000): Promise<RecordingSession> {
     devLog("mic-was-muted", { stillMuted: track.muted });
     if (track.muted) {
       stream.getTracks().forEach((item) => item.stop());
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream = await navigator.mediaDevices.getUserMedia(MICROPHONE);
       devLog("mic-again", { muted: stream.getAudioTracks()[0]?.muted });
     }
   }

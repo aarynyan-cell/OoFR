@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { speakOnce } from "../app/audio";
+import { toggleSpeech, usePlayer } from "../app/audio";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
 import { useLive } from "../db/live";
@@ -18,7 +18,7 @@ import { frenchSpacing } from "../text/typography";
 import { SaveToggle } from "../ui/SaveToggle";
 import { SentenceText } from "../ui/SentenceText";
 import { type WordTarget, WordSheet } from "../ui/WordSheet";
-import { MicIcon, PlayIcon, SpeakerIcon, StopIcon } from "../ui/icons";
+import { MicIcon, PauseIcon, PlayIcon, SpeakerIcon, StopIcon } from "../ui/icons";
 import { ShadowSummary } from "./ShadowSummary";
 import { LessonTop } from "./LessonTop";
 
@@ -50,6 +50,11 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
   const savedCard = cards.phrase(sentence.text);
   const playback = useRecordingPlayback();
   const mineKey = `shadow:${material.id}:${sentence.id}`;
+  const mineOn = playback.key === mineKey && playback.status === "playing";
+  // 听原声: one button plays the original, pauses it and resumes it.
+  const originalKey = `shadow-original:${material.id}:${sentence.id}`;
+  const voice = usePlayer();
+  const original = voice.key === originalKey ? voice.status : "idle";
   const anyTakes = material.sentences.some((item) => item.recordingKey);
   const problem = recordingProblem();
   const [mic, setMic] = useState<MicState>("unknown");
@@ -136,7 +141,9 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
       void markStudiedToday();
       setAttempt({ heard, bars, check });
     } catch (error) {
-      listening.current?.cancel();
+      // Test versions: whether speech recognition heard anything when the recording did not.
+      if (import.meta.env.DEV && listening.current) devLog("take-failed-heard", { heard: (await listening.current.finish()).length });
+      else listening.current?.cancel();
       listening.current = null;
       devLog("take-failed", { error: error instanceof Error ? error.message : String(error) });
       if (error instanceof RecorderError && error.silent) {
@@ -195,11 +202,17 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
             )}
 
             <section className="record-row" aria-label="录音控制">
-              <button type="button" className="record-side" onClick={() => {
-                devLog("play-original");
-                speakOnce(sentence.text, settings, material.language);
-              }}>
-                <span className="round-button round-outline round-medium"><PlayIcon size={22} /></span>听原声
+              <button
+                type="button"
+                className={`record-side${original === "idle" ? "" : " is-on"}${original === "playing" ? " is-playing" : ""}`}
+                onClick={() => {
+                  devLog("play-original", { was: original });
+                  toggleSpeech(originalKey, sentence.text, settings, material.language);
+                }}
+                aria-label={original === "playing" ? "暂停原声" : original === "paused" ? "继续播放原声" : "听原声"}
+              >
+                <span className="round-button round-outline round-medium">{original === "playing" ? <PauseIcon size={22} /> : <PlayIcon size={22} />}</span>
+                {original === "playing" ? "暂停" : original === "paused" ? "继续" : "听原声"}
               </button>
               <button
                 type="button"
@@ -211,8 +224,8 @@ export function ShadowMode({ material, settings, trackName, tapeTitle }: { mater
                 <span className="record-button"><MicIcon size={32} /></span>
                 {recordLabel}
               </button>
-              <button type="button" className="record-side" onClick={playMine} disabled={!recording}>
-                <span className="round-button round-outline round-medium">{playback.key === mineKey && playback.status === "playing" ? <StopIcon size={20} /> : <SpeakerIcon size={22} />}</span>听我的
+              <button type="button" className={`record-side${mineOn ? " is-on is-playing" : ""}`} onClick={playMine} disabled={!recording}>
+                <span className="round-button round-outline round-medium">{mineOn ? <StopIcon size={20} /> : <SpeakerIcon size={22} />}</span>听我的
               </button>
             </section>
             <p className="dim small center">

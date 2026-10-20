@@ -5,6 +5,7 @@
 // once also plays well later without the Mac. Without either, the browser's
 // own voice reads as before. This stands in for speechSynthesis.
 
+import { devLog } from "../app/devlog";
 import { onPairedMac, pairedMac } from "../ai/state";
 import type { MacVoice } from "../ai/paired";
 import { type VoiceLike, pickVoice, voiceBase } from "./voices";
@@ -152,7 +153,12 @@ export class RemoteSynth {
     await Promise.race([this.macVoicesReady(), new Promise((resolve) => setTimeout(resolve, 3000))]);
     const voice = this.macVoiceFor(utterance.voice, utterance.lang);
     if (!voice) return null;
-    return (await this.kept(voice, utterance.rate, utterance.text)) ?? (await this.fetchFromMac(voice, utterance.rate, utterance.text));
+    const kept = await this.kept(voice, utterance.rate, utterance.text);
+    if (kept) return kept;
+    const started = Date.now();
+    const fetched = await this.fetchFromMac(voice, utterance.rate, utterance.text);
+    devLog("voice-from-mac", { ok: Boolean(fetched), ms: Date.now() - started, queued: this.queue.length, prefetching: this.prefetching });
+    return fetched;
   }
 
   // While the Mac is connected, the coming sentences are fetched and kept one by one.
@@ -191,7 +197,9 @@ export class RemoteSynth {
       this.audio.src = SILENCE;
       void this.audio.play().catch(() => undefined);
     }
+    const asked = Date.now();
     void this.audioFor(utterance).then((blob) => {
+      devLog("voice", { words: utterance.text.split(/\s+/).length, audio: Boolean(blob), ms: Date.now() - asked, current: number === this.number });
       if (number !== this.number) return;
       this.pending = false;
       if (!blob || !this.audio) return this.speakWithBrowser(utterance, number);
@@ -214,11 +222,15 @@ export class RemoteSynth {
       finish();
     };
     audio.onended = () => done(() => utterance.onend?.());
-    audio.onerror = () => done(() => this.speakWithBrowser(utterance, number));
+    audio.onerror = () => {
+      devLog("voice-error", { code: audio.error?.code });
+      done(() => this.speakWithBrowser(utterance, number));
+    };
     audio.src = url;
-    void audio.play().catch(() => {
+    void audio.play().catch((error: unknown) => {
       // Paused or stopped before it got going: not a failure.
       if (this.audioPaused || number !== this.number) return;
+      devLog("voice-play-failed", { error: error instanceof Error ? error.name : String(error) });
       done(() => this.speakWithBrowser(utterance, number));
     });
   }

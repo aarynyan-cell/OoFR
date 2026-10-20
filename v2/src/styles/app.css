@@ -1350,6 +1350,28 @@ p {
   width: 72px;
 }
 
+.record-side.is-on .round-button {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.record-side.is-playing .round-button {
+  animation: playing-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes playing-pulse {
+  50% {
+    box-shadow: 0 0 0 6px var(--accent-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-side.is-playing .round-button {
+    animation: none;
+  }
+}
+
 .record-main {
   width: 120px;
   color: var(--accent-text);
