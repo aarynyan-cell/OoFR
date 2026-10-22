@@ -3,7 +3,7 @@ import { onPairedMac } from "../ai/state";
 import { db } from "../db/database";
 import { getSettings, markFinished, markStudiedToday, setPosition } from "../db/repo";
 import type { Material, Settings } from "../db/types";
-import { type PlayerState, keepSpeechForLater, loadVoices, player, prefetchSpeech, sentenceAudio, speechEngine } from "../speech/player";
+import { type PlayerState, keepSpeechForLater, loadVoices, player, prefetchSpeech, sentenceAudio, speechEngine, speechPlaybackRate } from "../speech/player";
 import { connectMediaControls } from "../speech/mediaControls";
 import { type Track, buildTrack } from "../speech/track";
 import { pickVoice } from "../speech/voices";
@@ -110,7 +110,8 @@ function trackFor(material: Material, settings: Settings): Promise<Track | null>
       if (!audio) return null;
       audios.push(audio);
     }
-    return buildTrack(audios, { repeat: settings.repeat, gapMs: settings.gapMs });
+    const track = await buildTrack(audios, { repeat: settings.repeat, gapMs: settings.gapMs });
+    return track && { ...track, playbackRate: speechPlaybackRate(voice, lang, settings.rate) };
   })().catch(() => null);
   tracks.set(key, pending);
   void pending.then((track) => {

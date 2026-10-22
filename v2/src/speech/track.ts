@@ -18,6 +18,8 @@ export interface Track {
   url: string;
   parts: TrackPart[];
   duration: number;
+  // Played faster or slower than it was read (Gemini's voices are read at their own speed).
+  playbackRate?: number;
 }
 
 export interface TrackOptions {

@@ -9,12 +9,12 @@ import type { Plugin } from "vite";
 const FILE = fileURLToPath(new URL("../.env.local", import.meta.url));
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
-function readKeys(): { groq: string[]; siliconflow: string[]; zhipu: string[] } {
-  const keys = { groq: [] as string[], siliconflow: [] as string[], zhipu: [] as string[] };
+function readKeys(): { groq: string[]; siliconflow: string[]; zhipu: string[]; gemini: string[] } {
+  const keys = { groq: [] as string[], siliconflow: [] as string[], zhipu: [] as string[], gemini: [] as string[] };
   if (!existsSync(FILE)) return keys;
   for (const line of readFileSync(FILE, "utf8").split(/\r?\n/)) {
-    const match = /^\s*(GROQ|SILICONFLOW|ZHIPU)_KEY_\d+\s*=\s*["']?([^"'\s]+)["']?\s*$/.exec(line);
-    if (match) keys[match[1].toLowerCase() as "groq" | "siliconflow" | "zhipu"].push(match[2]);
+    const match = /^\s*(GROQ|SILICONFLOW|ZHIPU|GEMINI)_KEY_\d+\s*=\s*["']?([^"'\s]+)["']?\s*$/.exec(line);
+    if (match) keys[match[1].toLowerCase() as "groq" | "siliconflow" | "zhipu" | "gemini"].push(match[2]);
   }
   return keys;
 }

@@ -9,15 +9,16 @@ const masked = (key: string) => (key.length > 12 ? `${key.slice(0, 5)}…${key.s
 
 type Checks = Record<string, "checking" | "ok" | "bad">;
 
-const empty = (): Keys => ({ groq: [], siliconflow: [], zhipu: [] });
-const emptyText = (): Record<ProviderId, string> => ({ groq: "", siliconflow: "", zhipu: "" });
+const empty = (): Keys => ({ groq: [], siliconflow: [], zhipu: [], gemini: [] });
+const emptyText = (): Record<ProviderId, string> => ({ groq: "", siliconflow: "", zhipu: "", gemini: "" });
 const total = (keys: Keys) => PROVIDER_ORDER.reduce((sum, provider) => sum + keys[provider].length, 0);
 
 // What a half-copied key of each provider should look like.
 const INCOMPLETE: Record<ProviderId, string> = {
   groq: "Groq 的密钥不完整：应该以 gsk_ 开头，请整串复制",
   siliconflow: "硅基流动的密钥不完整：应该以 sk- 开头，请整串复制",
-  zhipu: "智谱的密钥不完整：完整的密钥中间有一个点，像 xxxx.yyyy，请整串复制"
+  zhipu: "智谱的密钥不完整：完整的密钥中间有一个点，像 xxxx.yyyy，请整串复制",
+  gemini: "Gemini 的密钥不完整：应该以 AIza 开头，请整串复制"
 };
 
 // Free online AI with the learner's own keys (2.1). Keys stay on this device.
@@ -115,6 +116,9 @@ export function OnlineKeys() {
               ))
             )}
           </ul>
+          {!saved.gemini.length && (
+            <p className="small dim">想让手机自己也有自然的法语朗读？再加一个 Gemini 的免费密钥（不用电脑）。</p>
+          )}
           {!saved.groq.length && (
             <div className="stack-6">
               <p className="small accent-text">推荐再加一个 Groq 的免费密钥：翻译和讲解都更快、更准。</p>

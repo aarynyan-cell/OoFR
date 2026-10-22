@@ -206,6 +206,9 @@ export class SpeechPlayer {
       this.set({ ...IDLE, message: "后台播放的音频出错了，已停止" });
     };
     audio.src = track.url;
+    audio.defaultPlaybackRate = track.playbackRate ?? 1;
+    audio.playbackRate = track.playbackRate ?? 1;
+    audio.preservesPitch = true;
     // The position can be set once the browser knows the length.
     const seek = () => {
       audio.currentTime = start;
@@ -367,6 +370,12 @@ export async function sentenceAudio(text: string, voice: SpeechSynthesisVoice | 
   if (native) return native.audioBlob(text, voice, lang, rate);
   if (remote) return remote.audioBlob(text, voice, lang, rate);
   return null;
+}
+
+// The speed a sentence's audio from sentenceAudio() plays at: Gemini's is read
+// at its own speed and played at the learner's; the Mac reads at the speed asked.
+export function speechPlaybackRate(voice: SpeechSynthesisVoice | null, lang: string, rate: number): number {
+  return remote ? remote.playbackRateFor(voice, lang, rate) : 1;
 }
 
 // A phone paired with the Mac keeps the whole library's audio, after whatever is being prepared now.

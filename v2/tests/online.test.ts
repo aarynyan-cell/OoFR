@@ -37,7 +37,7 @@ const material = { id: "m", title: "t", language: "fr", sentences: [{ id: "a", t
 describe("free online AI", () => {
   it("translates a lesson's sentences together, as numbered lines, with SiliconFlow's GLM when there is no Groq key", async () => {
     const { calls, fetcher } = provider({ answer: () => "1. 你好。\n2. 谢谢（或者说：多谢）。" });
-    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [], gemini: [] }, fetcher);
     const result = await translateSentences(backend, "在线 AI", material, material.sentences);
     expect([...result]).toEqual([["a", "你好。"], ["b", "谢谢。"]]);
     expect(calls.map((call) => call.model)).toEqual(["THUDM/GLM-4-9B-0414"]);
@@ -51,7 +51,7 @@ describe("free online AI", () => {
   it("uses Groq's Qwen first for translations and explanations, without its thinking", async () => {
     const answer = (_model: string, body: Record<string, unknown>) => (body.response_format ? '{"summary":"你好。","structure":"","grammarPoints":["问候"],"pitfalls":[],"examples":[]}' : "1. 你好。\n2. 谢谢。");
     const { calls, fetcher } = provider({ answer });
-    const backend = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [], gemini: [] }, fetcher);
     await translateSentences(backend, "在线 AI", material, material.sentences);
     const explanation = await explainSentence(backend, "在线 AI", material, material.sentences[0], null);
     expect(calls.map((call) => call.model)).toEqual(["qwen/qwen3.8-27b", "qwen/qwen3.8-27b"]);
@@ -62,7 +62,7 @@ describe("free online AI", () => {
 
   it("when Groq is busy, the next model answers at once; with nothing else, it waits and asks again", async () => {
     const busy = provider({ busyKeys: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], answer: () => "1. 谢谢。" });
-    const both = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, busy.fetcher);
+    const both = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [], gemini: [] }, busy.fetcher);
     expect(await both.translateLines(["Merci."], "fr")).toEqual(["谢谢。"]);
     expect(busy.calls.map((call) => call.model)).toEqual(["qwen/qwen3.8-27b", "THUDM/GLM-4-9B-0414"]);
     // Groq rests now: the next request goes straight to SiliconFlow.
@@ -70,21 +70,21 @@ describe("free online AI", () => {
     expect(busy.calls.at(-1)!.model).toBe("THUDM/GLM-4-9B-0414");
 
     const once = provider({ busyOnce: ["qwen/qwen3.8-27b"], answer: () => "1. 谢谢。" });
-    const groqOnly = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: [], zhipu: [] }, once.fetcher);
+    const groqOnly = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: [], zhipu: [], gemini: [] }, once.fetcher);
     expect(await groqOnly.translateLines(["Merci."], "fr")).toEqual(["谢谢。"]);
     expect(once.calls.map((call) => call.model)).toEqual(["qwen/qwen3.8-27b", "qwen/qwen3.8-27b"]);
   });
 
   it("background work waits for a resting Groq instead of handing the work to a weaker model", async () => {
     const { calls, fetcher } = provider({ busyOnce: ["qwen/qwen3.8-27b"], answer: () => "1. 谢谢。" });
-    const backend = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ groq: ["gsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [], gemini: [] }, fetcher);
     expect(await backend.translateLines(["Merci."], "fr", undefined, true)).toEqual(["谢谢。"]);
     expect(calls.map((call) => call.model)).toEqual(["qwen/qwen3.8-27b", "qwen/qwen3.8-27b"]);
   });
 
   it("asks again one by one for lines that did not come back", async () => {
     const { calls, fetcher } = provider({ answer: (_model, body) => (String((body.messages as { content: string }[]).at(-1)!.content).includes("2. ") ? "1. 你好。" : "1. 谢谢。") });
-    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [], gemini: [] }, fetcher);
     expect(await backend.translateLines(["Bonjour.", "Merci."], "fr")).toEqual(["你好。", "谢谢。"]);
     expect(calls).toHaveLength(2);
   });
@@ -99,7 +99,7 @@ describe("free online AI", () => {
 
   it("falls back through SiliconFlow's models to Zhipu when they fail", async () => {
     const { calls, fetcher } = provider({ failModels: ["THUDM/GLM-4-9B-0414", "Qwen/Qwen3.5-4B", "tencent/Hunyuan-MT-7B"], answer: () => "1. 谢谢" });
-    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"] }, fetcher);
+    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"], gemini: [] }, fetcher);
     const [line] = await backend.translateLines(["Merci."], "fr");
     expect(line).toBe("谢谢");
     expect(calls.map((call) => call.model).slice(0, 4)).toEqual(["THUDM/GLM-4-9B-0414", "Qwen/Qwen3.5-4B", "tencent/Hunyuan-MT-7B", "glm-4-flash"]);
@@ -110,7 +110,7 @@ describe("free online AI", () => {
   it("shares the work across keys, skips a busy key and stops using a refused one", async () => {
     const keys = ["sk-key1key1key1key1key1", "sk-key2key2key2key2key2", "sk-key3key3key3key3key3"];
     const { calls, fetcher } = provider({ badKeys: [keys[0]], busyKeys: [keys[1]], answer: () => "好" });
-    const backend = new OnlineBackend({ groq: [], siliconflow: keys, zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ groq: [], siliconflow: keys, zhipu: [], gemini: [] }, fetcher);
     await backend.translateLines(["Oui.", "Non.", "Si."], "fr");
     const used = calls.filter((call) => call.model === "THUDM/GLM-4-9B-0414").map((call) => call.key);
     expect(used.filter((key) => key === keys[0])).toHaveLength(1);
@@ -120,7 +120,7 @@ describe("free online AI", () => {
   it("asks general models for explanations as JSON, never the translation model, and labels the answer", async () => {
     const answer = '```json\n{"summary":"你好。","structure":"感叹词 Bonjour","grammarPoints":["问候语。"],"pitfalls":[],"examples":["Salut !（嗨！）"]}\n```';
     const { calls, fetcher } = provider({ answer: () => answer });
-    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"] }, fetcher);
+    const backend = new OnlineBackend({ groq: [], siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"], gemini: [] }, fetcher);
     const explanation = await explainSentence(backend, "在线 AI", material, material.sentences[0], null);
     expect(explanation.summary).toBe("你好。");
     expect(explanation.model).toBe("glm-4-flash");

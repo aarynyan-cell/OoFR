@@ -6,12 +6,16 @@
 // All three speak the OpenAI chat format and allow calls from web pages.
 
 import { db } from "../db/database";
+import { GeminiSpeech } from "../speech/gemini";
 import { type AiBackend, AiError, type ChatBody } from "./backend";
 
-export type ProviderId = "groq" | "siliconflow" | "zhipu";
+// gemini: only for voices (src/speech/gemini.ts), not for translations or explanations.
+export type ProviderId = "groq" | "siliconflow" | "zhipu" | "gemini";
 export const ONLINE_KEYS = "online.keys";
 // The order the key boxes are shown in: the recommended provider first.
-export const PROVIDER_ORDER: ProviderId[] = ["groq", "siliconflow", "zhipu"];
+export const PROVIDER_ORDER: ProviderId[] = ["groq", "siliconflow", "zhipu", "gemini"];
+// The providers whose models translate and explain.
+const AI_PROVIDERS: ProviderId[] = ["groq", "siliconflow", "zhipu"];
 
 export interface Provider {
   id: ProviderId;
@@ -24,7 +28,8 @@ export interface Provider {
 export const PROVIDERS: Record<ProviderId, Provider> = {
   groq: { id: "groq", name: "Groq", base: "https://api.groq.com/openai/v1", signup: "https://console.groq.com/keys", note: "推荐：最快最准，翻译和讲解都用它" },
   siliconflow: { id: "siliconflow", name: "硅基流动", base: "https://api.siliconflow.cn/v1", signup: "https://cloud.siliconflow.cn/i/y1ddnCxC", note: "备用：国内直连，需要实名认证" },
-  zhipu: { id: "zhipu", name: "智谱 AI", base: "https://open.bigmodel.cn/api/paas/v4", signup: "https://open.bigmodel.cn", note: "可选：讲解的备用" }
+  zhipu: { id: "zhipu", name: "智谱 AI", base: "https://open.bigmodel.cn/api/paas/v4", signup: "https://open.bigmodel.cn", note: "可选：讲解的备用" },
+  gemini: { id: "gemini", name: "Gemini", base: "https://generativelanguage.googleapis.com/v1beta", signup: "https://aistudio.google.com/app/apikey", note: "手机的优化语音：自然的法语朗读，不用电脑" }
 };
 
 export interface Route {
@@ -58,11 +63,11 @@ export const ROUTES: Record<Task, Route[]> = {
 
 export type OnlineKeys = Record<ProviderId, string[]>;
 
-const noKeys = (): OnlineKeys => ({ groq: [], siliconflow: [], zhipu: [] });
+const noKeys = (): OnlineKeys => ({ groq: [], siliconflow: [], zhipu: [], gemini: [] });
 
 export async function loadKeys(): Promise<OnlineKeys> {
   const value = (await db.kv.get(ONLINE_KEYS))?.value as Partial<OnlineKeys> | undefined;
-  return { groq: value?.groq ?? [], siliconflow: value?.siliconflow ?? [], zhipu: value?.zhipu ?? [] };
+  return { groq: value?.groq ?? [], siliconflow: value?.siliconflow ?? [], zhipu: value?.zhipu ?? [], gemini: value?.gemini ?? [] };
 }
 
 // One key per line; spaces and duplicates removed.
@@ -75,15 +80,25 @@ export function cleanKeys(text: string): string[] {
 export function looksComplete(provider: ProviderId, key: string): boolean {
   if (provider === "groq") return /^gsk_[A-Za-z0-9]{30,}$/.test(key);
   if (provider === "siliconflow") return /^sk-[A-Za-z0-9]{20,}$/.test(key);
+  if (provider === "gemini") return /^AIza[0-9A-Za-z_-]{30,}$/.test(key);
   return /^[A-Za-z0-9]{16,}\.[A-Za-z0-9]{8,}$/.test(key);
 }
 
 export async function saveKeys(keys: Partial<OnlineKeys>): Promise<void> {
   const all = { ...noKeys(), ...keys };
-  await db.kv.put({ key: ONLINE_KEYS, value: { groq: all.groq, siliconflow: all.siliconflow, zhipu: all.zhipu } });
+  await db.kv.put({ key: ONLINE_KEYS, value: { groq: all.groq, siliconflow: all.siliconflow, zhipu: all.zhipu, gemini: all.gemini } });
+  keyListeners.forEach((listener) => listener());
 }
 
-export const hasKeys = (keys: OnlineKeys) => PROVIDER_ORDER.some((provider) => keys[provider].length > 0);
+// Someone may want to know when keys change (the phone's voices follow the Gemini key).
+const keyListeners = new Set<() => void>();
+export function onKeysChange(listener: () => void): () => void {
+  keyListeners.add(listener);
+  return () => keyListeners.delete(listener);
+}
+
+// Online AI (translations, explanations) is on with any of these keys; a Gemini key only gives voices.
+export const hasKeys = (keys: OnlineKeys) => AI_PROVIDERS.some((provider) => keys[provider].length > 0);
 
 // Some key reaches a model that can explain (a SiliconFlow key always does, through GLM-4-9B).
 export const canExplainWith = (keys: OnlineKeys) => ROUTES.explain.some((route) => keys[route.provider].length > 0);
@@ -344,6 +359,7 @@ export class OnlineBackend implements AiBackend {
   // Checks one key with the cheapest request there is (Groq and SiliconFlow
   // list their models; Zhipu has no list, so it gets a one-word question to its free model).
   static async check(provider: ProviderId, key: string, fetcher: Fetcher = (...args) => fetch(...args)): Promise<boolean> {
+    if (provider === "gemini") return GeminiSpeech.check(key, fetcher);
     try {
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${key}` };
       const response =

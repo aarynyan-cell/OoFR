@@ -1,14 +1,22 @@
 // Better voices for the web app. Apple lets web pages (Safari, the iPhone
-// home-screen app) use only the two basic French voices, so a phone paired
-// with the Mac app asks the Mac to read each sentence with its own (enhanced)
-// voices and plays the audio. Audio is kept on the phone, so a sentence heard
-// once also plays well later without the Mac. Without either, the browser's
-// own voice reads as before. This stands in for speechSynthesis.
+// home-screen app) use only the two basic French voices, so the phone gets
+// natural voices elsewhere: from Gemini with the learner's free key (2.1, the
+// phone on its own), or from a paired Mac app, which reads each sentence with
+// its own enhanced voices. Audio is kept on the phone, so a sentence heard once
+// plays again (and offline) without asking anyone. Without either, the
+// browser's own voice reads as before. This stands in for speechSynthesis.
 
 import { devLog } from "../app/devlog";
+import { loadKeys, onKeysChange } from "../ai/online";
 import { checkMacAgain, onPairedMac, pairedMac } from "../ai/state";
 import type { MacVoice } from "../ai/paired";
+import { GEMINI_VOICE, GEMINI_VOICES, GeminiSpeech } from "./gemini";
 import { type VoiceLike, pickVoice, voiceBase } from "./voices";
+
+// Where a sentence's better audio comes from.
+type Source = { kind: "gemini" | "mac"; name: string };
+// Gemini reads a sentence with the ones after it (its free allowance counts requests).
+const GEMINI_STRETCH = 8;
 
 const CACHE = "oofr2-voices";
 // The Mac's voices as last seen, so audio kept on the phone still plays after
@@ -73,8 +81,14 @@ export class RemoteSynth {
   private queue: { text: string; voice: string; rate: number }[] = [];
   private laterQueue: { text: string; voice: string; rate: number }[] = [];
   private prefetching = false;
-  // The sentence whose audio is playing (or waiting for resume).
-  private current: { url: string; utterance: RemoteUtterance; number: number } | null = null;
+  // The sentence whose audio is playing (or waiting for resume), and its playing speed.
+  private current: { url: string; utterance: RemoteUtterance; number: number; speed: number } | null = null;
+  // Gemini (2.1): the learner's key, the open lesson's sentences (read
+  // together), and the readings under way (asked for once).
+  private geminiKey: string | null = null;
+  private gemini = new GeminiSpeech(() => this.geminiKey);
+  private lessonTexts: string[] = [];
+  private reading = new Map<string, Promise<Map<string, Blob>>>();
 
   constructor(
     private readonly web: SpeechSynthesis | undefined = globalThis.speechSynthesis,
@@ -82,6 +96,8 @@ export class RemoteSynth {
   ) {
     this.macVoices = rememberedMacVoices().map(asVoice);
     web?.addEventListener?.("voiceschanged", () => this.notify());
+    void this.loadGeminiKey();
+    onKeysChange(() => void this.loadGeminiKey());
     // A new connection may bring other voices: ask again before the next sentence.
     onPairedMac(() => {
       this.voicesAsked = false;
@@ -130,8 +146,37 @@ export class RemoteSynth {
     return this.mode === "audio" ? this.audioPaused : Boolean(this.web?.paused);
   }
 
+  private async loadGeminiKey(): Promise<void> {
+    try {
+      this.geminiKey = (await loadKeys()).gemini[0] ?? null;
+    } catch {
+      this.geminiKey = null;
+    }
+    this.notify();
+  }
+
+  private geminiVoices(): SpeechSynthesisVoice[] {
+    if (!this.geminiKey) return [];
+    return GEMINI_VOICES.map((voice) => ({ name: voice.name, lang: "fr-FR", voiceURI: `${GEMINI_VOICE}${voice.name}`, localService: false, default: false }) as SpeechSynthesisVoice);
+  }
+
   getVoices(): SpeechSynthesisVoice[] {
-    return [...this.macVoices, ...(this.web?.getVoices() ?? [])];
+    return [...this.geminiVoices(), ...this.macVoices, ...(this.web?.getVoices() ?? [])];
+  }
+
+  // The chosen Gemini or Mac voice; with a basic voice chosen (or none),
+  // Gemini when there is a key, else the Mac's best.
+  private sourceFor(voice: SpeechSynthesisVoice | null, lang: string): Source | null {
+    if (voice?.voiceURI?.startsWith(GEMINI_VOICE) && this.geminiKey) return { kind: "gemini", name: voice.name };
+    if (voice?.voiceURI?.startsWith(MAC_VOICE)) return { kind: "mac", name: voice.name };
+    if (this.geminiKey) return { kind: "gemini", name: GEMINI_VOICES[0].name };
+    const mac = this.macVoiceFor(voice, lang);
+    return mac ? { kind: "mac", name: mac } : null;
+  }
+
+  // Gemini audio plays at the learner's speed (it is read once, at its own); the Mac reads at the speed asked.
+  playbackRateFor(voice: SpeechSynthesisVoice | null, lang: string, rate: number): number {
+    return this.sourceFor(voice, lang)?.kind === "gemini" ? rate : 1;
   }
 
   addEventListener(type: string, listener: () => void): void {
@@ -160,17 +205,60 @@ export class RemoteSynth {
     }
   }
 
+  private async keep(voice: string, rate: number, text: string, audio: Blob): Promise<void> {
+    try {
+      const cache = await caches.open(CACHE);
+      await cache.put(await cacheKey(voice, rate, text), new Response(audio, { headers: { "Content-Type": audio.type } }));
+    } catch {
+      // No room to keep it: it still plays now.
+    }
+  }
+
+  // Gemini reads these sentences (those not kept or under way) and they are kept.
+  private async readWithGemini(texts: string[], name: string, patient: boolean): Promise<Map<string, Blob>> {
+    const voice = `${GEMINI_VOICE}${name}`;
+    const todo: string[] = [];
+    for (const text of texts) {
+      if (this.reading.has(`${voice}|${text}`) || (await this.kept(voice, 1, text))) continue;
+      todo.push(text);
+    }
+    if (!todo.length) return new Map();
+    const reading = this.gemini.readSentences(todo, name, { patient }).then(async (audios) => {
+      for (const [text, audio] of audios) await this.keep(voice, 1, text, audio);
+      return audios;
+    });
+    todo.forEach((text) => this.reading.set(`${voice}|${text}`, reading));
+    void reading.finally(() => todo.forEach((text) => this.reading.delete(`${voice}|${text}`))).catch(() => undefined);
+    return reading;
+  }
+
+  // A sentence in a Gemini voice: kept, under way, or read now with the ones after it.
+  private async fromGemini(name: string, text: string, patient: boolean): Promise<Blob | null> {
+    const voice = `${GEMINI_VOICE}${name}`;
+    const kept = await this.kept(voice, 1, text);
+    if (kept) return kept;
+    const started = Date.now();
+    try {
+      const under = this.reading.get(`${voice}|${text}`);
+      const at = this.lessonTexts.indexOf(text);
+      // Something being played waits a few seconds at most for a reading under way (it may be waiting for the allowance).
+      const waited = under && !patient ? Promise.race([under, new Promise<Map<string, Blob>>((resolve) => setTimeout(() => resolve(new Map()), 8000))]) : under;
+      const audios = waited ? await waited : await this.readWithGemini(at >= 0 ? this.lessonTexts.slice(at, at + GEMINI_STRETCH) : [text], name, patient);
+      const audio = audios.get(text) ?? (await this.kept(voice, 1, text));
+      devLog("voice-from-gemini", { ok: Boolean(audio), ms: Date.now() - started });
+      return audio;
+    } catch (error) {
+      devLog("voice-from-gemini", { ok: false, ms: Date.now() - started, error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
   private async fetchFromMac(voice: string, rate: number, text: string): Promise<Blob | null> {
     const mac = pairedMac();
     if (!mac || !voice) return null;
     try {
       const audio = await mac.speech(text, voice, rate);
-      try {
-        const cache = await caches.open(CACHE);
-        await cache.put(await cacheKey(voice, rate, text), new Response(audio, { headers: { "Content-Type": audio.type } }));
-      } catch {
-        // No room to keep it: it still plays now.
-      }
+      await this.keep(voice, rate, text, audio);
       return audio;
     } catch {
       // The connection may be gone (phone locked, network changed): look for the Mac again.
@@ -179,11 +267,19 @@ export class RemoteSynth {
     }
   }
 
-  // The audio for a sentence: kept on the phone, or read by the paired Mac now.
-  protected async audioFor(utterance: RemoteUtterance): Promise<Blob | null> {
+  // The audio for a sentence: kept on the phone, or read now (Gemini, or the
+  // paired Mac). A busy Gemini leaves the sentence to the Mac when it is there.
+  protected async audioFor(utterance: RemoteUtterance, patient = false): Promise<Blob | null> {
     await Promise.race([this.macVoicesReady(), new Promise((resolve) => setTimeout(resolve, 3000))]);
-    const voice = this.macVoiceFor(utterance.voice, utterance.lang);
-    if (!voice) return null;
+    const source = this.sourceFor(utterance.voice, utterance.lang);
+    if (!source) return null;
+    if (source.kind === "gemini") {
+      const audio = await this.fromGemini(source.name, utterance.text, patient);
+      if (audio || patient) return audio;
+      const mac = this.macVoiceFor(null, utterance.lang);
+      return mac ? ((await this.kept(mac, utterance.rate, utterance.text)) ?? (await this.fetchFromMac(mac, utterance.rate, utterance.text))) : null;
+    }
+    const voice = source.name;
     const kept = await this.kept(voice, utterance.rate, utterance.text);
     if (kept) return kept;
     const started = Date.now();
@@ -192,14 +288,22 @@ export class RemoteSynth {
     return fetched;
   }
 
-  // One sentence's audio in the Mac's voice: kept on the phone, or from the Mac now (for 后台播放's track).
+  // One sentence's better audio: kept on the phone, or read now (for 后台播放's track, which can wait).
   audioBlob(text: string, voice: SpeechSynthesisVoice | null, lang: string, rate: number): Promise<Blob | null> {
-    return this.audioFor({ ...remoteUtterance(text), voice, lang, rate });
+    return this.audioFor({ ...remoteUtterance(text), voice, lang, rate }, true);
   }
 
   // While the Mac is connected, the coming sentences are fetched and kept one by
   // one; `later` ones (the rest of the library) wait until those are done.
   prefetch(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number, later = false): void {
+    if (!later) this.lessonTexts = texts;
+    const source = this.sourceFor(voice, lang);
+    if (source?.kind === "gemini") {
+      // The open lesson is read in the background, waiting for Gemini's
+      // allowance; the rest of the library is not (it would use it all up).
+      if (!later) void this.readWithGemini(texts, source.name, true).catch(() => undefined);
+      return;
+    }
     if (!pairedMac()) return;
     void this.macVoicesReady().then(() => {
       const name = this.macVoiceFor(voice, lang);
@@ -242,7 +346,7 @@ export class RemoteSynth {
       if (number !== this.number) return;
       this.pending = false;
       if (!blob || !this.audio) return this.speakWithBrowser(utterance, number);
-      this.current = { url: URL.createObjectURL(blob), utterance, number };
+      this.current = { url: URL.createObjectURL(blob), utterance, number, speed: this.playbackRateFor(utterance.voice, utterance.lang, utterance.rate) };
       // Paused while the audio was on its way: it starts on resume, not before.
       if (!this.audioPaused) this.startCurrent();
     });
@@ -253,7 +357,7 @@ export class RemoteSynth {
     const audio = this.audio;
     const current = this.current;
     if (!audio || !current) return;
-    const { url, utterance, number } = current;
+    const { url, utterance, number, speed } = current;
     const done = (finish: () => void) => {
       if (number !== this.number) return;
       this.dropCurrent();
@@ -266,6 +370,10 @@ export class RemoteSynth {
       done(() => this.speakWithBrowser(utterance, number));
     };
     audio.src = url;
+    // Gemini audio at the learner's speed (a new source resets it), keeping the voice's pitch.
+    audio.defaultPlaybackRate = speed;
+    audio.playbackRate = speed;
+    audio.preservesPitch = true;
     void audio.play().catch((error: unknown) => {
       // Paused or stopped before it got going: not a failure.
       if (this.audioPaused || number !== this.number) return;

@@ -11,6 +11,9 @@ export interface VoiceLike {
 }
 
 const fromMac = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("mac:"));
+// "gemini:…": an online voice read by Gemini with the learner's key (src/speech/gemini.ts).
+const fromGemini = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("gemini:"));
+const GEMINI_GENDER: Record<string, string> = { Kore: "女声", Aoede: "女声", Charon: "男声", Puck: "男声" };
 
 export type VoiceQuality = "premium" | "enhanced" | "natural" | "standard" | "novelty";
 
@@ -18,7 +21,7 @@ export type VoiceQuality = "premium" | "enhanced" | "natural" | "standard" | "no
 const NOVELTY = /\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|kathy|ralph)\b/i;
 
 export function voiceId(voice: VoiceLike): string {
-  return `${fromMac(voice) ? "mac:" : ""}${voice.name}|${voice.lang}`;
+  return `${fromMac(voice) ? "mac:" : fromGemini(voice) ? "gemini:" : ""}${voice.name}|${voice.lang}`;
 }
 
 export function isFrench(voice: VoiceLike): boolean {
@@ -26,6 +29,7 @@ export function isFrench(voice: VoiceLike): boolean {
 }
 
 export function voiceQuality(voice: VoiceLike): VoiceQuality {
+  if (fromGemini(voice)) return "natural";
   const name = voice.name;
   if (NOVELTY.test(name)) return "novelty";
   if (/premium/i.test(name)) return "premium";
@@ -37,6 +41,8 @@ export function voiceQuality(voice: VoiceLike): VoiceQuality {
 const QUALITY_SCORE: Record<VoiceQuality, number> = { premium: 50, enhanced: 40, natural: 35, standard: 0, novelty: -100 };
 
 export function scoreVoice(voice: VoiceLike): number {
+  // Gemini's voices come first when the learner added the key for them (Kore first).
+  if (fromGemini(voice)) return 100 - Object.keys(GEMINI_GENDER).indexOf(voice.name);
   let score = QUALITY_SCORE[voiceQuality(voice)];
   const lang = voice.lang.replace("_", "-").toLowerCase();
   if (lang === "fr-fr") score += 20;
@@ -71,6 +77,7 @@ export function pickVoice<T extends VoiceLike>(voices: T[], saved = ""): T | nul
 }
 
 export function voiceLabel(voice: VoiceLike): string {
+  if (fromGemini(voice)) return `${voice.name} · ${GEMINI_GENDER[voice.name] ?? ""}（在线语音）`;
   const quality = voiceQuality(voice);
   const tag = quality === "premium" ? " · 高品质" : quality === "enhanced" ? " · 增强版" : quality === "natural" ? " · 自然" : "";
   const region = /ca/i.test(voice.lang) ? "（加拿大）" : /be/i.test(voice.lang) ? "（比利时）" : /ch/i.test(voice.lang) ? "（瑞士）" : "";
