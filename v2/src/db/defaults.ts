@@ -12,7 +12,8 @@ export const DEFAULT_SETTINGS: Settings = {
   systemLanguage: "zh",
   lastBackupAt: "",
   practiceKinds: ["listen", "cloze", "order"],
-  aiPrepare: true
+  aiPrepare: true,
+  backgroundPlay: false
 };
 
 export const DEFAULT_STUDY: StudyStats = {

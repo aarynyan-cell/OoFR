@@ -165,6 +165,8 @@ export interface Settings {
   practiceKinds: ("listen" | "cloze" | "order")[];
   // Let the local AI prepare translations and the next explanations while a lesson is open.
   aiPrepare: boolean;
+  // 后台播放: a lesson plays as one track, so it keeps going with the phone locked.
+  backgroundPlay: boolean;
 }
 
 export interface StudyStats {

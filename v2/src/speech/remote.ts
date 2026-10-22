@@ -190,6 +190,11 @@ export class RemoteSynth {
     return fetched;
   }
 
+  // One sentence's audio in the Mac's voice: kept on the phone, or from the Mac now (for 后台播放's track).
+  audioBlob(text: string, voice: SpeechSynthesisVoice | null, lang: string, rate: number): Promise<Blob | null> {
+    return this.audioFor({ ...remoteUtterance(text), voice, lang, rate });
+  }
+
   // While the Mac is connected, the coming sentences are fetched and kept one by
   // one; `later` ones (the rest of the library) wait until those are done.
   prefetch(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number, later = false): void {

@@ -43,7 +43,7 @@ export class NativeSynth {
   // One audio element for every sentence: the web view lets an element that
   // has played once keep playing without another tap.
   private audio = typeof Audio === "undefined" ? null : new Audio();
-  private rendered = new Map<string, Promise<string>>();
+  private rendered = new Map<string, Promise<{ url: string; blob: Blob }>>();
   private queue: { text: string; voice: string; rate: number }[] = [];
   private prefetching = false;
 
@@ -74,21 +74,37 @@ export class NativeSynth {
   }
 
   // The audio of one sentence (kept, so a sentence heard again starts at once).
-  render(text: string, voice: string, rate: number): Promise<string> {
+  private renderAudio(text: string, voice: string, rate: number): Promise<{ url: string; blob: Blob }> {
     const key = `${voice}|${rate}|${text}`;
     let pending = this.rendered.get(key);
     if (!pending) {
-      pending = this.app.core.invoke<ArrayBuffer>("tts_render", { text, voice, rate }).then((bytes) => URL.createObjectURL(new Blob([bytes], { type: "audio/mp4" })));
+      pending = this.app.core.invoke<ArrayBuffer>("tts_render", { text, voice, rate }).then((bytes) => {
+        const blob = new Blob([bytes], { type: "audio/mp4" });
+        return { url: URL.createObjectURL(blob), blob };
+      });
       // A failed sentence is tried again next time.
       pending.catch(() => this.rendered.delete(key));
       this.rendered.set(key, pending);
       if (this.rendered.size > CACHE_LIMIT) {
-        const [oldest, url] = this.rendered.entries().next().value as [string, Promise<string>];
+        const [oldest, audio] = this.rendered.entries().next().value as [string, Promise<{ url: string; blob: Blob }>];
         this.rendered.delete(oldest);
-        void url.then((value) => URL.revokeObjectURL(value), () => undefined);
+        void audio.then((value) => URL.revokeObjectURL(value.url), () => undefined);
       }
     }
     return pending;
+  }
+
+  render(text: string, voice: string, rate: number): Promise<string> {
+    return this.renderAudio(text, voice, rate).then((audio) => audio.url);
+  }
+
+  // One sentence's audio as a file (for 后台播放's track).
+  async audioBlob(text: string, voice: SpeechSynthesisVoice | null, lang: string, rate: number): Promise<Blob | null> {
+    try {
+      return (await this.renderAudio(text, this.voiceFor({ voice, lang }), rate)).blob;
+    } catch {
+      return null;
+    }
   }
 
   // The sentences coming up, rendered one by one while the current one plays.

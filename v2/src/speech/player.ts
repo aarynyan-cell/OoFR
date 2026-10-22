@@ -8,6 +8,7 @@
 
 import { nativeSynth, nativeUtterance } from "./native";
 import { RemoteSynth, remoteUtterance } from "./remote";
+import { type Track, partAt } from "./track";
 
 export interface PlayItem {
   text: string;
@@ -30,6 +31,8 @@ export interface PlayerState {
   key: string;
   index: number;
   message: string;
+  // 后台播放: the lesson plays as one track (keeps going with the phone locked).
+  background?: boolean;
 }
 
 type Outcome = { status: "ended" | "cancelled" | "error"; error?: string };
@@ -42,13 +45,20 @@ const ERROR_MESSAGES: Record<string, string> = {
   "language-unavailable": "这台设备没有法语朗读声音"
 };
 
-const IDLE: PlayerState = { status: "idle", key: "", index: -1, message: "" };
+const IDLE: PlayerState = { status: "idle", key: "", index: -1, message: "", background: false };
+
+// A sliver of silence played inside the tap that starts playback, so a track
+// may start later without another tap (iPhone).
+const SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
 
 export class SpeechPlayer {
   private state: PlayerState = IDLE;
   private listeners = new Set<() => void>();
   private runToken = 0;
   private current: SpeechSynthesisUtterance | null = null;
+  // 后台播放: one audio element for lesson tracks, and the track playing in it.
+  private trackAudio: HTMLAudioElement | null = null;
+  private track: Track | null = null;
 
   constructor(
     private readonly getSynth: () => SpeechSynthesis | undefined = () => globalThis.speechSynthesis,
@@ -78,9 +88,10 @@ export class SpeechPlayer {
       return;
     }
     const token = ++this.runToken;
+    this.endTrack();
     synth.cancel();
     if (synth.paused) synth.resume();
-    this.set({ status: "playing", key, index: startIndex, message: "" });
+    this.set({ status: "playing", key, index: startIndex, message: "", background: false });
 
     let failures = 0;
     let message = "";
@@ -128,24 +139,114 @@ export class SpeechPlayer {
   }
 
   pause(): void {
+    if (this.state.status !== "playing") return;
+    if (this.track) {
+      this.trackAudio?.pause();
+      this.set({ status: "paused" });
+      return;
+    }
     const synth = this.getSynth();
-    if (!synth || this.state.status !== "playing") return;
+    if (!synth) return;
     synth.pause();
     this.set({ status: "paused" });
   }
 
   resume(): void {
+    if (this.state.status !== "paused") return;
+    if (this.track) {
+      this.set({ status: "playing" });
+      void this.trackAudio?.play().catch(() => this.pause());
+      return;
+    }
     const synth = this.getSynth();
-    if (!synth || this.state.status !== "paused") return;
+    if (!synth) return;
     this.set({ status: "playing" });
     synth.resume();
   }
 
   stop(): void {
     this.runToken += 1;
+    this.endTrack();
     this.getSynth()?.cancel();
     this.current = null;
     this.set(IDLE);
+  }
+
+  // Called inside the tap that starts a lesson, so its track can start later on its own.
+  unlockTrack(): void {
+    const audio = this.trackElement();
+    if (!audio || audio.src) return;
+    audio.src = SILENCE;
+    void audio.play().catch(() => undefined);
+  }
+
+  // 后台播放: plays a lesson's track from a sentence, round and round until paused.
+  playTrack(key: string, track: Track, startIndex: number, onLoop?: () => void): void {
+    const audio = this.trackElement();
+    if (!audio) return;
+    const token = ++this.runToken;
+    this.getSynth()?.cancel();
+    this.current = null;
+    this.endTrack();
+    this.track = track;
+    const start = track.parts[Math.max(0, Math.min(startIndex, track.parts.length - 1))]?.start ?? 0;
+    let last = start;
+    audio.loop = true;
+    audio.ontimeupdate = () => {
+      if (token !== this.runToken) return;
+      // Back at the start: the lesson went round once more.
+      if (audio.currentTime + 1 < last) onLoop?.();
+      last = audio.currentTime;
+      const index = partAt(track.parts, audio.currentTime);
+      if (index >= 0 && index !== this.state.index) this.set({ index });
+    };
+    audio.onerror = () => {
+      if (token !== this.runToken) return;
+      this.endTrack();
+      this.set({ ...IDLE, message: "后台播放的音频出错了，已停止" });
+    };
+    audio.src = track.url;
+    // The position can be set once the browser knows the length.
+    const seek = () => {
+      audio.currentTime = start;
+    };
+    if (audio.readyState >= 1) seek();
+    else audio.addEventListener("loadedmetadata", seek, { once: true });
+    this.set({ status: "playing", key, index: startIndex, message: "", background: true });
+    void audio.play().catch(() => {
+      if (token !== this.runToken) return;
+      this.endTrack();
+      this.set({ ...IDLE, message: ERROR_MESSAGES["not-allowed"] });
+    });
+  }
+
+  // 后台播放: moves to another sentence of the playing track (also from the lock screen).
+  skipTo(index: number): boolean {
+    const track = this.track;
+    const audio = this.trackAudio;
+    if (!track || !audio || this.state.status === "idle") return false;
+    const part = track.parts[Math.max(0, Math.min(index, track.parts.length - 1))];
+    audio.currentTime = part.start;
+    this.set({ index: part.index });
+    return true;
+  }
+
+  private trackElement(): HTMLAudioElement | null {
+    if (!this.trackAudio && typeof Audio !== "undefined") this.trackAudio = new Audio();
+    return this.trackAudio;
+  }
+
+  // Lets go of the track, so the phone's media controls clear (the track's file stays with its maker).
+  private endTrack(): void {
+    if (!this.track) return;
+    this.track = null;
+    const audio = this.trackAudio;
+    if (!audio) return;
+    audio.pause();
+    audio.ontimeupdate = null;
+    audio.onerror = null;
+    audio.removeAttribute("src");
+    audio.load();
   }
 
   private async speakSentence(item: PlayItem, options: PlayOptions, token: number): Promise<Outcome> {
@@ -257,6 +358,15 @@ export function speechEngine(): SpeechSynthesis | undefined {
 // The Mac app and a paired phone fetch the coming sentences' audio while one plays.
 export function prefetchSpeech(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number): void {
   (native ?? remote)?.prefetch(texts, voice, lang, rate);
+}
+
+// One sentence's audio in the Mac's voice (the Mac app renders it; a phone has
+// it kept or asks the paired Mac), or null where there is none (browser voices
+// cannot be recorded). 后台播放 joins these into a track.
+export async function sentenceAudio(text: string, voice: SpeechSynthesisVoice | null, lang: string, rate: number): Promise<Blob | null> {
+  if (native) return native.audioBlob(text, voice, lang, rate);
+  if (remote) return remote.audioBlob(text, voice, lang, rate);
+  return null;
 }
 
 // A phone paired with the Mac keeps the whole library's audio, after whatever is being prepared now.

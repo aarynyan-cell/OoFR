@@ -52,6 +52,8 @@ export function MePage() {
   // The joke voices (Grandma, Eddy…) stay out of the list unless one is already chosen.
   const french = frenchVoices(voices).filter((voice) => voiceQuality(voice) !== "novelty" || voiceId(voice) === settings?.voice);
   const active = settings ? pickVoice(voices, settings.voice) : null;
+  // 后台播放 joins the Mac's voice into one track: the Mac app always has it, a phone once it has met the Mac.
+  const macVoice = Boolean(tauri()) || voices.some((voice) => voice.voiceURI?.startsWith("mac:"));
 
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -156,6 +158,23 @@ export function MePage() {
             </select>
           </label>
           {voiceNote(voices) && <p className="list-note">{voiceNote(voices)}</p>}
+          <div className="list-row">
+            <span className="grow">每句读几遍</span>
+            <div className="segmented segmented-inline segmented-count" role="group" aria-label="每句读几遍">
+              {[1, 2, 3, 4, 5].map((count) => (
+                <button key={count} type="button" className="segment" aria-pressed={settings?.repeat === count} aria-label={`${count} 遍`} onClick={() => void saveSettings({ repeat: count })}>
+                  {count}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="list-row">
+            <span className="grow stack-2">
+              <span>后台播放</span>
+              <span className="dim small">{macVoice ? "锁屏或切到别的 App 时，整课接着播放" : "锁屏时接着播放整课。要用电脑朗读的声音，先连接一次电脑"}</span>
+            </span>
+            <input type="checkbox" className="switch" checked={settings?.backgroundPlay ?? false} onChange={(event) => void saveSettings({ backgroundPlay: event.target.checked })} />
+          </label>
           <button type="button" className="list-row list-button" onClick={() => setAiOpen(true)}>
             <span className="grow stack-2"><span>本机 AI</span><span className="dim small">{aiSummary(ai)}</span></span>
             <ChevronIcon size={18} />

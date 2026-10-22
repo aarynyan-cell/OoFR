@@ -21,9 +21,16 @@ export function connectMediaControls(session: MediaSession | undefined, player: 
   });
   handle("stop", () => player.stop());
   for (const action of ["seekbackward", "seekforward", "seekto", "previoustrack", "nexttrack"] as MediaSessionAction[]) handle(action, null);
+  // 后台播放 only: the lock screen's ⏮ / ⏭ move between sentences of the playing track.
+  let skipping = false;
   player.subscribe(() => {
-    const status = player.getState().status;
-    session.playbackState = status === "playing" ? "playing" : status === "paused" ? "paused" : "none";
-    if (status === "idle") session.metadata = null;
+    const state = player.getState();
+    session.playbackState = state.status === "playing" ? "playing" : state.status === "paused" ? "paused" : "none";
+    if (state.status === "idle") session.metadata = null;
+    const background = Boolean(state.background) && state.status !== "idle";
+    if (background === skipping) return;
+    skipping = background;
+    handle("previoustrack", background ? () => player.skipTo(player.getState().index - 1) : null);
+    handle("nexttrack", background ? () => player.skipTo(player.getState().index + 1) : null);
   });
 }

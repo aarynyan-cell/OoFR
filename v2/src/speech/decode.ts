@@ -15,12 +15,12 @@ function offlineContextClass(): OfflineContextClass | undefined {
   return window.OfflineAudioContext ?? (window as unknown as { webkitOfflineAudioContext?: OfflineContextClass }).webkitOfflineAudioContext;
 }
 
-// The decoded audio (at 48 kHz), or null when this browser cannot decode it.
-export async function decodeAudio(blob: Blob): Promise<AudioBuffer | null> {
+// The decoded audio (at 48 kHz unless asked otherwise), or null when this browser cannot decode it.
+export async function decodeAudio(blob: Blob, sampleRate = 48000): Promise<AudioBuffer | null> {
   const OfflineContext = offlineContextClass();
   if (!OfflineContext) return null;
   try {
-    return await new OfflineContext(1, 1, 48000).decodeAudioData(await blob.arrayBuffer());
+    return await new OfflineContext(1, 1, sampleRate).decodeAudioData(await blob.arrayBuffer());
   } catch {
     return null;
   }
