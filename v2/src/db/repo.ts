@@ -471,7 +471,16 @@ export interface WordToSave {
 
 // 收藏 a word under its dictionary form; saving another form of it (voudrais,
 // veux…) only records that form on the card already there.
-export async function saveWord(word: WordToSave, material: Material): Promise<{ card: Card; added: boolean }> {
+// Where a saved word came from: the lesson it was met in, or 查词.
+export interface WordSource {
+  id: string;
+  title: string;
+  language: Material["language"];
+}
+
+export const LOOKUP_SOURCE: WordSource = { id: "", title: "查词", language: "fr" };
+
+export async function saveWord(word: WordToSave, material: WordSource): Promise<{ card: Card; added: boolean }> {
   return db.transaction("rw", db.cards, async () => {
     const existing = await findCard("word", word.lemma);
     const form = { form: word.surface, normalized: normalizeWord(word.surface), count: 1 };
@@ -505,6 +514,35 @@ export async function saveWord(word: WordToSave, material: Material): Promise<{ 
     await db.cards.add(card);
     return { card, added: true };
   });
+}
+
+// 词典报错: the dictionary's meaning of a word is wrong. The word is kept in
+// 词句 (saved if it was not) and waits in 待补充 until it is fixed.
+export async function reportWordMeaning(word: WordToSave, source: WordSource): Promise<Card> {
+  const { card } = await saveWord(word, source);
+  const changes = { dictIssue: nowIso(), updatedAt: nowIso() };
+  await db.cards.update(card.id, changes);
+  return { ...card, ...changes };
+}
+
+// 词典修正: the learner's own meaning (checked by the local AI first) becomes
+// the word's meaning in 词句 and is shown before the dictionary's.
+export async function fixWordMeaning(word: WordToSave, senses: string[], source: WordSource): Promise<Card> {
+  const clean = [...new Set(senses.map((sense) => sense.trim()).filter(Boolean))].slice(0, 8);
+  const { card } = await saveWord(word, source);
+  const changes = { dictFix: { senses: clean, at: nowIso() }, dictIssue: undefined, translation: clean.join("；"), updatedAt: nowIso() };
+  await db.cards.update(card.id, changes);
+  return { ...card, ...changes };
+}
+
+// Marked as wrong by mistake: the word leaves 待补充 (unless it has no meaning).
+export async function clearWordIssue(cardId: string): Promise<void> {
+  await db.cards.update(cardId, { dictIssue: undefined, updatedAt: nowIso() });
+}
+
+// The learner's meaning is split into senses at ；、, and new lines.
+export function meaningSenses(text: string): string[] {
+  return text.split(/[；;、,，\n]+/).map((sense) => sense.trim()).filter(Boolean);
 }
 
 // New cards introduced per day, so a big import does not turn into a wall of reviews.
@@ -557,7 +595,7 @@ export async function toggleSentence(material: Material, sentence: Sentence): Pr
   return true;
 }
 
-export async function toggleWord(word: WordToSave, material: Material): Promise<boolean> {
+export async function toggleWord(word: WordToSave, material: WordSource): Promise<boolean> {
   const existing = await findCard("word", word.lemma);
   if (existing) {
     await removeCard(existing.id);
@@ -611,7 +649,8 @@ export function filterCards(cards: Card[], filter: CardFilter, query = "", wordb
     .filter((card) => {
       if (filter === "todo") return card.status !== "got";
       if (filter === "got") return card.status === "got";
-      if (filter === "incomplete") return !card.translation.trim();
+      // 待补充: no meaning yet, or a dictionary meaning marked as wrong.
+      if (filter === "incomplete") return !card.translation.trim() || Boolean(card.dictIssue);
       return true;
     })
     .filter((card) => !wordbookId || card.wordbookIds.includes(wordbookId))

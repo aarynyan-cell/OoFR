@@ -8,6 +8,7 @@ import { type CardFilter, TONE_LABEL, createWordbook, deleteWordbook, filterCard
 import type { Card } from "../db/types";
 import { frenchSpacing } from "../text/typography";
 import { CardSheet } from "../ui/CardSheet";
+import { LookupCard, looksFrench } from "../ui/LookupCard";
 import { Modal } from "../ui/Modal";
 import { PlayIcon, SearchIcon } from "../ui/icons";
 import { confirmAction } from "../ui/Confirm";
@@ -30,6 +31,8 @@ export function PhrasebookPage() {
   const [creatingBook, setCreatingBook] = useState(false);
 
   const shown = filterCards(cards ?? [], filter, query, wordbookId);
+  // 查词: a French word or expression in the search box is also looked up in the dictionary.
+  const lookingUp = looksFrench(query);
   const dueCount = cards ? reviewQueue(cards).length : 0;
   const open = cards?.find((card) => card.id === openId);
   const selectedBook = wordbooks?.find((book) => book.id === wordbookId);
@@ -74,9 +77,17 @@ export function PhrasebookPage() {
 
       <label className="search">
         <SearchIcon size={18} />
-        <span className="visually-hidden">搜索词句</span>
-        <input type="search" placeholder="搜索法语或中文" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <span className="visually-hidden">查词典，或搜索收藏的词句</span>
+        <input type="search" placeholder="查词典，或搜索收藏的词句" value={query} onChange={(event) => setQuery(event.target.value)} autoCapitalize="off" autoCorrect="off" spellCheck={false} />
       </label>
+
+      {lookingUp && settings && (
+        <>
+          <h2 className="group-title">词典</h2>
+          <LookupCard query={query} settings={settings} />
+          <h2 className="group-title">收藏的词句</h2>
+        </>
+      )}
 
       {shown.length ? (
         <ul className="list list-plain">
@@ -87,7 +98,10 @@ export function PhrasebookPage() {
               </button>
               <button type="button" className="grow stack-2 row-open" onClick={() => setOpenId(card.id)} aria-label={`打开 ${card.text}`}>
                 <b className={`fr ${card.kind === "word" ? "card-word" : "card-phrase"}`} lang={card.language}>{frenchSpacing(card.text)}</b>
-                <span className="muted small">{card.kind === "word" ? "单词" : "句子"} · {card.translation || <span className="accent-text">释义待补充</span>}</span>
+                <span className="muted small">
+                  {card.kind === "word" ? "单词" : "句子"} · {card.translation || <span className="accent-text">释义待补充</span>}
+                  {card.dictIssue && <span className="accent-text"> · 释义待修正</span>}
+                </span>
               </button>
               <button
                 type="button"
@@ -101,7 +115,7 @@ export function PhrasebookPage() {
           ))}
         </ul>
       ) : (
-        <p className="empty">{cards?.length ? "没有符合条件的词句" : "还没有收藏。上课时点“收藏”，好句子会来到这里。"}</p>
+        <p className="empty">{lookingUp ? "收藏里还没有这个词" : cards?.length ? "没有符合条件的词句" : "还没有收藏。上课时点“收藏”，好句子会来到这里。也可以在上面查词。"}</p>
       )}
 
       {open && settings && <CardSheet card={open} wordbooks={wordbooks ?? []} settings={settings} onClose={() => setOpenId(null)} />}

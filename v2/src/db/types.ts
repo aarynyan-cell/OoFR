@@ -115,6 +115,12 @@ export interface Card {
   review: ReviewState | null;
   createdAt: string;
   updatedAt: string;
+  // 词典报错: when the learner said the dictionary's meaning of this word is
+  // wrong; the word waits in 词句 → 待补充 until it is fixed.
+  dictIssue?: string;
+  // 词典修正: the learner's own meaning, checked by the local AI; word cards
+  // show it before the dictionary's.
+  dictFix?: { senses: string[]; at: string };
 }
 
 export interface Wordbook {

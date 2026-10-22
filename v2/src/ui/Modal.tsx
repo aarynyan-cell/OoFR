@@ -1,9 +1,16 @@
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // A bottom sheet on phones, a centred card on wide screens. Escape and the
-// backdrop close it; focus moves into it when it opens.
+// backdrop close it; focus moves into it when it opens. Drawn at the end of
+// the page, so a sheet opened from another sheet (释义有误？ from a word card)
+// shows on top of it, not inside it.
+let opened = 0;
+
 export function Modal({ title, onClose, children, compact = false }: { title: string; onClose: () => void; children: ReactNode; compact?: boolean }) {
   const panel = useRef<HTMLDivElement>(null);
+  // The sheet opened last is on top.
+  const [layer] = useState(() => (opened += 1));
   const close = useRef(onClose);
   close.current = onClose;
   // Runs once per opening, so re-renders never move the focus.
@@ -18,12 +25,13 @@ export function Modal({ title, onClose, children, compact = false }: { title: st
       previous?.focus?.();
     };
   }, []);
-  return (
-    <div className="modal-backdrop" onClick={(event) => event.target === event.currentTarget && onClose()}>
+  return createPortal(
+    <div className="modal-backdrop" style={{ zIndex: 50 + (layer % 1000) }} onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className={`modal${compact ? " modal-compact" : ""}`} role="dialog" aria-modal="true" aria-label={title} ref={panel}>
         <span className="sheet-handle" aria-hidden="true" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

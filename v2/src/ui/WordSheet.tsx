@@ -3,8 +3,9 @@ import { useCardIndex } from "../app/cards";
 import { speakOnce } from "../app/audio";
 import { toast } from "../app/toast";
 import { toggleWord } from "../db/repo";
-import type { Material, Settings } from "../db/types";
+import type { Card, Material, Settings } from "../db/types";
 import { type LookupResult, type MeaningGroup, dictionary, featuresLabel, posLabel } from "../dict/dictionary";
+import { MeaningFixSheet } from "./MeaningFixSheet";
 import { Modal } from "./Modal";
 import { SaveToggle } from "./SaveToggle";
 import { SpeakerIcon } from "./icons";
@@ -30,6 +31,7 @@ function meaningsText(entry: LookupResult): string {
 // (and the fixed expression it belongs to), and saves or unsaves with one tap.
 export function WordSheet({ target, material, settings, onClose }: { target: WordTarget; material: Material; settings: Settings; onClose: () => void }) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const [fixing, setFixing] = useState(false);
   const index = useCardIndex();
 
   useEffect(() => {
@@ -58,9 +60,6 @@ export function WordSheet({ target, material, settings, onClose }: { target: Wor
   const expression = state.status === "ready" ? state.expression : null;
   const wordCard = word ? index.word(word.lemma) : index.word(target.text);
   const expressionCard = expression ? index.word(expression.lemma) : undefined;
-  const meta = word
-    ? [word.formIpa || word.ipa, posLabel(word.posList), GENDER[word.meanings.find((group) => group.gender)?.gender ?? ""] ?? "", word.form ? featuresLabel(word.form.features) : ""].filter(Boolean)
-    : [];
 
   return (
     <Modal title={`${target.text} 的释义`} onClose={onClose} compact>
@@ -74,13 +73,7 @@ export function WordSheet({ target, material, settings, onClose }: { target: Wor
             <SpeakerIcon size={20} />
           </button>
         </div>
-        {meta.length > 0 && (
-          <p className="dim small">
-            {meta.map((part, partIndex) => (
-              <span key={part} className={partIndex === 0 && part.startsWith("/") ? "ipa" : undefined}>{partIndex ? " · " : ""}{part}</span>
-            ))}
-          </p>
-        )}
+        {word && <WordMeta word={word} />}
 
         {expression && (
           <section className="expression">
@@ -95,20 +88,58 @@ export function WordSheet({ target, material, settings, onClose }: { target: Wor
 
         {state.status === "loading" && <p className="dim small">正在查离线词典…</p>}
         {state.status === "ready" && !word && <p className="muted small">离线词典里没有这个词，可以打开完整词典看看。</p>}
-        {word && <Meanings word={word} />}
-        {word?.alsoForm && <OtherReadingNote word={word} language={material.language} />}
+        {word && <WordMeanings word={word} card={wordCard} language={material.language} />}
 
         <div className="word-actions">
           <SaveToggle saved={Boolean(wordCard)} tone={wordCard?.status} onToggle={() => word && void toggle(word)} label={word && word.lemma !== target.text ? `收藏 ${word.lemma}` : "收藏"} />
-          <a className="text-button" href={`https://fr.wiktionary.org/wiki/${encodeURIComponent(word?.lemma ?? target.text)}`} target="_blank" rel="noreferrer">完整词典 ›</a>
+          <span className="row-8">
+            {word && <button type="button" className="text-button" onClick={() => setFixing(true)}>释义有误？</button>}
+            <a className="text-button" href={`https://fr.wiktionary.org/wiki/${encodeURIComponent(word?.lemma ?? target.text)}`} target="_blank" rel="noreferrer">完整词典 ›</a>
+          </span>
         </div>
-        {word && (
-          <p className="dim tiny">
-            {word.meaningSource === "curated" ? "释义：OoFR 人工校订" : word.meaningSource === "ai" ? "释义：本机 AI 依据维基词典英文释义翻译" : `来源：${word.source}`}
-          </p>
-        )}
+        {word && <MeaningSourceNote word={word} />}
       </div>
+      {fixing && word && <MeaningFixSheet lemma={word.lemma} surface={target.text} context={target.context} source={material} onClose={() => setFixing(false)} />}
     </Modal>
+  );
+}
+
+// Pronunciation, part of speech, gender and form, on one line.
+export function WordMeta({ word }: { word: LookupResult }) {
+  const meta = [word.formIpa || word.ipa, posLabel(word.posList), GENDER[word.meanings.find((group) => group.gender)?.gender ?? ""] ?? "", word.form ? featuresLabel(word.form.features) : ""].filter(Boolean);
+  if (!meta.length) return null;
+  return (
+    <p className="dim small">
+      {meta.map((part, partIndex) => (
+        <span key={part} className={partIndex === 0 && part.startsWith("/") ? "ipa" : undefined}>{partIndex ? " · " : ""}{part}</span>
+      ))}
+    </p>
+  );
+}
+
+// The learner's own fix first (when there is one), the dictionary's meanings,
+// a word marked as wrong, and the other reading of the word.
+export function WordMeanings({ word, card, language }: { word: LookupResult; card?: Card; language: string }) {
+  return (
+    <>
+      {card?.dictFix && (
+        <section className="my-meaning">
+          <span className="dim small">你的修正 · AI 已检查</span>
+          <p>{card.dictFix.senses.join("；")}</p>
+        </section>
+      )}
+      {card?.dictIssue && !card.dictFix && <p className="accent-text small">你标记过这个释义有误，连上电脑 AI 后可以修正</p>}
+      <Meanings word={word} />
+      {word.alsoForm && <OtherReadingNote word={word} language={language} />}
+    </>
+  );
+}
+
+export function MeaningSourceNote({ word }: { word: LookupResult }) {
+  return (
+    <p className="dim tiny">
+      {word.meaningSource === "curated" ? "释义：OoFR 人工校订" : word.meaningSource === "ai" ? "释义：本机 AI 依据维基词典英文释义翻译" : `来源：${word.source}`}
+    </p>
   );
 }
 

@@ -139,3 +139,48 @@ export async function explainSentence(
     generatedAt: nowIso()
   };
 }
+
+// 词典修正: is the learner's Chinese meaning of a word right? The local AI
+// checks it against the Wiktionary senses before it replaces the dictionary's.
+export interface MeaningCheck {
+  ok: boolean;
+  reason: string;
+  // The AI's own accurate meaning, offered when the learner's is not right.
+  suggestion: string;
+}
+
+export interface MeaningToCheck {
+  word: string;
+  lemma: string;
+  partOfSpeech: string;
+  english: string[];
+  current: string;
+  proposed: string;
+  context?: string;
+}
+
+const MEANING_SCHEMA = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    reason: { type: "string", maxLength: 120 },
+    suggestion: { type: "string", maxLength: 80 }
+  },
+  required: ["ok", "reason", "suggestion"]
+};
+
+export async function checkMeaningFix(backend: AiBackend, model: string, item: MeaningToCheck, signal?: AbortSignal): Promise<MeaningCheck> {
+  const prompt =
+    `${TEACHER}\n你在审核学习者对法语词典的修改：判断学习者给的中文释义是否准确（意思对、和词性相符、不含糊）。\n` +
+    `单词：${item.word}${item.lemma && item.lemma !== item.word ? `（原形 ${item.lemma}）` : ""}${item.partOfSpeech ? `，${item.partOfSpeech}` : ""}\n` +
+    (item.english.length ? `维基词典的英文释义：${item.english.slice(0, 6).join("; ")}\n` : "") +
+    (item.context ? `出现的句子：${item.context}\n` : "") +
+    `词典原来的中文：${item.current || "（没有）"}\n` +
+    `学习者的修改：${item.proposed}\n` +
+    "修改准确、或比原来更好时 ok 为 true；意思不对、词性不符或含糊时 ok 为 false。reason 用一句简体中文说明理由。" +
+    "suggestion 写你认为准确的中文释义，几个义项用顿号分开。只返回要求的 JSON。";
+  const data = await askJson<{ ok?: unknown; reason?: unknown; suggestion?: unknown }>(backend, model, { prompt, schema: MEANING_SCHEMA, maxTokens: 220, signal });
+  const suggestion = text(data.suggestion, 80);
+  return { ok: data.ok === true, reason: text(data.reason, 120), suggestion: CJK.test(suggestion) ? suggestion : "" };
+}
+

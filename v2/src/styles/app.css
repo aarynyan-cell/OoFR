@@ -1318,7 +1318,7 @@ p {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 40;
+  z-index: 2000; /* above every sheet (see Modal) */
 }
 
 .toast-show {
@@ -1342,7 +1342,7 @@ p {
   border-radius: 24px;
   background: var(--raised);
   border: 1px solid var(--line-strong);
-  z-index: 40;
+  z-index: 2000; /* above every sheet (see Modal) */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2003,6 +2003,65 @@ mark.missed {
 .segmented-count .segment {
   min-width: 34px;
   padding: 0 8px;
+}
+
+.lookup-card {
+  padding: 16px;
+}
+
+.issue-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.issue-actions {
+  align-items: center;
+}
+
+.my-meaning {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.my-meaning p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.fix-word {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 24px;
+}
+
+.fix-sheet textarea {
+  resize: none;
+}
+
+.fix-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 14px;
+}
+
+.fix-verdict p {
+  margin: 0;
 }
 
 .other-reading {

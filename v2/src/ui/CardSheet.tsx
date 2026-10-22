@@ -1,9 +1,11 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { speakOnce } from "../app/audio";
 import { toast } from "../app/toast";
-import { createWordbook, removeCard, updateCard } from "../db/repo";
+import { useAi } from "../ai/state";
+import { clearWordIssue, createWordbook, removeCard, updateCard } from "../db/repo";
 import type { Card, Settings, Wordbook } from "../db/types";
 import { frenchSpacing } from "../text/typography";
+import { MeaningFixSheet } from "./MeaningFixSheet";
 import { Modal } from "./Modal";
 import { SpeakerIcon } from "./icons";
 import { confirmAction } from "./Confirm";
@@ -11,7 +13,13 @@ import { confirmAction } from "./Confirm";
 // One phrasebook entry: fill in its meaning, mark it, sort it into wordbooks.
 export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; wordbooks: Wordbook[]; settings: Settings; onClose: () => void }) {
   const [translation, setTranslation] = useState(card.translation);
+  // A meaning changed elsewhere (a dictionary fix, another device) shows here,
+  // and closing the sheet does not write the old one back.
+  useEffect(() => setTranslation(card.translation), [card.translation]);
   const [newBook, setNewBook] = useState("");
+  const [fixing, setFixing] = useState(false);
+  const ai = useAi();
+  const source = { id: card.sourceMaterialId, title: card.sourceTitle, language: card.language };
 
   const saveTranslation = async () => {
     if (translation.trim() === card.translation) return;
@@ -50,10 +58,27 @@ export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; 
           <button type="button" className="round-button round-outline" onClick={() => speakOnce(card.text, settings, card.language)} aria-label="朗读"><SpeakerIcon size={20} /></button>
         </div>
 
+        {card.kind === "word" && card.dictIssue && (
+          <section className="issue-banner">
+            <div className="grow stack-2">
+              <b className="small">你标记过：词典里的释义有误</b>
+              <span className="dim small">{ai.phase === "ready" ? "现在连着本机 AI，可以修正了" : "连上电脑上的本机 AI 后可以修正"}</span>
+            </div>
+            <div className="stack-4 issue-actions">
+              <button type="button" className="button button-primary button-small" onClick={() => setFixing(true)}>修正释义</button>
+              <button type="button" className="text-button" onClick={() => void clearWordIssue(card.id).then(() => toast("已取消标记"))}>取消标记</button>
+            </div>
+          </section>
+        )}
+
         <label className="field">
           中文释义
           <textarea rows={2} value={translation} placeholder="还没有释义，可以在这里补上" onChange={(event) => setTranslation(event.target.value)} onBlur={saveTranslation} />
         </label>
+
+        {card.kind === "word" && !card.dictIssue && (
+          <button type="button" className="text-button align-start" onClick={() => setFixing(true)}>{card.dictFix ? "再次修正词典释义" : "词典释义有误？"}</button>
+        )}
 
         <div className="segmented segmented-2" role="group" aria-label="掌握情况">
           <button type="button" className="segment" aria-pressed={card.status !== "got"} onClick={() => void updateCard(card.id, { status: "learning" })}>{card.status === "new" ? "待学" : "学习中"}</button>
@@ -75,6 +100,15 @@ export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; 
 
         <button type="button" className="button button-danger" onClick={remove}>从词句本删除</button>
       </div>
+      {fixing && (
+        <MeaningFixSheet
+          lemma={card.lemma || card.text}
+          surface={card.text}
+          source={source}
+          marked={Boolean(card.dictIssue)}
+          onClose={() => setFixing(false)}
+        />
+      )}
     </Modal>
   );
 }

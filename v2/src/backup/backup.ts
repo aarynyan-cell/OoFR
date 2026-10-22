@@ -200,7 +200,12 @@ export function sanitizeCard(raw: unknown): Card | null {
     lastPracticedAt: optionalStamp(raw.lastPracticedAt),
     review,
     createdAt: stamp(raw.createdAt),
-    updatedAt: stamp(raw.updatedAt)
+    updatedAt: stamp(raw.updatedAt),
+    // Only when present, so cards without them stay exactly as they were.
+    ...(optionalStamp(raw.dictIssue) ? { dictIssue: stamp(raw.dictIssue) } : {}),
+    ...(isObject(raw.dictFix) && strings(raw.dictFix.senses).length
+      ? { dictFix: { senses: strings(raw.dictFix.senses).slice(0, 8).map((sense) => sense.slice(0, 120)), at: stamp(raw.dictFix.at) } }
+      : {})
   };
 }
 
