@@ -92,7 +92,15 @@ export function OnlineKeys() {
           ) : (
             <span className="pill pill-ok">{saved.zhipu.length ? "已就绪 · 在线翻译和讲解" : "已就绪 · 在线翻译"}</span>
           )}
-          {!saved.zhipu.length && <p className="small accent-text">讲解和“释义有误？”的检查要用智谱的免费密钥，加上后就能用。</p>}
+          {!saved.zhipu.length && (
+            <div className="stack-6">
+              <p className="small accent-text">讲解和“释义有误？”的检查要用智谱的免费密钥，加上后就能用。</p>
+              <p className="dim small">
+                在 <a href={PROVIDERS.zhipu.signup} target="_blank" rel="noreferrer">智谱开放平台</a> 登录 → API Keys → 用复制按钮整串复制（中间有一个点）。
+              </p>
+              <button type="button" className="button button-small button-primary align-start" onClick={() => setEditing(true)}>添加智谱密钥</button>
+            </div>
+          )}
           <ul className="stack-4 key-list">
             {(Object.keys(saved) as ProviderId[]).flatMap((provider) =>
               saved[provider].map((key) => (
