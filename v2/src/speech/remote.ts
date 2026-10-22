@@ -285,6 +285,8 @@ export class RemoteSynth {
     const started = Date.now();
     const fetched = await this.fetchFromMac(voice, utterance.rate, utterance.text);
     devLog("voice-from-mac", { ok: Boolean(fetched), ms: Date.now() - started, queued: this.queue.length, prefetching: this.prefetching });
+    // A Mac voice chosen, the Mac not here: Gemini reads it rather than the basic voice.
+    if (!fetched && this.geminiKey) return this.fromGemini(GEMINI_VOICES[0].name, utterance.text, patient);
     return fetched;
   }
 

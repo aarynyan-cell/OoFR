@@ -11,7 +11,7 @@ import { type AiBackend, AiError, type ChatBody } from "./backend";
 export const PAIRING_KEY = "pairing";
 // Where phones open OoFR (the pairing QR code links there). A test build sets
 // VITE_PHONE_URL to the Mac's own dev server.
-export const PHONE_URL = import.meta.env.VITE_PHONE_URL || "https://aarynyan-cell.github.io/OoFR/";
+export const PHONE_URL = import.meta.env.VITE_PHONE_URL || "https://aarynyan-cell.github.io/OoFR-online/";
 const UFRAG_PREFIX = "oofr+v1/";
 const OPEN_TIMEOUT = 12000;
 

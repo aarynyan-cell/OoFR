@@ -147,7 +147,9 @@ fn support_dir() -> Result<PathBuf, String> {
         return Ok(PathBuf::from(dir));
     }
     let base = dirs::data_dir().ok_or_else(|| "无法定位 Application Support".to_string())?;
-    let path = base.join("OoFR");
+    // Its own folder: the online version (3.0) installs alongside 2.0 ("OoFR"),
+    // with its own pairing identity, phones and AI runtime.
+    let path = base.join("OoFR Online");
     fs::create_dir_all(&path).map_err(|error| format!("无法创建 OoFR 数据目录：{error}"))?;
     Ok(path)
 }

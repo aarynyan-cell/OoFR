@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OoFR",
-  "version": "2.0.5",
-  "identifier": "com.aarynyan.oofr",
+  "productName": "OoFR Online",
+  "version": "3.0.0",
+  "identifier": "com.aarynyan.oofr.online",
   "build": {
     "frontendDist": "../../dist",
     "devUrl": "http://localhost:5173"
@@ -12,7 +12,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OoFR 法语磁带",
+        "title": "OoFR 法语磁带 · 在线版",
         "width": 1280,
         "height": 840,
         "minWidth": 390,

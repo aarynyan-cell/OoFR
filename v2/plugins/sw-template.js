@@ -1,21 +1,23 @@
-// OoFR 2.0 service worker (generated at build time from plugins/sw-template.js).
+// OoFR 3.0 (online AI version) service worker (generated at build time from plugins/sw-template.js).
 // It only caches the app's own files. Learning data lives in IndexedDB and is
 // never touched here, so an update can never cost the learner their data.
 //
-// Cache names start with "oofr2-shell-": 1.0's worker deletes every cache that
-// starts with "oofr-", and this worker only ever deletes its own older copies.
-const CACHE_PREFIX = "oofr2-shell-";
+// Cache names start with "oofr3-shell-": 1.0's worker deletes every cache that
+// starts with "oofr-", 2.0's every older "oofr2-shell-" one, and this worker
+// only ever deletes its own older copies. 2.0 and 3.0 share the site
+// (aarynyan-cell.github.io), so their caches must never have the same names.
+const CACHE_PREFIX = "oofr3-shell-";
 const CACHE_NAME = `${CACHE_PREFIX}__VERSION__`;
 // Dictionary shards stay cached across app updates (a different prefix).
-const DICTIONARY_CACHE = "oofr2-dictionary";
+const DICTIONARY_CACHE = "oofr3-dictionary";
 const DICTIONARY_VERSION = "__DICTIONARY_VERSION__";
 const ASSETS = __ASSETS__;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.keys().then(async (keys) => {
-      // The first 2.0 worker replaces 1.0's straight away (1.0 pages cannot ask
-      // for the update); later 2.0 updates wait for the learner's "刷新".
+      // The first worker replaces any earlier one straight away; later updates
+      // wait for the learner's "刷新".
       const first = !keys.some((key) => key.startsWith(CACHE_PREFIX));
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(ASSETS.map((asset) => new Request(asset, { cache: "reload" })));

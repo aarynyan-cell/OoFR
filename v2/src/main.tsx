@@ -9,6 +9,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { spellOutNumbers, spreadTapeColors } from "./db/repo";
+import { copyFromV2 } from "./db/fromV2";
 import { addStarterContentIfEmpty } from "./db/starter";
 import { detectV1 } from "./migrate/v1-import";
 
@@ -17,10 +18,12 @@ async function prepare(): Promise<void> {
   // (iOS in particular is more willing to grant this to home-screen apps).
   void navigator.storage?.persist?.().catch(() => false);
   try {
+    // First start of 3.0: the learner's 2.0 data on this device comes along.
+    const fromV2 = await copyFromV2();
     // A first-time learner gets the demo tape, unless 1.0 data is waiting to be
     // brought over (it holds the same demo lesson).
     const v1 = await detectV1();
-    if (v1.status === "none") await addStarterContentIfEmpty();
+    if (v1.status === "none" && !fromV2) await addStarterContentIfEmpty();
     await spellOutNumbers();
     await spreadTapeColors();
   } catch (error) {
