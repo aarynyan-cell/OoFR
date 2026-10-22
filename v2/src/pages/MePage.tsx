@@ -175,7 +175,7 @@ export function MePage() {
             <input type="checkbox" className="switch" checked={settings?.backgroundPlay ?? false} onChange={(event) => void saveSettings({ backgroundPlay: event.target.checked })} />
           </label>
           <button type="button" className="list-row list-button" onClick={() => setAiOpen(true)}>
-            <span className="grow stack-2"><span>本机 AI</span><span className="dim small">{aiSummary(ai)}</span></span>
+            <span className="grow stack-2"><span>AI 翻译与讲解</span><span className="dim small">{aiSummary(ai)}</span></span>
             <ChevronIcon size={18} />
           </button>
         </div>

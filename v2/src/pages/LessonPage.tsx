@@ -315,7 +315,12 @@ function ExplanationSheet({ material, sentenceId, onClose }: { material: Materia
             {section("语法点", explanation.grammarPoints)}
             {section("易错点", explanation.pitfalls)}
             {section("换个说法", explanation.examples)}
-            <span className="pill pill-ok">{explanation.model ? `本机 AI（${explanation.model}）生成` : "AI 生成"} · 已离线保存</span>
+            <span className="pill pill-ok">{explanation.model ? `AI（${explanation.model}）生成` : "AI 生成"} · 已离线保存</span>
+          </>
+        ) : ai.phase === "ready" && !ai.canExplain ? (
+          <>
+            <p className="dim">这句还没有讲解。在线讲解要用智谱的免费密钥，在下面加上就能用；生成后不联网也能看。</p>
+            <AiPanel />
           </>
         ) : ai.phase === "ready" ? (
           job?.status === "failed" ? (
@@ -324,7 +329,7 @@ function ExplanationSheet({ material, sentenceId, onClose }: { material: Materia
               <button type="button" className="button button-primary" onClick={() => retryJob("explain", material.id, sentenceId)}>再试一次</button>
             </>
           ) : (
-            <p className="thinking" aria-live="polite">本机 AI 正在写这句的讲解，大约半分钟…</p>
+            <p className="thinking" aria-live="polite">{ai.online ? "在线 AI 正在写这句的讲解，几秒钟…" : "本机 AI 正在写这句的讲解，大约半分钟…"}</p>
           )
         ) : (
           <>

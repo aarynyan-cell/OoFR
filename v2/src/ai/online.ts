@@ -59,6 +59,12 @@ export function cleanKeys(text: string): string[] {
   return [...new Set(text.split(/[\s,;]+/).map((key) => key.trim()).filter((key) => key.length >= 16 && /^[\w.\-]+$/.test(key)))];
 }
 
+// What a whole key looks like: SiliconFlow "sk-…", Zhipu "<id>.<secret>" (a
+// key copied only up to the dot is refused by Zhipu).
+export function looksComplete(provider: ProviderId, key: string): boolean {
+  return provider === "siliconflow" ? /^sk-[A-Za-z0-9]{20,}$/.test(key) : /^[A-Za-z0-9]{16,}\.[A-Za-z0-9]{8,}$/.test(key);
+}
+
 export async function saveKeys(keys: OnlineKeys): Promise<void> {
   await db.kv.put({ key: ONLINE_KEYS, value: { siliconflow: keys.siliconflow, zhipu: keys.zhipu } });
 }
@@ -80,6 +86,39 @@ function describeSchema(schema: unknown): string {
 }
 
 type Fetcher = typeof fetch;
+
+const CJK = /[㐀-鿿]/u;
+// One request translates up to this many sentences.
+const LINES_PER_REQUEST = 20;
+
+// Hunyuan-MT's own instruction for translating into Chinese.
+const translationPrompt = (text: string) => `把下面的文本翻译成中文，不要额外解释，保持一行对应一行。\n\n${text}`;
+
+const isAbort = (error: unknown, signal?: AbortSignal) => error instanceof DOMException && error.name === "AbortError" && Boolean(signal?.aborted);
+
+// "1. 你好" lines back in their places (null where one is missing).
+export function numberedLines(text: string, count: number): (string | null)[] {
+  const out: (string | null)[] = Array.from({ length: count }, () => null);
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const numbered = lines.map((line) => /^(\d+)\s*[.、．)）:：]\s*(.*)$/.exec(line));
+  if (numbered.every(Boolean)) {
+    for (const match of numbered) {
+      const at = Number(match![1]) - 1;
+      if (at >= 0 && at < count && !out[at]) out[at] = match![2].trim() || null;
+    }
+  } else if (lines.length === count) {
+    lines.forEach((line, index) => (out[index] = line.replace(/^\d+\s*[.、．)）:：]\s*/, "")));
+  }
+  return out;
+}
+
+// "这对我来说没有意义（或者说：……）" → the translation without the note in
+// brackets, when the sentence itself has no brackets.
+export function withoutNotes(translation: string, source: string): string {
+  if (/[(（]/.test(source)) return translation.trim();
+  const clean = translation.replace(/\s*[（(][^（）()]*[）)]\s*/g, "").trim();
+  return CJK.test(clean) ? clean : translation.trim();
+}
 
 interface Attempt {
   route: Route;
@@ -179,19 +218,30 @@ export class OnlineBackend implements AiBackend {
     return body.format ? jsonIn(text) : text;
   }
 
-  // Sentence translations: the translation model, one sentence a request (it
-  // returns plain text); general models are only asked when it cannot answer.
+  // Sentence translations: a lesson's sentences go together, one numbered
+  // line each, so the model sees the context ("Vous la voulez bien cuite ?" at
+  // the bakery is about the bread); lines that do not come back are asked one
+  // by one. Notes the model adds in brackets are left out.
   async translateLines(lines: string[], sourceLanguage: string, signal?: AbortSignal): Promise<(string | null)[]> {
-    const out: (string | null)[] = [];
-    for (const line of lines) {
-      const messages = [{ role: "user" as const, content: `Translate the following segment into Chinese, without additional explanation.\n\n${line}` }];
+    const out: (string | null)[] = lines.map(() => null);
+    for (let start = 0; start < lines.length; start += LINES_PER_REQUEST) {
+      const part = lines.slice(start, start + LINES_PER_REQUEST);
       try {
-        out.push(
-          await this.firstAnswer("translate", messages, { json: false, maxTokens: 400, temperature: 0.1 }, (text) => /[㐀-鿿]/u.test(text), signal)
-        );
+        const text = await this.firstAnswer("translate", [{ role: "user", content: translationPrompt(part.map((line, index) => `${index + 1}. ${line}`).join("\n")) }], { json: false, maxTokens: 120 + 90 * part.length, temperature: 0.1 }, (answer) => CJK.test(answer), signal);
+        numberedLines(text, part.length).forEach((line, index) => {
+          if (line && CJK.test(line)) out[start + index] = withoutNotes(line, part[index]);
+        });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") throw error;
-        out.push(null);
+        if (isAbort(error, signal)) throw error;
+      }
+      for (const [index, line] of part.entries()) {
+        if (out[start + index]) continue;
+        try {
+          const text = await this.firstAnswer("translate", [{ role: "user", content: translationPrompt(line) }], { json: false, maxTokens: 400, temperature: 0.1 }, (answer) => CJK.test(answer), signal);
+          out[start + index] = withoutNotes(text, line);
+        } catch (error) {
+          if (isAbort(error, signal)) throw error;
+        }
       }
     }
     void sourceLanguage;

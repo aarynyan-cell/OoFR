@@ -21,7 +21,10 @@ export function aiSummary(ai: AiState): string {
     case "checking":
       return "正在检查…";
     case "ready":
-      if (ai.online) return ai.paired ? `已就绪 · 在线 AI，已连接 ${ai.paired} 同步` : "已就绪 · 在线 AI";
+      if (ai.online) {
+        const what = ai.canExplain ? "在线 AI" : "在线翻译（讲解需加智谱密钥）";
+        return ai.paired ? `已就绪 · ${what}，已连接 ${ai.paired} 同步` : `已就绪 · ${what}`;
+      }
       return ai.paired ? `已连接 ${ai.paired} · 由电脑生成` : `已就绪 · ${ai.model.name}，在这台设备上运行`;
     case "needs-model":
       return "还差一步：下载 AI 模型";
@@ -182,9 +185,9 @@ export function AiSheet({ onClose }: { onClose: () => void }) {
     void refreshAi();
   }, []);
   return (
-    <Modal title="本机 AI" onClose={onClose}>
+    <Modal title="AI" onClose={onClose}>
       <div className="stack-16 sheet-scroll">
-        <h2 className="sheet-title">本机 AI</h2>
+        <h2 className="sheet-title">AI 翻译与讲解</h2>
         <AiPanel />
         <button type="button" className="button button-outline" onClick={onClose}>关闭</button>
       </div>

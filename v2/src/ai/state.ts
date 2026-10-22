@@ -35,12 +35,18 @@ export interface AiState {
   hasPairing: boolean;
   // Free online AI with the learner's own keys is in use (2.1).
   online: boolean;
+  // Explanations (and checking a dictionary fix) can be asked: online AI needs
+  // a Zhipu key for them; a SiliconFlow key alone only translates.
+  canExplain: boolean;
 }
+
+// Said wherever an explanation is asked for with only a translation key.
+export const NEEDS_EXPLAIN_KEY = "讲解要用智谱的免费密钥：在 我的 → AI 翻译与讲解 里加上";
 
 // What the panels show while online AI answers.
 export const ONLINE_MODEL: ModelChoice = { name: "在线 AI", downloadGb: 0, minMemoryGb: 0 };
 
-const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "", paired: null, hasPairing: false, online: false });
+const initial = (): AiState => ({ phase: "checking", where: tauri() ? "app" : "browser", model: chooseModel(null), step: "", progress: null, error: "", paired: null, hasPairing: false, online: false, canExplain: true });
 let state: AiState = initial();
 let backend: AiBackend | null = null;
 let setup: AppSetup | null = null;
@@ -143,11 +149,11 @@ async function check(): Promise<void> {
     if (online?.key !== key) online = { key, backend: new OnlineBackend(keys) };
     backend = online.backend;
     setup = null;
-    update({ phase: "ready", model: ONLINE_MODEL, online: true, error: "" });
+    update({ phase: "ready", model: ONLINE_MODEL, online: true, canExplain: keys.zhipu.length > 0, error: "" });
     const mac = await syncWithPairedMac();
     return update({ paired: mac, hasPairing: Boolean(await loadPairing()) });
   }
-  update({ online: false });
+  update({ online: false, canExplain: true });
   const app = tauri();
   if (app) {
     const desktop = appBackend(app);

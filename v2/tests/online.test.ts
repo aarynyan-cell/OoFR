@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { OnlineBackend, ROUTES, cleanKeys, jsonIn, loadKeys, saveKeys } from "../src/ai/online";
+import { OnlineBackend, ROUTES, cleanKeys, jsonIn, loadKeys, looksComplete, numberedLines, saveKeys, withoutNotes } from "../src/ai/online";
 import { aiState, refreshAi, resetAiForTests } from "../src/ai/state";
 import { explainSentence, translateSentences } from "../src/ai/tasks";
 import { createBackup } from "../src/backup/backup";
@@ -34,18 +34,34 @@ function provider(behaviour: { failModels?: string[]; badKeys?: string[]; busyKe
 const material = { id: "m", title: "t", language: "fr", sentences: [{ id: "a", text: "Bonjour.", translation: "" }, { id: "b", text: "Merci.", translation: "" }] } as unknown as Material;
 
 describe("free online AI", () => {
-  it("translates with the translation model first, one sentence a request", async () => {
-    const { calls, fetcher } = provider({ answer: (model) => (model.includes("Hunyuan") ? "译文" : "{}") });
+  it("translates a lesson's sentences together with the translation model, as numbered lines", async () => {
+    const { calls, fetcher } = provider({ answer: (model) => (model.includes("Hunyuan") ? "1. 你好。\n2. 谢谢（或者说：多谢）。" : "{}") });
     const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
     const result = await translateSentences(backend, "在线 AI", material, material.sentences);
-    expect([...result]).toEqual([["a", "译文"], ["b", "译文"]]);
-    expect(calls.map((call) => call.model)).toEqual(["tencent/Hunyuan-MT-7B", "tencent/Hunyuan-MT-7B"]);
+    expect([...result]).toEqual([["a", "你好。"], ["b", "谢谢。"]]);
+    expect(calls.map((call) => call.model)).toEqual(["tencent/Hunyuan-MT-7B"]);
+    expect(String((calls[0].body.messages as { content: string }[])[0].content)).toContain("1. Bonjour.\n2. Merci.");
     expect(calls[0].url).toBe("https://api.siliconflow.cn/v1/chat/completions");
     expect(calls[0].body.response_format).toBeUndefined();
   });
 
+  it("asks again one by one for lines that did not come back", async () => {
+    const { calls, fetcher } = provider({ answer: (_model, body) => (String((body.messages as { content: string }[])[0].content).includes("1. ") ? "1. 你好。" : "谢谢。") });
+    const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    expect(await backend.translateLines(["Bonjour.", "Merci."], "fr")).toEqual(["你好。", "谢谢。"]);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("reads numbered lines back and leaves out notes in brackets", () => {
+    expect(numberedLines("1. 你好\n2、谢谢\n3) 再见", 3)).toEqual(["你好", "谢谢", "再见"]);
+    expect(numberedLines("1. 你好\n3. 再见", 3)).toEqual(["你好", null, "再见"]);
+    expect(numberedLines("你好\n谢谢", 2)).toEqual(["你好", "谢谢"]);
+    expect(withoutNotes("这对我没意义（或者说：没用）。", "Ça ne me dit rien qui vaille.")).toBe("这对我没意义。");
+    expect(withoutNotes("见第 3 页（附录）", "Voir page 3 (annexe)")).toBe("见第 3 页（附录）");
+  });
+
   it("falls back to the other provider when the translation model fails", async () => {
-    const { calls, fetcher } = provider({ failModels: ["tencent/Hunyuan-MT-7B"], answer: () => "谢谢" });
+    const { calls, fetcher } = provider({ failModels: ["tencent/Hunyuan-MT-7B"], answer: () => "1. 谢谢" });
     const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"] }, fetcher);
     const [line] = await backend.translateLines(["Merci."], "fr");
     expect(line).toBe("谢谢");
@@ -74,6 +90,14 @@ describe("free online AI", () => {
     expect(calls.map((call) => call.model)).toEqual(["glm-4-flash"]);
     expect(calls[0].body).toMatchObject({ response_format: { type: "json_object" } });
     expect(String((calls[0].body.messages as { content: string }[])[0].content)).toContain("只返回一个 JSON 对象");
+  });
+
+  it("tells a whole key from half of one", () => {
+    expect(looksComplete("siliconflow", "sk-abcdefghijklmnopqrstuvwxyz")).toBe(true);
+    expect(looksComplete("siliconflow", "abcdefghijklmnopqrstuvwxyz")).toBe(false);
+    expect(looksComplete("zhipu", "9bb0123456789abcdef0123456789abc.AbCdEfGhIjKlMnOp")).toBe(true);
+    // Copied only up to the dot: Zhipu refuses it.
+    expect(looksComplete("zhipu", "9bb0123456789abcdef0123456789abc")).toBe(false);
   });
 
   it("reads keys pasted in any layout", () => {

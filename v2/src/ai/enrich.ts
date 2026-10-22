@@ -12,7 +12,8 @@ import { applySentenceAi, getSettings } from "../db/repo";
 import type { Material, Sentence } from "../db/types";
 import { dictionary } from "../dict/dictionary";
 import { type FormLookup, sentenceFacts } from "./grammar";
-import { noteAiFailure, onAiChange, readyAi } from "./state";
+import { AiError } from "./backend";
+import { NEEDS_EXPLAIN_KEY, aiState, noteAiFailure, onAiChange, readyAi } from "./state";
 import { explainSentence, translateSentences } from "./tasks";
 
 type Kind = "translate" | "explain";
@@ -84,7 +85,7 @@ export function planLesson(material: Material, index: number): void {
   for (const job of queue.filter((item) => item.tier === 1)) states.delete(keyOf(job));
   queue = queue.filter((item) => item.tier !== 1);
   if (missingTranslation(material)) enqueue({ kind: "translate", materialId: material.id, sentenceId: "", tier: 1, from: index });
-  const order = [...material.sentences.slice(index), ...material.sentences.slice(0, index)];
+  const order = aiState().canExplain ? [...material.sentences.slice(index), ...material.sentences.slice(0, index)] : [];
   for (const sentence of order) {
     if (!sentence.explanation && states.get(`explain:${material.id}:${sentence.id}`)?.status !== "failed") {
       enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id, tier: 1 });
@@ -95,7 +96,10 @@ export function planLesson(material: Material, index: number): void {
 
 // The learner tapped 讲解 on a sentence that has none yet: it goes first.
 export function explainNow(material: Material, sentence: Sentence): void {
-  enqueue({ kind: "explain", materialId: material.id, sentenceId: sentence.id, tier: 0 });
+  const job: Job = { kind: "explain", materialId: material.id, sentenceId: sentence.id, tier: 0 };
+  // Online with a translation key only: say what is missing instead of trying.
+  if (!aiState().canExplain) return setState(job, { status: "failed", error: NEEDS_EXPLAIN_KEY });
+  enqueue(job);
   void pump();
 }
 
@@ -145,6 +149,7 @@ async function run(job: Job, ai: NonNullable<ReturnType<typeof readyAi>>): Promi
   }
   const sentence = material.sentences.find((item) => item.id === job.sentenceId);
   if (!sentence || sentence.explanation) return;
+  if (!aiState().canExplain) throw new AiError(NEEDS_EXPLAIN_KEY);
   const facts = material.language === "fr" ? await sentenceFacts(sentence.text, formLookup).catch(() => null) : null;
   const explanation = await explainSentence(ai.backend, ai.model, material, sentence, facts);
   await applySentenceAi(material.id, [{ sentenceId: sentence.id, text: sentence.text, explanation }]);

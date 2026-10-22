@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { OnlineBackend, PROVIDERS, type ProviderId, cleanKeys, loadKeys, saveKeys } from "../ai/online";
+import { OnlineBackend, PROVIDERS, type ProviderId, cleanKeys, loadKeys, looksComplete, saveKeys } from "../ai/online";
 import { refreshAi, useAi } from "../ai/state";
+import { toast } from "../app/toast";
+import { confirmAction } from "./Confirm";
 
 // "sk-abcd…wxyz": enough to tell keys apart without showing them.
 const masked = (key: string) => (key.length > 12 ? `${key.slice(0, 5)}…${key.slice(-4)}` : "…");
@@ -24,9 +26,16 @@ export function OnlineKeys() {
 
   // An empty box keeps that provider's keys.
   const save = async () => {
+    const typed = { siliconflow: cleanKeys(text.siliconflow), zhipu: cleanKeys(text.zhipu) };
+    // Half a key (most often Zhipu's, copied only up to the dot) is not kept.
+    const incomplete = (Object.keys(typed) as ProviderId[]).filter((provider) => typed[provider].some((key) => !looksComplete(provider, key)));
+    if (incomplete.length) {
+      toast(incomplete.includes("zhipu") ? "智谱的密钥不完整：完整的密钥中间有一个点，像 xxxx.yyyy，请整串复制" : "硅基流动的密钥不完整：应该以 sk- 开头，请整串复制");
+      return;
+    }
     const keys = {
-      siliconflow: text.siliconflow.trim() ? cleanKeys(text.siliconflow) : saved.siliconflow,
-      zhipu: text.zhipu.trim() ? cleanKeys(text.zhipu) : saved.zhipu
+      siliconflow: text.siliconflow.trim() ? typed.siliconflow : saved.siliconflow,
+      zhipu: text.zhipu.trim() ? typed.zhipu : saved.zhipu
     };
     await saveKeys(keys);
     setSaved(keys);
@@ -34,6 +43,18 @@ export function OnlineKeys() {
     setText({ siliconflow: "", zhipu: "" });
     await refreshAi();
     void check(keys);
+  };
+
+  // Test versions on this Mac: the keys in v2/.env.local, without typing them.
+  const loadTestKeys = async () => {
+    try {
+      const response = await fetch("./__oofr_dev_keys");
+      if (!response.ok) throw new Error(String(response.status));
+      const keys = (await response.json()) as Record<ProviderId, string[]>;
+      setText({ siliconflow: keys.siliconflow.join("\n"), zhipu: keys.zhipu.join("\n") });
+    } catch {
+      toast("只能在装着测试密钥文件的这台电脑上读取");
+    }
   };
 
   const check = async (keys = saved) => {
@@ -50,7 +71,7 @@ export function OnlineKeys() {
   const allBad = results.length > 0 && results.every((result) => result === "bad");
 
   const clear = async () => {
-    if (!window.confirm("清除这台设备上保存的全部在线 AI 密钥？")) return;
+    if (!(await confirmAction("清除这台设备上保存的全部在线 AI 密钥？", { confirmLabel: "清除", danger: true }))) return;
     const empty = { siliconflow: [], zhipu: [] };
     await saveKeys(empty);
     setSaved(empty);
@@ -64,7 +85,12 @@ export function OnlineKeys() {
       <h3 className="sheet-subtitle">在线 AI（免费）</h3>
       {count > 0 && !editing ? (
         <>
-          {allBad ? <span className="pill error-text">密钥都不可用：请检查是否复制完整、是否已实名认证</span> : <span className="pill pill-ok">已就绪 · 在线 AI</span>}
+          {allBad ? (
+            <span className="pill error-text">密钥都不可用：请检查是否复制完整、是否已实名认证</span>
+          ) : (
+            <span className="pill pill-ok">{saved.zhipu.length ? "已就绪 · 在线翻译和讲解" : "已就绪 · 在线翻译"}</span>
+          )}
+          {!saved.zhipu.length && <p className="small accent-text">讲解和“释义有误？”的检查要用智谱的免费密钥，加上后就能用。</p>}
           <ul className="stack-4 key-list">
             {(Object.keys(saved) as ProviderId[]).flatMap((provider) =>
               saved[provider].map((key) => (
@@ -110,6 +136,7 @@ export function OnlineKeys() {
             >
               保存
             </button>
+            {import.meta.env.DEV && <button type="button" className="button button-small button-outline" onClick={() => void loadTestKeys()}>读取测试密钥（这台电脑）</button>}
             {count > 0 && <button type="button" className="button button-small button-outline" onClick={() => setEditing(false)}>取消</button>}
             {count > 0 && <button type="button" className="button button-small button-outline" onClick={() => void clear()}>清除全部密钥</button>}
           </div>
