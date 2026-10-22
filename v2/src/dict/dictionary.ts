@@ -39,10 +39,18 @@ export interface MeaningGroup {
 // machine-matched column (often wrong, shown only as a hint).
 export type MeaningSource = "curated" | "ai" | "machine" | "none";
 
+// The other reading of a word that is also an inflected form of another word
+// ("vive": the fish, and the feminine of "vif").
+export interface OtherReading {
+  form: FormInfo;
+  meanings: MeaningGroup[];
+}
+
 export interface LookupResult extends DictEntry {
   surface: string;
   lemma: string;
   form?: FormInfo;
+  alsoForm?: OtherReading;
   formIpa?: string;
   isInflected: boolean;
   lookupKey: string;
@@ -52,7 +60,7 @@ export interface LookupResult extends DictEntry {
   meaningSource: MeaningSource;
 }
 
-type Resolved = Omit<LookupResult, "meanings" | "meaningSource">;
+type Resolved = Omit<LookupResult, "meanings" | "meaningSource" | "alsoForm"> & { alsoForm?: FormInfo };
 
 export interface LookupOptions {
   context?: string;
@@ -251,6 +259,8 @@ function unpackEntry(row: Row | undefined | null, key: string, language: Languag
 const NOUN_MARKERS = new Set(["un", "une", "le", "la", "les", "des", "du", "ce", "cet", "cette", "ces", "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses", "notre", "nos", "votre", "vos", "leur", "leurs", "en", "à", "au", "aux"]);
 const SUBJECT_MARKERS = new Set(["je", "j'", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles", "ça", "cela", "ce", "qui"]);
 const OBJECT_CLITICS = new Set(["le", "la", "les", "l'", "me", "m'", "te", "t'", "lui", "leur", "nous", "vous", "se", "s'", "en", "y"]);
+// Words after which a describing word is an adjective: "elle est vive", "très vive".
+const ADJECTIVE_CUES = new Set(["est", "sont", "était", "étaient", "sera", "seront", "être", "suis", "es", "sommes", "êtes", "devient", "deviennent", "reste", "restent", "semble", "semblent", "paraît", "très", "si", "plus", "moins", "trop", "assez", "aussi", "tellement", "vraiment", "bien", "toute", "tout", "toutes", "et", "ou"]);
 // Subject-verb inversion: "allez-vous", "va-t-il".
 function isInverted(context: string, key: string): boolean {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -389,23 +399,57 @@ export class Dictionary {
     return String(surface).trim() === String(surface).trim().toLocaleLowerCase();
   }
 
+  // "une couleur vive", "elle est vive": the adjective form (of vif), not the noun "vive".
+  private async preferAdjectiveForm(surface: string, direct: DictEntry, form: FormInfo | null, options: LookupOptions): Promise<boolean> {
+    if (!form?.lemma || form.pos !== "adjective" || direct.posList.includes("adjective") || !options.context) return false;
+    const key = normalize(surface);
+    const tokens = contextTokens(options.context);
+    const index = indexInContext(tokens, key, options.occurrence);
+    if (index < 1) return false;
+    const previous = tokens[index - 1];
+    if (NOUN_MARKERS.has(previous)) return false;
+    if (ADJECTIVE_CUES.has(previous)) return true;
+    return (await this.previousWordPos(tokens, index)).includes("noun");
+  }
+
   async lookup(surface: string, language: Language = "fr", options: LookupOptions = {}): Promise<LookupResult | null> {
     const resolved = await this.resolve(surface, language, options);
     return resolved ? this.withMeanings(resolved, language) : null;
   }
 
-  private async withMeanings(result: Resolved, language: Language): Promise<LookupResult> {
+  private async withMeanings({ alsoForm, ...result }: Resolved, language: Language): Promise<LookupResult> {
+    const other = alsoForm ? await this.otherReading(alsoForm, language) : undefined;
+    const extra = other ? { alsoForm: other } : {};
     if (result.curated) {
-      return { ...result, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "curated" };
+      return { ...result, ...extra, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "curated" };
     }
-    const rows = language === "fr" ? ((await this.loadShard(language, "zh", normalize(result.lemma)))[normalize(result.lemma)] as { pos: string; gender: string; zh: string[] }[] | undefined) : undefined;
+    const rows = await this.aiRows(result.lemma, language);
     if (rows?.length) {
-      return { ...result, meanings: rows.map((row) => ({ pos: posLabel(canonicalPosList(row.pos)), gender: row.gender, senses: row.zh })), meaningSource: "ai" };
+      return { ...result, ...extra, meanings: rows.map((row) => ({ pos: posLabel(canonicalPosList(row.pos)), gender: row.gender, senses: row.zh })), meaningSource: "ai" };
     }
     if (result.zhSenses.length) {
-      return { ...result, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "machine" };
+      return { ...result, ...extra, meanings: [{ pos: posLabel(result.posList), gender: "", senses: result.zhSenses }], meaningSource: "machine" };
     }
-    return { ...result, meanings: [], meaningSource: "none" };
+    return { ...result, ...extra, meanings: [], meaningSource: "none" };
+  }
+
+  private async aiRows(lemma: string, language: Language): Promise<{ pos: string; gender: string; zh: string[] }[] | undefined> {
+    if (language !== "fr") return undefined;
+    const key = normalize(lemma);
+    return (await this.loadShard(language, "zh", key))[key] as { pos: string; gender: string; zh: string[] }[] | undefined;
+  }
+
+  // The meanings of the word this one is also a form of (only that part of speech).
+  private async otherReading(form: FormInfo, language: Language): Promise<OtherReading | undefined> {
+    const curated = await this.curatedEntry(normalize(form.lemma), language);
+    if (curated) return { form, meanings: [{ pos: posLabel(curated.posList), gender: "", senses: curated.zhSenses }] };
+    const rows = (await this.aiRows(form.lemma, language)) ?? [];
+    const groups = rows.map((row) => ({ pos: posLabel(canonicalPosList(row.pos)), gender: row.gender, senses: row.zh, raw: canonicalPosList(row.pos) }));
+    const matching = groups.filter((group) => !form.pos || group.raw.includes(form.pos));
+    const chosen = (matching.length ? matching : groups).map(({ raw: _raw, ...group }) => group);
+    if (chosen.length) return { form, meanings: chosen };
+    const entry = await this.exactEntry(normalize(form.lemma), language);
+    return entry?.zhSenses.length ? { form, meanings: [{ pos: posLabel(entry.posList), gender: "", senses: entry.zhSenses }] } : undefined;
   }
 
   private expressionKeys: Promise<Set<string>> | null = null;
@@ -455,10 +499,14 @@ export class Dictionary {
       if (!direct) continue;
       if (language === "fr") {
         const form = await this.formInfo(key, language);
-        if (form && (await this.preferVerbForm(surface, direct, form, options))) {
+        if (form && ((await this.preferVerbForm(surface, direct, form, options)) || (await this.preferAdjectiveForm(surface, direct, form, options)))) {
           const lemmaEntry = await this.headword(form.lemma, language);
           if (lemmaEntry) return { ...lemmaEntry, ...base, lemma: lemmaEntry.word, form, formIpa: form.ipa || direct.ipa, isInflected: true, lookupKey: key };
         }
+        // Also a form of another word: shown under the meanings ("也是 vif 的阴性形式").
+        // Not for little words ("comment" is not worth showing as a form of the archaic "commer").
+        const littleWord = direct.posList.some((part) => ["pronoun", "preposition", "conjunction", "determiner", "article", "adverb"].includes(part));
+        if (form?.lemma && normalize(form.lemma) !== key && !littleWord) return { ...direct, ...base, lemma: direct.word, isInflected: false, lookupKey: key, alsoForm: form };
       }
       return { ...direct, ...base, lemma: direct.word, isInflected: false, lookupKey: key };
     }

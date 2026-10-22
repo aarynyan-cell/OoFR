@@ -2005,6 +2005,15 @@ mark.missed {
   padding: 0 8px;
 }
 
+.other-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
 .check-row {
   display: flex;
   align-items: center;

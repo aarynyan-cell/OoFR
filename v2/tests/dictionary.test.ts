@@ -30,6 +30,16 @@ function miniDictionary(failFirst = false) {
   put("zh", "pratiquer", [{ pos: "verb", gender: "", zh: ["练习", "从事"] }]);
   put("zh", "marche", [{ pos: "noun", gender: "feminine", zh: ["步行", "台阶"] }]);
   put("zh", "bien sûr", [{ pos: "adverb", gender: "", zh: ["当然"] }]);
+  // "vive": a fish (noun), and the feminine of the adjective "vif".
+  put("entries", "vive", ["vive", "/viv/", "", "weever", "noun", "", ""]);
+  put("entries", "vif", ["vif", "/vif/", "", "lively", "adjective；noun", "", ""]);
+  put("entries", "couleur", ["couleur", "/ku.lœʁ/", "", "colour", "noun", "", ""]);
+  put("forms", "vive", ["vif", "adjective", "feminine", "/viv/"]);
+  put("zh", "vive", [{ pos: "noun", gender: "feminine", zh: ["鲈鱼"] }]);
+  put("zh", "vif", [
+    { pos: "adjective", gender: "", zh: ["活泼的", "鲜明的"] },
+    { pos: "noun", gender: "masculine", zh: ["活肉"] }
+  ]);
   files["fr/expressions.json"] = ["bien sûr", "tout à fait"] as unknown as Record<string, unknown>;
   put("aliases", "a", ["a", "à"]);
   const curated = {
@@ -165,5 +175,36 @@ describe("keeping words and their punctuation together", () => {
     const { groupWords, tokenize } = await import("../src/text/tokens");
     const groups = groupWords(tokenize("Comment allez-vous aujourd'hui ? Oui."));
     expect(groups.map((group) => group.map((token) => token.text).join(""))).toEqual(["Comment", " ", "allez-vous", " ", "aujourd'hui ?", " ", "Oui."]);
+  });
+});
+
+describe("a word that is also a form of another word", () => {
+  it("reads it as the adjective after a noun or with est / très", async () => {
+    const { dictionary } = miniDictionary();
+    for (const context of ["une couleur vive", "elle est très vive"]) {
+      const result = await dictionary.lookup("vive", "fr", { context });
+      expect(result?.lemma).toBe("vif");
+      expect(result?.form?.features).toBe("feminine");
+      expect(result?.meanings[0].senses).toContain("鲜明的");
+    }
+  });
+
+  it("keeps the noun after an article, and still shows the adjective reading", async () => {
+    const { dictionary } = miniDictionary();
+    for (const context of ["la vive est un poisson", ""]) {
+      const result = await dictionary.lookup("vive", "fr", { context });
+      expect(result?.lemma).toBe("vive");
+      expect(result?.meanings[0].senses).toEqual(["鲈鱼"]);
+      expect(result?.alsoForm?.form.lemma).toBe("vif");
+      // Only the adjective part of vif.
+      expect(result?.alsoForm?.meanings.map((group) => group.senses)).toEqual([["活泼的", "鲜明的"]]);
+    }
+  });
+
+  it("does not show little words as forms of rare verbs", async () => {
+    const { dictionary } = miniDictionary();
+    const result = await dictionary.lookup("comment", "fr");
+    expect(result?.lemma).toBe("comment");
+    expect(result?.alsoForm).toBeUndefined();
   });
 });

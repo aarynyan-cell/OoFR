@@ -96,6 +96,7 @@ export function WordSheet({ target, material, settings, onClose }: { target: Wor
         {state.status === "loading" && <p className="dim small">正在查离线词典…</p>}
         {state.status === "ready" && !word && <p className="muted small">离线词典里没有这个词，可以打开完整词典看看。</p>}
         {word && <Meanings word={word} />}
+        {word?.alsoForm && <OtherReadingNote word={word} language={material.language} />}
 
         <div className="word-actions">
           <SaveToggle saved={Boolean(wordCard)} tone={wordCard?.status} onToggle={() => word && void toggle(word)} label={word && word.lemma !== target.text ? `收藏 ${word.lemma}` : "收藏"} />
@@ -108,6 +109,25 @@ export function WordSheet({ target, material, settings, onClose }: { target: Wor
         )}
       </div>
     </Modal>
+  );
+}
+
+// "vive" is also the feminine of "vif": that reading, under the main meanings.
+function OtherReadingNote({ word, language }: { word: LookupResult; language: string }) {
+  const other = word.alsoForm!;
+  const label = featuresLabel(other.form.features);
+  return (
+    <section className="other-reading">
+      <span className="dim small">
+        也是 <b className="fr" lang={language}>{other.form.lemma}</b> 的{other.form.pos === "verb" ? "变位" : `${label || "变化"}形式`}
+      </span>
+      {other.meanings.slice(0, 2).map((group) => (
+        <p key={group.pos} className="meaning-row">
+          <span className="meaning-pos">{group.pos}</span>
+          <span>{group.senses.slice(0, 4).join("；")}</span>
+        </p>
+      ))}
+    </section>
   );
 }
 
