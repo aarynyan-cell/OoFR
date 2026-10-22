@@ -801,7 +801,15 @@ p {
 
 .chips-scroll {
   flex-wrap: nowrap;
+  align-items: center;
   overflow-x: auto;
+}
+
+/* Nothing in a scrolling row may shrink or wrap (a squeezed "删除这个词本"
+   once stood up as a tall column and stretched every chip with it). */
+.chips-scroll > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .chip {
