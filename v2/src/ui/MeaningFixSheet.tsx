@@ -146,7 +146,7 @@ export function MeaningFixSheet({
           </>
         ) : (
           <>
-            <p className="small">{ai.online ? "修改释义要 AI 检查改得对不对：在 我的 → AI 翻译与讲解 里加上智谱的免费密钥后就能改。" : "修改释义需要连接本机 AI（电脑版 OoFR，或连上电脑的手机），AI 会检查改得对不对。"}</p>
+            <p className="small">{ai.online ? "修改释义要 AI 检查改得对不对：在 我的 → AI 翻译与讲解 里加上 Groq 的免费密钥后就能改。" : "修改释义需要连接本机 AI（电脑版 OoFR，或连上电脑的手机），AI 会检查改得对不对。"}</p>
             {marked ? (
               <>
                 <p className="dim small">这个词已经标记过了，在 词句 · 待补充 里等着。连上电脑后再打开这里就能修正。</p>

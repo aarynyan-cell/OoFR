@@ -29,10 +29,11 @@ export interface AiBackend {
   version(): Promise<string | null>;
   models(): Promise<string[]>;
   // task: online AI picks its models by what is asked (local AI ignores it).
-  chat(body: ChatBody, signal?: AbortSignal, task?: "translate" | "explain"): Promise<string>;
+  // patient: background work that may wait for the best model (online AI); nobody is waiting for it.
+  chat(body: ChatBody, signal?: AbortSignal, task?: "translate" | "explain", patient?: boolean): Promise<string>;
   pull(model: string, onProgress: (progress: Progress) => void, signal?: AbortSignal): Promise<void>;
   // Online AI: a translation model that takes one sentence at a time.
-  translateLines?(lines: string[], sourceLanguage: string, signal?: AbortSignal): Promise<(string | null)[]>;
+  translateLines?(lines: string[], sourceLanguage: string, signal?: AbortSignal, patient?: boolean): Promise<(string | null)[]>;
   // Online AI: which model wrote the last answer.
   lastModel?: string;
 }

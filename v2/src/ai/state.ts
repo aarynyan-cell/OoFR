@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
 import { startAutoSync, stopAutoSync } from "../sync/auto";
-import { OnlineBackend, hasKeys, loadKeys } from "./online";
+import { OnlineBackend, canExplainWith, hasKeys, loadKeys } from "./online";
 import { type PairedBackend, type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
@@ -36,12 +36,12 @@ export interface AiState {
   // Free online AI with the learner's own keys is in use (2.1).
   online: boolean;
   // Explanations (and checking a dictionary fix) can be asked: online AI needs
-  // a Zhipu key for them; a SiliconFlow key alone only translates.
+  // a key for a model that explains (any of Groq, SiliconFlow, Zhipu does).
   canExplain: boolean;
 }
 
-// Said wherever an explanation is asked for with only a translation key.
-export const NEEDS_EXPLAIN_KEY = "讲解要用智谱的免费密钥：在 我的 → AI 翻译与讲解 里加上";
+// Said wherever an explanation is asked for without a key for a model that explains.
+export const NEEDS_EXPLAIN_KEY = "讲解要用 Groq（推荐）、硅基流动或智谱的免费密钥：在 我的 → AI 翻译与讲解 里加上";
 
 // What the panels show while online AI answers.
 export const ONLINE_MODEL: ModelChoice = { name: "在线 AI", downloadGb: 0, minMemoryGb: 0 };
@@ -149,7 +149,7 @@ async function check(): Promise<void> {
     if (online?.key !== key) online = { key, backend: new OnlineBackend(keys) };
     backend = online.backend;
     setup = null;
-    update({ phase: "ready", model: ONLINE_MODEL, online: true, canExplain: keys.zhipu.length > 0, error: "" });
+    update({ phase: "ready", model: ONLINE_MODEL, online: true, canExplain: canExplainWith(keys), error: "" });
     const mac = await syncWithPairedMac();
     return update({ paired: mac, hasPairing: Boolean(await loadPairing()) });
   }

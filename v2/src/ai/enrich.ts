@@ -142,7 +142,8 @@ async function run(job: Job, ai: NonNullable<ReturnType<typeof readyAi>>): Promi
     const missing = ordered.filter((sentence) => !sentence.translation.trim());
     for (let start = 0; start < missing.length; start += TRANSLATE_BATCH) {
       const part = missing.slice(start, start + TRANSLATE_BATCH);
-      const result = await translateSentences(ai.backend, ai.model, material, part);
+      // Background work (not asked for right now) waits for the best online model.
+      const result = await translateSentences(ai.backend, ai.model, material, part, undefined, job.tier > 0);
       await applySentenceAi(material.id, part.filter((sentence) => result.has(sentence.id)).map((sentence) => ({ sentenceId: sentence.id, text: sentence.text, translation: result.get(sentence.id) })));
     }
     return;
@@ -151,7 +152,7 @@ async function run(job: Job, ai: NonNullable<ReturnType<typeof readyAi>>): Promi
   if (!sentence || sentence.explanation) return;
   if (!aiState().canExplain) throw new AiError(NEEDS_EXPLAIN_KEY);
   const facts = material.language === "fr" ? await sentenceFacts(sentence.text, formLookup).catch(() => null) : null;
-  const explanation = await explainSentence(ai.backend, ai.model, material, sentence, facts);
+  const explanation = await explainSentence(ai.backend, ai.model, material, sentence, facts, undefined, job.tier > 0);
   await applySentenceAi(material.id, [{ sentenceId: sentence.id, text: sentence.text, explanation }]);
 }
 

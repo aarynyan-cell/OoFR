@@ -1,46 +1,53 @@
 import { useEffect, useState } from "react";
-import { OnlineBackend, PROVIDERS, type ProviderId, cleanKeys, loadKeys, looksComplete, saveKeys } from "../ai/online";
+import { OnlineBackend, type OnlineKeys as Keys, PROVIDERS, PROVIDER_ORDER, type ProviderId, canExplainWith, cleanKeys, loadKeys, looksComplete, saveKeys } from "../ai/online";
 import { refreshAi, useAi } from "../ai/state";
 import { toast } from "../app/toast";
 import { confirmAction } from "./Confirm";
 
-// "sk-abcd…wxyz": enough to tell keys apart without showing them.
+// "gsk_ab…wxyz": enough to tell keys apart without showing them.
 const masked = (key: string) => (key.length > 12 ? `${key.slice(0, 5)}…${key.slice(-4)}` : "…");
 
 type Checks = Record<string, "checking" | "ok" | "bad">;
+
+const empty = (): Keys => ({ groq: [], siliconflow: [], zhipu: [] });
+const emptyText = (): Record<ProviderId, string> => ({ groq: "", siliconflow: "", zhipu: "" });
+const total = (keys: Keys) => PROVIDER_ORDER.reduce((sum, provider) => sum + keys[provider].length, 0);
+
+// What a half-copied key of each provider should look like.
+const INCOMPLETE: Record<ProviderId, string> = {
+  groq: "Groq 的密钥不完整：应该以 gsk_ 开头，请整串复制",
+  siliconflow: "硅基流动的密钥不完整：应该以 sk- 开头，请整串复制",
+  zhipu: "智谱的密钥不完整：完整的密钥中间有一个点，像 xxxx.yyyy，请整串复制"
+};
 
 // Free online AI with the learner's own keys (2.1). Keys stay on this device.
 export function OnlineKeys() {
   const ai = useAi();
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState<Record<ProviderId, string>>({ siliconflow: "", zhipu: "" });
-  const [saved, setSaved] = useState<Record<ProviderId, string[]>>({ siliconflow: [], zhipu: [] });
+  const [text, setText] = useState(emptyText);
+  const [saved, setSaved] = useState<Keys>(empty);
   const [checks, setChecks] = useState<Checks>({});
 
   useEffect(() => {
     void loadKeys().then((keys) => {
       setSaved(keys);
-      if (!keys.siliconflow.length && !keys.zhipu.length) setEditing(true);
+      if (!total(keys)) setEditing(true);
     });
   }, []);
 
   // An empty box keeps that provider's keys.
   const save = async () => {
-    const typed = { siliconflow: cleanKeys(text.siliconflow), zhipu: cleanKeys(text.zhipu) };
-    // Half a key (most often Zhipu's, copied only up to the dot) is not kept.
-    const incomplete = (Object.keys(typed) as ProviderId[]).filter((provider) => typed[provider].some((key) => !looksComplete(provider, key)));
-    if (incomplete.length) {
-      toast(incomplete.includes("zhipu") ? "智谱的密钥不完整：完整的密钥中间有一个点，像 xxxx.yyyy，请整串复制" : "硅基流动的密钥不完整：应该以 sk- 开头，请整串复制");
-      return;
+    const keys = empty();
+    for (const provider of PROVIDER_ORDER) {
+      const typed = cleanKeys(text[provider]);
+      // Half a key (most often Zhipu's, copied only up to the dot) is not kept.
+      if (typed.some((key) => !looksComplete(provider, key))) return toast(INCOMPLETE[provider]);
+      keys[provider] = text[provider].trim() ? typed : saved[provider];
     }
-    const keys = {
-      siliconflow: text.siliconflow.trim() ? typed.siliconflow : saved.siliconflow,
-      zhipu: text.zhipu.trim() ? typed.zhipu : saved.zhipu
-    };
     await saveKeys(keys);
     setSaved(keys);
-    setEditing(!keys.siliconflow.length && !keys.zhipu.length);
-    setText({ siliconflow: "", zhipu: "" });
+    setEditing(!total(keys));
+    setText(emptyText());
     await refreshAi();
     void check(keys);
   };
@@ -50,17 +57,23 @@ export function OnlineKeys() {
     try {
       const response = await fetch("./__oofr_dev_keys");
       if (!response.ok) throw new Error(String(response.status));
-      const keys = (await response.json()) as Record<ProviderId, string[]>;
-      const whole = (provider: ProviderId) => keys[provider].filter((key) => looksComplete(provider, key));
-      setText({ siliconflow: whole("siliconflow").join("\n"), zhipu: whole("zhipu").join("\n") });
-      if (whole("zhipu").length < keys.zhipu.length) toast("测试文件里的智谱密钥不完整，先没填；补全后再读一次");
+      const keys = { ...empty(), ...((await response.json()) as Partial<Keys>) };
+      const next = emptyText();
+      const skipped: string[] = [];
+      for (const provider of PROVIDER_ORDER) {
+        const whole = keys[provider].filter((key) => looksComplete(provider, key));
+        next[provider] = whole.join("\n");
+        if (whole.length < keys[provider].length) skipped.push(PROVIDERS[provider].name);
+      }
+      setText(next);
+      if (skipped.length) toast(`测试文件里${skipped.join("、")}的密钥不完整，先没填`);
     } catch {
       toast("只能在装着测试密钥文件的这台电脑上读取");
     }
   };
 
   const check = async (keys = saved) => {
-    const all = (Object.keys(keys) as ProviderId[]).flatMap((provider) => keys[provider].map((key) => [provider, key] as const));
+    const all = PROVIDER_ORDER.flatMap((provider) => keys[provider].map((key) => [provider, key] as const));
     setChecks(Object.fromEntries(all.map(([, key]) => [key, "checking"])));
     for (const [provider, key] of all) {
       const ok = await OnlineBackend.check(provider, key);
@@ -68,15 +81,15 @@ export function OnlineKeys() {
     }
   };
 
-  const count = saved.siliconflow.length + saved.zhipu.length;
+  const count = total(saved);
+  const explains = canExplainWith(saved);
   const results = Object.values(checks);
   const allBad = results.length > 0 && results.every((result) => result === "bad");
 
   const clear = async () => {
     if (!(await confirmAction("清除这台设备上保存的全部在线 AI 密钥？", { confirmLabel: "清除", danger: true }))) return;
-    const empty = { siliconflow: [], zhipu: [] };
-    await saveKeys(empty);
-    setSaved(empty);
+    await saveKeys(empty());
+    setSaved(empty());
     setChecks({});
     setEditing(true);
     await refreshAi();
@@ -88,21 +101,12 @@ export function OnlineKeys() {
       {count > 0 && !editing ? (
         <>
           {allBad ? (
-            <span className="pill error-text">密钥都不可用：请检查是否复制完整、是否已实名认证</span>
+            <span className="pill error-text">密钥都不可用：请检查是否复制完整</span>
           ) : (
-            <span className="pill pill-ok">{saved.zhipu.length ? "已就绪 · 在线翻译和讲解" : "已就绪 · 在线翻译"}</span>
-          )}
-          {!saved.zhipu.length && (
-            <div className="stack-6">
-              <p className="small accent-text">讲解和“释义有误？”的检查要用智谱的免费密钥，加上后就能用。</p>
-              <p className="dim small">
-                在 <a href={PROVIDERS.zhipu.signup} target="_blank" rel="noreferrer">智谱开放平台</a> 登录 → API Keys → 用复制按钮整串复制（中间有一个点）。
-              </p>
-              <button type="button" className="button button-small button-primary align-start" onClick={() => setEditing(true)}>添加智谱密钥</button>
-            </div>
+            <span className="pill pill-ok">{explains ? "已就绪 · 在线翻译和讲解" : "已就绪 · 在线翻译"}</span>
           )}
           <ul className="stack-4 key-list">
-            {(Object.keys(saved) as ProviderId[]).flatMap((provider) =>
+            {PROVIDER_ORDER.flatMap((provider) =>
               saved[provider].map((key) => (
                 <li key={key} className="small">
                   {PROVIDERS[provider].name} <span className="mono dim">{masked(key)}</span>{" "}
@@ -111,6 +115,12 @@ export function OnlineKeys() {
               ))
             )}
           </ul>
+          {!saved.groq.length && (
+            <div className="stack-6">
+              <p className="small accent-text">推荐再加一个 Groq 的免费密钥：翻译和讲解都更快、更准。</p>
+              <button type="button" className="button button-small button-primary align-start" onClick={() => setEditing(true)}>添加 Groq 密钥</button>
+            </div>
+          )}
           <p className="dim small">手机和电脑都能直接用，不需要电脑上的 AI。密钥只存在这台设备上，不会备份或同步；句子会发给你选的服务商。</p>
           <div className="row-8">
             <button type="button" className="button button-small button-outline" onClick={() => void check()}>检测密钥</button>
@@ -119,14 +129,15 @@ export function OnlineKeys() {
         </>
       ) : (
         <>
-          <p className="dim small">
-            填入你自己的免费密钥，手机和电脑都能直接生成译文和讲解。注册：
-            <a href={PROVIDERS.siliconflow.signup} target="_blank" rel="noreferrer">硅基流动</a>（需实名认证）、
-            <a href={PROVIDERS.zhipu.signup} target="_blank" rel="noreferrer">智谱</a>，在控制台的“API 密钥”里新建一个，复制过来。
-          </p>
-          {(Object.keys(PROVIDERS) as ProviderId[]).map((provider) => (
+          <p className="dim small">填入你自己的免费密钥，手机和电脑都能直接生成译文和讲解。有一个就能用，推荐 Groq。在服务商网站的“API Keys”里新建一个，用复制按钮整串复制过来。</p>
+          {PROVIDER_ORDER.map((provider) => (
             <label key={provider} className="stack-4">
-              <span className="small">{PROVIDERS[provider].name} 密钥{saved[provider].length ? `（已有 ${saved[provider].length} 个，留空则不变）` : ""}</span>
+              <span className="small">
+                <b>{PROVIDERS[provider].name}</b> · {PROVIDERS[provider].note}
+                {saved[provider].length ? `（已有 ${saved[provider].length} 个，留空则不变）` : ""}
+                {" · "}
+                <a href={PROVIDERS[provider].signup} target="_blank" rel="noreferrer">注册 / 取密钥</a>
+              </span>
               <textarea
                 className="key-input mono"
                 rows={2}
@@ -139,13 +150,7 @@ export function OnlineKeys() {
             </label>
           ))}
           <div className="row-8">
-            <button
-              type="button"
-              className="button button-small button-primary"
-              onClick={() => void save()}
-            >
-              保存
-            </button>
+            <button type="button" className="button button-small button-primary" onClick={() => void save()}>保存</button>
             {import.meta.env.DEV && <button type="button" className="button button-small button-outline" onClick={() => void loadTestKeys()}>读取测试密钥（这台电脑）</button>}
             {count > 0 && <button type="button" className="button button-small button-outline" onClick={() => setEditing(false)}>取消</button>}
             {count > 0 && <button type="button" className="button button-small button-outline" onClick={() => void clear()}>清除全部密钥</button>}

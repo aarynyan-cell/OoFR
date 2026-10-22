@@ -24,7 +24,7 @@ vi.mock("../src/sync/auto", () => ({ startAutoSync: () => undefined, stopAutoSyn
 // No online keys on this phone.
 vi.mock("../src/ai/online", async (original) => ({
   ...(await original<typeof import("../src/ai/online")>()),
-  loadKeys: async () => ({ siliconflow: [], zhipu: [] })
+  loadKeys: async () => ({ groq: [], siliconflow: [], zhipu: [] })
 }));
 vi.mock("../src/ai/paired", async (original) => ({
   ...(await original<typeof import("../src/ai/paired")>()),
