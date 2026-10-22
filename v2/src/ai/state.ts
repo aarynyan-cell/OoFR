@@ -126,7 +126,7 @@ async function check(): Promise<void> {
     return update({ phase: models.includes(model.name) ? "ready" : "needs-model", model });
   }
   const local = localBackend();
-  if (await local.version()) {
+  if (!actAsPhone() && (await local.version())) {
     backend = local;
     const model = chooseModel(browserMemoryGb());
     const models = await local.models().catch((): string[] => []);
@@ -149,6 +149,7 @@ async function check(): Promise<void> {
       backend = null;
       stopAutoSync();
       setConnectedMac(null);
+      lookAgainLater();
       return update({ phase: "unreachable", paired: null, hasPairing: true });
     }
   }
@@ -174,6 +175,52 @@ export async function unpairPhone(): Promise<void> {
 }
 
 let checking: Promise<void> | null = null;
+
+// Test versions: this computer's browser plays the phone (uses the paired Mac
+// app, not its own Ollama), so the phone's path can be tried on the Mac.
+function actAsPhone(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return localStorage.getItem("oofr.dev.phone") === "1";
+  } catch {
+    return false;
+  }
+}
+
+// A phone that lost its Mac (locked, the network changed or dropped) looks for
+// it again: when OoFR is back on screen, when the network is back, and every
+// 20 seconds while it is open. Before, one failed try left it lost until the
+// learner pressed 重新连接.
+const LOOK_AGAIN_MS = 20000;
+let lookAgain: ReturnType<typeof setTimeout> | undefined;
+
+function lostMac(): boolean {
+  return Boolean(state.hasPairing) && !connectedMac;
+}
+
+function lookAgainLater(): void {
+  clearTimeout(lookAgain);
+  lookAgain = setTimeout(() => {
+    if (!lostMac()) return;
+    if (document.visibilityState === "visible") void refreshAi();
+    else lookAgainLater();
+  }, LOOK_AGAIN_MS);
+}
+
+// A request to the Mac failed: make sure the connection is still there.
+export function checkMacAgain(): void {
+  if (state.hasPairing) void refreshAi();
+}
+
+if (typeof document !== "undefined") {
+  // Back on screen (e.g. the phone was unlocked): the connection may have been cut meanwhile.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.hasPairing) void refreshAi();
+  });
+  window.addEventListener("online", () => {
+    if (state.hasPairing) void refreshAi();
+  });
+}
 
 export function refreshAi(): Promise<void> {
   if (state.phase === "working") return Promise.resolve();

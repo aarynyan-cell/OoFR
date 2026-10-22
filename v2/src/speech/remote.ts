@@ -6,7 +6,7 @@
 // own voice reads as before. This stands in for speechSynthesis.
 
 import { devLog } from "../app/devlog";
-import { onPairedMac, pairedMac } from "../ai/state";
+import { checkMacAgain, onPairedMac, pairedMac } from "../ai/state";
 import type { MacVoice } from "../ai/paired";
 import { type VoiceLike, pickVoice, voiceBase } from "./voices";
 
@@ -173,6 +173,8 @@ export class RemoteSynth {
       }
       return audio;
     } catch {
+      // The connection may be gone (phone locked, network changed): look for the Mac again.
+      checkMacAgain();
       return null;
     }
   }
