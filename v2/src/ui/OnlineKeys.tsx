@@ -51,7 +51,9 @@ export function OnlineKeys() {
       const response = await fetch("./__oofr_dev_keys");
       if (!response.ok) throw new Error(String(response.status));
       const keys = (await response.json()) as Record<ProviderId, string[]>;
-      setText({ siliconflow: keys.siliconflow.join("\n"), zhipu: keys.zhipu.join("\n") });
+      const whole = (provider: ProviderId) => keys[provider].filter((key) => looksComplete(provider, key));
+      setText({ siliconflow: whole("siliconflow").join("\n"), zhipu: whole("zhipu").join("\n") });
+      if (whole("zhipu").length < keys.zhipu.length) toast("测试文件里的智谱密钥不完整，先没填；补全后再读一次");
     } catch {
       toast("只能在装着测试密钥文件的这台电脑上读取");
     }
