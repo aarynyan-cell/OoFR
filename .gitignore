@@ -35,3 +35,7 @@ desktop/src-tauri/target/
 # 2.0 Mac app build output
 v2/desktop/src-tauri/target/
 v2/desktop/src-tauri/gen/
+
+# Key files some editors save with an extra .md ending (never commit keys)
+env.local*
+**/env.local*
