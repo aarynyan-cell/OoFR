@@ -656,6 +656,35 @@ p {
   border-color: var(--accent);
 }
 
+/* Holding a tape picks it up (no link preview or text selection). */
+.shelf-tape {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shelf.is-sorting {
+  scroll-snap-type: none;
+}
+
+.shelf-tape.is-dragging {
+  transform: scale(1.05) rotate(-1.5deg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shelf-tape {
+    transition: none;
+  }
+
+  .shelf-tape.is-dragging {
+    transform: none;
+  }
+}
+
 .shelf-label {
   display: flex;
   flex-direction: column;
@@ -832,6 +861,17 @@ p {
 
 .color-choice[aria-pressed="true"] {
   border-color: var(--text);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 44px);
+  gap: 10px;
+}
+
+/* A colour another tape already uses: still allowed, shown with a small dot. */
+.color-choice.is-taken {
+  background-image: radial-gradient(circle at 50% 50%, rgba(22, 25, 26, 0.45) 0 3px, transparent 3.5px);
 }
 
 .preview {

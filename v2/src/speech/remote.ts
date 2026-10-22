@@ -11,6 +11,28 @@ import type { MacVoice } from "../ai/paired";
 import { type VoiceLike, pickVoice, voiceBase } from "./voices";
 
 const CACHE = "oofr2-voices";
+// The Mac's voices as last seen, so audio kept on the phone still plays after
+// the Mac is gone (its cache addresses need the voice's name).
+const MAC_VOICES_KEY = "oofr2.macVoices";
+
+function rememberedMacVoices(): MacVoice[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(MAC_VOICES_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((voice): voice is MacVoice => typeof voice?.name === "string" && typeof voice?.lang === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberMacVoices(voices: MacVoice[]): void {
+  try {
+    localStorage.setItem(MAC_VOICES_KEY, JSON.stringify(voices.map(({ name, lang }) => ({ name, lang }))));
+  } catch {
+    // Only a convenience: without it, kept audio plays once the Mac is back.
+  }
+}
+
+const asVoice = (voice: MacVoice) => ({ name: voice.name, lang: voice.lang, voiceURI: `${MAC_VOICE}${voice.name}`, localService: false, default: false }) as SpeechSynthesisVoice;
 // Marks the Mac's voices in the list (and in the saved choice).
 export const MAC_VOICE = "mac:";
 
@@ -49,6 +71,7 @@ export class RemoteSynth {
   private audioPaused = false;
   private unlocked = false;
   private queue: { text: string; voice: string; rate: number }[] = [];
+  private laterQueue: { text: string; voice: string; rate: number }[] = [];
   private prefetching = false;
   // The sentence whose audio is playing (or waiting for resume).
   private current: { url: string; utterance: RemoteUtterance; number: number } | null = null;
@@ -57,10 +80,11 @@ export class RemoteSynth {
     private readonly web: SpeechSynthesis | undefined = globalThis.speechSynthesis,
     private readonly audio: HTMLAudioElement | null = typeof Audio === "undefined" ? null : new Audio()
   ) {
+    this.macVoices = rememberedMacVoices().map(asVoice);
     web?.addEventListener?.("voiceschanged", () => this.notify());
-    // A new connection may bring other voices: fetch them again before the next sentence.
+    // A new connection may bring other voices: ask again before the next sentence.
     onPairedMac(() => {
-      this.macVoices = [];
+      this.voicesAsked = false;
       void this.macVoicesReady();
     });
   }
@@ -70,10 +94,12 @@ export class RemoteSynth {
   }
 
   private voicesLoading: Promise<void> | null = null;
+  // Whether this connection's Mac has been asked for its voices yet.
+  private voicesAsked = false;
 
-  // The Mac's voices, fetched once per connection before its first sentence.
+  // The Mac's voices, asked once per connection before its first sentence.
   private macVoicesReady(): Promise<void> {
-    if (this.macVoices.length || !pairedMac()) return Promise.resolve();
+    if (this.voicesAsked || !pairedMac()) return Promise.resolve();
     this.voicesLoading ??= this.loadMacVoices().finally(() => {
       this.voicesLoading = null;
     });
@@ -82,14 +108,17 @@ export class RemoteSynth {
 
   private async loadMacVoices(): Promise<void> {
     const mac = pairedMac();
-    let voices: MacVoice[] = [];
+    if (!mac) return;
+    let voices: MacVoice[];
     try {
-      voices = mac ? await mac.voices() : [];
+      voices = await mac.voices();
     } catch {
-      voices = [];
+      // Not answered: keep the voices known from before.
+      return;
     }
-    // Only voices better than the browser's basic ones are worth the trip.
-    this.macVoices = voices.map((voice) => ({ name: voice.name, lang: voice.lang, voiceURI: `${MAC_VOICE}${voice.name}`, localService: false, default: false }) as SpeechSynthesisVoice);
+    this.voicesAsked = true;
+    rememberMacVoices(voices);
+    this.macVoices = voices.map(asVoice);
     this.notify();
   }
 
@@ -161,13 +190,16 @@ export class RemoteSynth {
     return fetched;
   }
 
-  // While the Mac is connected, the coming sentences are fetched and kept one by one.
-  prefetch(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number): void {
+  // While the Mac is connected, the coming sentences are fetched and kept one by
+  // one; `later` ones (the rest of the library) wait until those are done.
+  prefetch(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number, later = false): void {
     if (!pairedMac()) return;
     void this.macVoicesReady().then(() => {
       const name = this.macVoiceFor(voice, lang);
       if (!name) return;
-      this.queue = texts.map((text) => ({ text, voice: name, rate }));
+      const items = texts.map((text) => ({ text, voice: name, rate }));
+      if (later) this.laterQueue = items;
+      else this.queue = items;
       this.runQueue();
     });
   }
@@ -176,8 +208,8 @@ export class RemoteSynth {
     if (this.prefetching) return;
     this.prefetching = true;
     void (async () => {
-      while (this.queue.length && pairedMac()) {
-        const next = this.queue.shift()!;
+      while ((this.queue.length || this.laterQueue.length) && pairedMac()) {
+        const next = (this.queue.length ? this.queue : this.laterQueue).shift()!;
         if (!(await this.kept(next.voice, next.rate, next.text))) await this.fetchFromMac(next.voice, next.rate, next.text);
       }
       this.prefetching = false;

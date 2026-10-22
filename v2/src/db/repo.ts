@@ -62,19 +62,55 @@ export async function listTapes(): Promise<Tape[]> {
   return db.tapes.orderBy("order").toArray();
 }
 
+const sameColor = (a: string, b: string) => a.toUpperCase() === b.toUpperCase();
+
+// A label colour no other tape has yet (the least used one once all are taken).
+export function freshTapeColor(tapes: Pick<Tape, "color">[]): string {
+  const uses = (color: string) => tapes.filter((tape) => sameColor(tape.color, color)).length;
+  return [...TAPE_COLORS].sort((a, b) => uses(a) - uses(b))[0];
+}
+
 export async function createTape(title: string, color?: string): Promise<Tape> {
-  const count = await db.tapes.count();
+  const tapes = await db.tapes.toArray();
   const tape: Tape = {
     id: makeId("tape"),
     title: title.trim() || "新磁带",
     description: "",
-    color: color ?? TAPE_COLORS[count % TAPE_COLORS.length],
-    order: count,
+    color: color ?? freshTapeColor(tapes),
+    order: tapes.reduce((last, item) => Math.max(last, item.order + 1), 0),
     createdAt: nowIso(),
     updatedAt: nowIso()
   };
   await db.tapes.add(tape);
   return tape;
+}
+
+// Tapes on the shelf in the learner's order (dragged on this device; never synced).
+export async function reorderTapes(tapeIds: string[]): Promise<void> {
+  await db.transaction("rw", db.tapes, async () => {
+    await Promise.all(tapeIds.map((id, order) => db.tapes.update(id, { order })));
+  });
+}
+
+// Once per device: tapes that share a label colour (2.0 had only three) get
+// colours of their own. The oldest tape keeps its colour; the same tapes give
+// the same result on every device.
+const SPREAD_COLORS_KEY = "tapeColorsSpread";
+export async function spreadTapeColors(): Promise<number> {
+  return db.transaction("rw", db.tapes, db.kv, async () => {
+    if (await db.kv.get(SPREAD_COLORS_KEY)) return 0;
+    const tapes = (await db.tapes.toArray()).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    const colors = tapes.map((tape) => tape.color);
+    let changed = 0;
+    for (let index = 0; index < tapes.length; index += 1) {
+      if (!colors.slice(0, index).some((color) => sameColor(color, colors[index]))) continue;
+      colors[index] = freshTapeColor(colors.filter((_, other) => other !== index).map((color) => ({ color })));
+      await db.tapes.update(tapes[index].id, { color: colors[index], updatedAt: nowIso() });
+      changed += 1;
+    }
+    await db.kv.put({ key: SPREAD_COLORS_KEY, value: nowIso() });
+    return changed;
+  });
 }
 
 export function materialsOfTape(materials: Material[], tapeId: string): Material[] {

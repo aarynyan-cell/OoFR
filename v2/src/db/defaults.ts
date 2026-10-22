@@ -25,8 +25,22 @@ export const DEFAULT_STUDY: StudyStats = {
   shadowWeek: ""
 };
 
-// Label colours for tapes (see the design spec: amber, teal, cream).
-export const TAPE_COLORS = ["#E9C46A", "#7CC1B6", "#D8D3C4"];
+// Label colours for tapes: the design spec's amber, teal and cream first, then
+// more soft cassette-label colours so tapes need not share one. All are light
+// enough for dark label text in both themes.
+export const TAPE_PALETTE = [
+  { color: "#E9C46A", name: "琥珀" },
+  { color: "#7CC1B6", name: "青绿" },
+  { color: "#D8D3C4", name: "米白" },
+  { color: "#F4A261", name: "杏橙" },
+  { color: "#9DB4D3", name: "雾蓝" },
+  { color: "#A8C686", name: "草绿" },
+  { color: "#E5989B", name: "豆沙" },
+  { color: "#C3AED6", name: "淡紫" },
+  { color: "#E07A5F", name: "陶红" },
+  { color: "#B8A99A", name: "灰褐" }
+] as const;
+export const TAPE_COLORS: string[] = TAPE_PALETTE.map((item) => item.color);
 
 export function nowIso(): string {
   return new Date().toISOString();

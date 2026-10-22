@@ -1,13 +1,13 @@
-import { type CSSProperties, type FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { href, navigate } from "../app/router";
 import { toast } from "../app/toast";
 import { db } from "../db/database";
-import { TAPE_COLORS } from "../db/defaults";
+import { TAPE_PALETTE } from "../db/defaults";
 import { useLive } from "../db/live";
-import { createTape, deleteTape, listTapes, materialsOfTape, progressOf, trackLabel, updateTape } from "../db/repo";
+import { createTape, deleteTape, freshTapeColor, listTapes, materialsOfTape, progressOf, reorderTapes, trackLabel, updateTape } from "../db/repo";
 import type { Material, Tape } from "../db/types";
 import { Modal } from "../ui/Modal";
-import { inkFor } from "../ui/color";
+import { TapeShelf } from "../ui/TapeShelf";
 import { ChevronIcon, SearchIcon } from "../ui/icons";
 import { confirmAction } from "../ui/Confirm";
 
@@ -38,23 +38,18 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
         <button type="button" className="button button-outline button-small" onClick={() => setCreating(true)}>＋ 新建磁带</button>
       </header>
 
-      <div className="shelf" role="group" aria-label="选择磁带">
-        {tapes?.map((tape) => (
-          <a
-            key={tape.id}
-            className="shelf-tape"
-            href={href({ name: "tapes", tapeId: tape.id })}
-            aria-current={tape.id === selected?.id && !needle ? "true" : undefined}
-            style={{ "--tape-color": tape.color, "--tape-ink": inkFor(tape.color) } as CSSProperties}
-          >
-            <span className="shelf-label">
-              <b>{tape.title}</b>
-              <span className="shelf-window" aria-hidden="true"><span className="reel reel-small" /><span className="reel reel-small" /></span>
-            </span>
-            <span className="muted small">{materialsOfTape(materials ?? [], tape.id).length} 条素材</span>
-          </a>
-        ))}
-      </div>
+      {tapes && (
+        <TapeShelf
+          tapes={tapes}
+          counts={new Map(tapes.map((tape) => [tape.id, materialsOfTape(materials ?? [], tape.id).length]))}
+          selectedId={needle ? undefined : selected?.id}
+          onReorder={(ids) => {
+            // The tape being looked at stays open (without one in the address, the first tape is shown).
+            if (!tapeId && selected) navigate({ name: "tapes", tapeId: selected.id }, { replace: true });
+            void reorderTapes(ids);
+          }}
+        />
+      )}
 
       <label className="search gutter-margin">
         <SearchIcon size={18} />
@@ -98,16 +93,19 @@ export function TapesPage({ tapeId }: { tapeId?: string }) {
         )}
       </section>
 
-      {creating && <TapeSheet onClose={() => setCreating(false)} />}
-      {editingTape && <TapeSheet tape={editingTape} onClose={() => setEditingTape(null)} />}
+      {creating && <TapeSheet tapes={tapes ?? []} onClose={() => setCreating(false)} />}
+      {editingTape && <TapeSheet tape={editingTape} tapes={tapes ?? []} onClose={() => setEditingTape(null)} />}
     </main>
   );
 }
 
 // New tape, or (with a tape) rename, recolour or delete it.
-function TapeSheet({ tape, onClose }: { tape?: Tape; onClose: () => void }) {
+function TapeSheet({ tape, tapes, onClose }: { tape?: Tape; tapes: Tape[]; onClose: () => void }) {
   const [title, setTitle] = useState(tape?.title ?? "");
-  const [color, setColor] = useState(tape?.color ?? TAPE_COLORS[0]);
+  // A new tape starts with a colour no other tape has.
+  const [color, setColor] = useState(tape?.color ?? freshTapeColor(tapes));
+  const others = tapes.filter((item) => item.id !== tape?.id);
+  const choices = [...TAPE_PALETTE, ...(TAPE_PALETTE.some((item) => item.color.toUpperCase() === color.toUpperCase()) ? [] : [{ color, name: "原来的颜色" }])];
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (tape) {
@@ -138,18 +136,22 @@ function TapeSheet({ tape, onClose }: { tape?: Tape; onClose: () => void }) {
         </label>
         <div className="field" role="group" aria-label="标签颜色">
           标签颜色
-          <div className="row-8">
-            {[...new Set([...TAPE_COLORS, color])].map((option) => (
-              <button
-                key={option}
-                type="button"
-                className="color-choice"
-                style={{ background: option }}
-                aria-pressed={option === color}
-                aria-label={option === TAPE_COLORS[0] ? "琥珀" : option === TAPE_COLORS[1] ? "青绿" : option === TAPE_COLORS[2] ? "米白" : "原来的颜色"}
-                onClick={() => setColor(option)}
-              />
-            ))}
+          <div className="color-grid">
+            {choices.map((option) => {
+              const taken = others.some((item) => item.color.toUpperCase() === option.color.toUpperCase());
+              return (
+                <button
+                  key={option.color}
+                  type="button"
+                  className={`color-choice${taken ? " is-taken" : ""}`}
+                  style={{ backgroundColor: option.color }}
+                  aria-pressed={option.color.toUpperCase() === color.toUpperCase()}
+                  aria-label={`${option.name}${taken ? "（别的磁带在用）" : ""}`}
+                  title={option.name}
+                  onClick={() => setColor(option.color)}
+                />
+              );
+            })}
           </div>
         </div>
         <div className="row-12">

@@ -259,6 +259,11 @@ export function prefetchSpeech(texts: string[], voice: SpeechSynthesisVoice | nu
   (native ?? remote)?.prefetch(texts, voice, lang, rate);
 }
 
+// A phone paired with the Mac keeps the whole library's audio, after whatever is being prepared now.
+export function keepSpeechForLater(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number): void {
+  remote?.prefetch(texts, voice, lang, rate, true);
+}
+
 // Voices arrive asynchronously on most engines.
 export function loadVoices(synth: SpeechSynthesis | undefined = globalThis.speechSynthesis, timeoutMs = 1500): Promise<SpeechSynthesisVoice[]> {
   if (!synth) return Promise.resolve([]);

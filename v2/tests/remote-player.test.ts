@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { type PlayItem, type PlayOptions, SpeechPlayer } from "../src/speech/player";
 import { connectMediaControls } from "../src/speech/mediaControls";
 import { RemoteSynth, type RemoteUtterance, remoteUtterance } from "../src/speech/remote";
@@ -295,5 +295,58 @@ describe("the system's media controls", () => {
     const { session } = connected();
     for (const action of ["seekbackward", "seekforward", "seekto", "previoustrack", "nexttrack"]) expect(session.handlers.get(action)).toBeNull();
     expect(session.handlers.get("stop")).toBeTypeOf("function");
+  });
+});
+
+// Without the Mac: audio kept on the phone still plays in the Mac's voice.
+describe("the Mac's voices after the Mac is gone", () => {
+  const scope = globalThis as unknown as { localStorage?: unknown; caches?: unknown; location?: unknown };
+  const saved = { localStorage: scope.localStorage, caches: scope.caches, location: scope.location };
+  const store = new Map<string, string>();
+  const kept: string[] = [];
+
+  function install(rememberedVoices: string | null) {
+    store.clear();
+    if (rememberedVoices !== null) store.set("oofr2.macVoices", rememberedVoices);
+    scope.localStorage = { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => store.set(key, value) };
+    scope.location = { origin: "https://example.test" };
+    // Every sentence was kept while the Mac was connected.
+    scope.caches = {
+      open: async () => ({
+        match: async (key: string) => {
+          kept.push(key);
+          return new Response(new Blob(["aac"], { type: "audio/mp4" }));
+        },
+        put: async () => undefined
+      })
+    };
+  }
+
+  afterAll(() => Object.assign(scope, saved));
+
+  it("lists the remembered Mac voices and plays the kept audio", async () => {
+    install(JSON.stringify([{ name: "Thomas (Enhanced)", lang: "fr-FR" }]));
+    const audio = new FakeAudio();
+    const web = new FakeWeb();
+    const synth = new RemoteSynth(web as unknown as SpeechSynthesis, audio as unknown as HTMLAudioElement);
+    expect(synth.getVoices().map((voice) => voice.voiceURI)).toContain("mac:Thomas (Enhanced)");
+    const utterance = remoteUtterance("Bonjour.");
+    synth.speak(utterance);
+    await sleep(200);
+    expect(audio.starts).toHaveLength(1);
+    expect(web.spoken).toEqual([]);
+    synth.cancel();
+  });
+
+  it("falls back to the browser's voice when no Mac voice was ever seen", async () => {
+    install(null);
+    const audio = new FakeAudio();
+    const web = new FakeWeb();
+    const synth = new RemoteSynth(web as unknown as SpeechSynthesis, audio as unknown as HTMLAudioElement);
+    synth.speak(remoteUtterance("Bonjour."));
+    await sleep(200);
+    expect(audio.starts).toHaveLength(0);
+    expect(web.spoken).toEqual(["Bonjour."]);
+    synth.cancel();
   });
 });

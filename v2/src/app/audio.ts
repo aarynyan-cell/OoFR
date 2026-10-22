@@ -1,7 +1,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { markFinished, markStudiedToday, setPosition } from "../db/repo";
+import { onPairedMac } from "../ai/state";
+import { db } from "../db/database";
+import { getSettings, markFinished, markStudiedToday, setPosition } from "../db/repo";
 import type { Material, Settings } from "../db/types";
-import { type PlayerState, loadVoices, player, prefetchSpeech, speechEngine } from "../speech/player";
+import { type PlayerState, keepSpeechForLater, loadVoices, player, prefetchSpeech, speechEngine } from "../speech/player";
 import { connectMediaControls } from "../speech/mediaControls";
 import { pickVoice } from "../speech/voices";
 import { stopRecordingAudio } from "./recordings";
@@ -26,6 +28,17 @@ if (typeof window !== "undefined" && speechEngine()) {
 }
 
 if (typeof navigator !== "undefined") connectMediaControls(navigator.mediaSession, player);
+
+// Whenever the phone reaches the Mac, the Mac's voice for every French sentence
+// in the library is kept on the phone (a little at a time, after the open
+// lesson), so the better voice still plays once the Mac is gone.
+async function keepLibrarySpeech(): Promise<void> {
+  const [materials, settings] = await Promise.all([db.materials.toArray(), getSettings()]);
+  const texts = [...new Set(materials.filter((material) => material.language !== "en").flatMap((material) => material.sentences.map((sentence) => sentence.text)))];
+  if (texts.length) keepSpeechForLater(texts, pickVoice(voices, settings.voice), "fr-FR", settings.rate);
+}
+
+if (typeof window !== "undefined") onPairedMac(() => void keepLibrarySpeech());
 
 export function useVoices(): SpeechSynthesisVoice[] {
   const [list, setList] = useState(voices);
