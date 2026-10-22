@@ -123,4 +123,12 @@ describe("keys on this device", () => {
     expect((await loadKeys()).siliconflow).toHaveLength(1);
     expect(JSON.stringify(await createBackup("test"))).not.toContain("secretsecret");
   });
+
+  it("a key saved while the AI is still being looked for is used (the look runs again)", async () => {
+    const first = refreshAi();
+    await saveKeys({ siliconflow: ["sk-secretsecretsecretsecret"], zhipu: [] });
+    await refreshAi();
+    await first;
+    expect(aiState()).toMatchObject({ phase: "ready", online: true, canExplain: false });
+  });
 });

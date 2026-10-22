@@ -270,13 +270,24 @@ if (typeof document !== "undefined") {
   });
 }
 
+// Asked again while a look is under way (keys just saved, a phone unlocked):
+// that look may have started before the change, so it runs once more.
+let lookAgainAfter = false;
+
 export function refreshAi(): Promise<void> {
   if (state.phase === "working") return Promise.resolve();
-  checking ??= check()
-    .catch((error) => update({ phase: "unreachable", error: describe(error) }))
-    .finally(() => {
-      checking = null;
-    });
+  if (checking) {
+    lookAgainAfter = true;
+    return checking;
+  }
+  checking = (async () => {
+    do {
+      lookAgainAfter = false;
+      await check().catch((error) => update({ phase: "unreachable", error: describe(error) }));
+    } while (lookAgainAfter);
+  })().finally(() => {
+    checking = null;
+  });
   return checking;
 }
 
