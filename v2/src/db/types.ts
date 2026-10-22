@@ -184,6 +184,9 @@ export interface StudyStats {
   shadowedThisWeek: number;
   // Week ("2026-W42") the shadowing count belongs to.
   shadowWeek: string;
+  // 学习记录: how much was studied each day ("2026-10-22" → actions), the last year.
+  days?: Record<string, number>;
+  bestStreak?: number;
 }
 
 export interface MigrationRecord {

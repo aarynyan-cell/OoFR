@@ -36,15 +36,20 @@ export async function getStudy(): Promise<StudyStats> {
   return { ...DEFAULT_STUDY, ...stored };
 }
 
-// Called when the learner actually studies (plays a lesson, reviews a card).
+const DAYS_KEPT = 400;
+
+// Called when the learner actually studies (plays a lesson, reviews a card,
+// records a take): keeps the streak and counts the day for 学习记录.
 export async function markStudiedToday(today = new Date()): Promise<StudyStats> {
   return db.transaction("rw", db.kv, async () => {
     const study = await getStudy();
     const key = localDateKey(today);
-    if (study.lastStudyDate === key) return study;
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-    const next = { ...study, streak: study.lastStudyDate === localDateKey(yesterday) ? study.streak + 1 : 1, lastStudyDate: key };
+    const streak = study.lastStudyDate === key ? study.streak : study.lastStudyDate === localDateKey(yesterday) ? study.streak + 1 : 1;
+    const days = { ...(study.days ?? {}), [key]: (study.days?.[key] ?? 0) + 1 };
+    const kept = Object.keys(days).sort().slice(-DAYS_KEPT);
+    const next = { ...study, streak, lastStudyDate: key, bestStreak: Math.max(study.bestStreak ?? 0, streak), days: Object.fromEntries(kept.map((day) => [day, days[day]])) };
     await db.kv.put({ key: "study", value: next });
     return next;
   });

@@ -4,14 +4,15 @@ import { useAi } from "../ai/state";
 import { speakOnce, useVoices } from "../app/audio";
 import { useV1Migration } from "../app/migration";
 import { toast } from "../app/toast";
-import { db } from "../db/database";
 import { useLive } from "../db/live";
-import { currentStreak, getSettings, getStudy, saveSettings, shadowedThisWeek } from "../db/repo";
+import { getSettings, saveSettings } from "../db/repo";
 import type { ThemeChoice } from "../db/types";
 import { backupFileName, createBackup, importAnyFile, restoreSnapshot, snapshotInfo } from "../backup/backup";
 import { shareOrDownload } from "../app/download";
 import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
+import { studyRecord } from "../app/studyRecord";
 import { AiSheet, aiSummary } from "../ui/AiSheet";
+import { StudyRecordView } from "../ui/StudyRecordView";
 import { ChevronIcon } from "../ui/icons";
 import { confirmAction } from "../ui/Confirm";
 
@@ -39,8 +40,7 @@ function relativeDays(iso: string): string {
 
 export function MePage() {
   const settings = useLive(() => getSettings(), []);
-  const study = useLive(() => getStudy(), []);
-  const knownCount = useLive(() => db.cards.where("status").equals("got").count(), []);
+  const record = useLive(() => studyRecord(), []);
   const voices = useVoices();
   const { detection, busy, importNow, refresh } = useV1Migration();
   const [importing, setImporting] = useState(false);
@@ -108,10 +108,9 @@ export function MePage() {
     <main className="page">
       <h1 className="page-title">我的</h1>
 
-      <section className="stats" aria-label="学习统计">
-        <div className="stat"><b className="mono accent-text">{study ? currentStreak(study) : 0}</b><span>连续学习天数</span></div>
-        <div className="stat"><b className="mono">{study ? shadowedThisWeek(study) : 0}</b><span>本周跟读句数</span></div>
-        <div className="stat"><b className="mono ok-text">{knownCount ?? 0}</b><span>已掌握词句</span></div>
+      <section className="stack-6">
+        <h2 className="group-title">学习记录</h2>
+        {record && <StudyRecordView record={record} />}
       </section>
 
       <section className="stack-6">
