@@ -119,7 +119,7 @@ describe("reading with Gemini", () => {
 describe("Gemini voices in the voice list", () => {
   const gemini = (name: string) => ({ name, lang: "fr-FR", voiceURI: `gemini:${name}` });
   it("come first when there is a key, Kore first, with a plain label", () => {
-    const voices = [{ name: "Thomas (Enhanced)", lang: "fr-FR", voiceURI: "mac:Thomas (Enhanced)" }, gemini("Charon"), gemini("Kore"), { name: "Thomas", lang: "fr-FR" }];
+    const voices: { name: string; lang: string; voiceURI?: string }[] = [{ name: "Thomas (Enhanced)", lang: "fr-FR", voiceURI: "mac:Thomas (Enhanced)" }, gemini("Charon"), gemini("Kore"), { name: "Thomas", lang: "fr-FR" }];
     expect(pickVoice(voices)?.voiceURI).toBe("gemini:Kore");
     expect(voiceLabel(gemini("Charon"))).toBe("Charon · 男声（在线语音）");
     // A voice the learner chose stays chosen.

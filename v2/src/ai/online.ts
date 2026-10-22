@@ -90,6 +90,21 @@ export async function saveKeys(keys: Partial<OnlineKeys>): Promise<void> {
   keyListeners.forEach((listener) => listener());
 }
 
+// Keys from a paired Mac join the ones here (whole keys only, no duplicates); how many were new.
+export async function addKeys(incoming: Partial<OnlineKeys>): Promise<number> {
+  const keys = await loadKeys();
+  let added = 0;
+  for (const provider of PROVIDER_ORDER) {
+    for (const key of Array.isArray(incoming[provider]) ? incoming[provider]! : []) {
+      if (typeof key !== "string" || !looksComplete(provider, key) || keys[provider].includes(key)) continue;
+      keys[provider].push(key);
+      added += 1;
+    }
+  }
+  if (added) await saveKeys(keys);
+  return added;
+}
+
 // Someone may want to know when keys change (the phone's voices follow the Gemini key).
 const keyListeners = new Set<() => void>();
 export function onKeysChange(listener: () => void): () => void {

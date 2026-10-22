@@ -569,7 +569,8 @@ fn handle(
             true
         }
         // Syncing lessons is done by the page, which holds the data; parts of long messages go there as they are.
-        "sync-hello" | "sync-push" | "part" => {
+        // A paired phone may also ask for the online AI keys saved here (only known phones get this far).
+        "sync-hello" | "sync-push" | "part" | "keys-get" => {
             match app {
                 Some(app) => {
                     let _ = app.emit("pair-message", json!({ "peer": peer.to_string(), "text": text }));

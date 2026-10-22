@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { type AiBackend, type AppSetup, AiError, type Progress, appBackend, localBackend, tauri } from "./backend";
 import { type ModelChoice, chooseModel } from "./models";
 import { startAutoSync, stopAutoSync } from "../sync/auto";
-import { OnlineBackend, canExplainWith, hasKeys, loadKeys } from "./online";
+import { OnlineBackend, addKeys, canExplainWith, hasKeys, loadKeys } from "./online";
 import { type PairedBackend, type Pairing, forgetPairing, loadPairing, pairWith, pairedBackend } from "./paired";
 
 export type AiPhase =
@@ -203,6 +203,23 @@ async function check(): Promise<void> {
   }
   backend = null;
   update({ phase: "unreachable", paired: null, hasPairing: false });
+}
+
+// The phone takes the online AI keys saved in the paired Mac app (over the
+// paired connection only). Returns how many were new.
+export async function importKeysFromMac(): Promise<number> {
+  const mac = connectedMac;
+  if (!mac) throw new AiError("先连上配对的电脑");
+  let answer: Record<string, unknown>;
+  try {
+    answer = await mac.exchange({ t: "keys-get" }, 15000);
+  } catch {
+    throw new AiError("电脑没有回应：请打开电脑上的 OoFR 在线版（3.0 以上）");
+  }
+  if (answer.t !== "keys") throw new AiError("电脑上的 OoFR 还不能传密钥，请更新到在线版");
+  const added = await addKeys((answer.keys ?? {}) as Partial<Record<string, string[]>>);
+  await refreshAi();
+  return added;
 }
 
 // After scanning the Mac's QR code.

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { OnlineBackend, type OnlineKeys as Keys, PROVIDERS, PROVIDER_ORDER, type ProviderId, canExplainWith, cleanKeys, loadKeys, looksComplete, saveKeys } from "../ai/online";
-import { refreshAi, useAi } from "../ai/state";
+import { tauri } from "../ai/backend";
+import { importKeysFromMac, refreshAi, useAi } from "../ai/state";
 import { toast } from "../app/toast";
 import { confirmAction } from "./Confirm";
 
@@ -28,6 +29,9 @@ export function OnlineKeys() {
   const [text, setText] = useState(emptyText);
   const [saved, setSaved] = useState<Keys>(empty);
   const [checks, setChecks] = useState<Checks>({});
+  const [importing, setImporting] = useState(false);
+  // A phone connected to its Mac can take the keys saved there in one tap.
+  const canImport = Boolean(ai.paired) && !tauri();
 
   useEffect(() => {
     void loadKeys().then((keys) => {
@@ -72,6 +76,30 @@ export function OnlineKeys() {
       toast("只能在装着测试密钥文件的这台电脑上读取");
     }
   };
+
+  const takeFromMac = async () => {
+    setImporting(true);
+    try {
+      const added = await importKeysFromMac();
+      const keys = await loadKeys();
+      setSaved(keys);
+      toast(added ? `已从电脑导入 ${added} 个密钥` : "电脑上没有这台手机还没有的密钥");
+      if (total(keys)) {
+        setEditing(false);
+        void check(keys);
+      }
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "没能从电脑导入密钥");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importButton = canImport && (
+    <button type="button" className="button button-small button-outline align-start" onClick={() => void takeFromMac()} disabled={importing}>
+      {importing ? "正在从电脑导入…" : `从电脑「${ai.paired}」导入密钥`}
+    </button>
+  );
 
   const check = async (keys = saved) => {
     const all = PROVIDER_ORDER.flatMap((provider) => keys[provider].map((key) => [provider, key] as const));
@@ -125,7 +153,9 @@ export function OnlineKeys() {
               <button type="button" className="button button-small button-primary align-start" onClick={() => setEditing(true)}>添加 Groq 密钥</button>
             </div>
           )}
-          <p className="dim small">手机和电脑都能直接用，不需要电脑上的 AI。密钥只存在这台设备上，不会备份或同步；句子会发给你选的服务商。</p>
+          <p className="dim small">手机和电脑都能直接用，不需要电脑上的 AI。密钥只存在你自己的设备上，不会备份或同步；句子会发给你选的服务商。</p>
+          {tauri() && <p className="dim small">配对的手机可以在它的“AI 翻译与讲解”里一键从这台电脑导入这些密钥（只经过你们之间的直连）。</p>}
+          {importButton}
           <div className="row-8">
             <button type="button" className="button button-small button-outline" onClick={() => void check()}>检测密钥</button>
             <button type="button" className="button button-small button-outline" onClick={() => setEditing(true)}>修改密钥</button>
@@ -133,6 +163,12 @@ export function OnlineKeys() {
         </>
       ) : (
         <>
+          {importButton && (
+            <div className="stack-6">
+              {importButton}
+              <p className="dim small">电脑上已经填过密钥的话，一键拿过来就行（只经过你们之间的直连）。</p>
+            </div>
+          )}
           <p className="dim small">填入你自己的免费密钥，手机和电脑都能直接生成译文和讲解。有一个就能用，推荐 Groq。在服务商网站的“API Keys”里新建一个，用复制按钮整串复制过来。</p>
           {PROVIDER_ORDER.map((provider) => (
             <label key={provider} className="stack-4">

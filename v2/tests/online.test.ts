@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { OnlineBackend, ROUTES, cleanKeys, jsonIn, loadKeys, looksComplete, numberedLines, saveKeys, withoutNotes } from "../src/ai/online";
+import { OnlineBackend, ROUTES, addKeys, cleanKeys, jsonIn, loadKeys, looksComplete, numberedLines, saveKeys, withoutNotes } from "../src/ai/online";
+import { answerSync } from "../src/sync/host";
 import { aiState, refreshAi, resetAiForTests } from "../src/ai/state";
 import { explainSentence, translateSentences } from "../src/ai/tasks";
 import { createBackup } from "../src/backup/backup";
@@ -161,6 +162,21 @@ describe("keys on this device", () => {
     expect(aiState()).toMatchObject({ phase: "ready", online: true });
     expect((await loadKeys()).siliconflow).toHaveLength(1);
     expect(JSON.stringify(await createBackup("test"))).not.toContain("secretsecret");
+  });
+
+  it("a paired phone takes the Mac's keys: whole ones only, none twice", async () => {
+    // The Mac's side answers with the keys saved there.
+    await saveKeys({ groq: ["gsk_abcdefghijklmnopqrstuvwxyz0123456789AB"], siliconflow: ["sk-abcdefghijklmnopqrstuvwxyz"] });
+    const answer = await answerSync({ t: "keys-get", id: 7 });
+    expect(answer).toMatchObject({ t: "keys", id: 7, keys: { groq: ["gsk_abcdefghijklmnopqrstuvwxyz0123456789AB"] } });
+    // The phone already had the SiliconFlow key; a half key is left out.
+    await saveKeys({ siliconflow: ["sk-abcdefghijklmnopqrstuvwxyz"] });
+    const added = await addKeys({ ...(answer!.keys as object), zhipu: ["9bb0123456789abcdef0123456789abc"] });
+    expect(added).toBe(1);
+    const keys = await loadKeys();
+    expect(keys.groq).toHaveLength(1);
+    expect(keys.siliconflow).toHaveLength(1);
+    expect(keys.zhipu).toHaveLength(0);
   });
 
   it("a key saved while the AI is still being looked for is used (the look runs again)", async () => {
