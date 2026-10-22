@@ -34,17 +34,17 @@ export interface Route {
 
 export type Task = "translate" | "explain";
 
-// Order tried for each task. Translations go to the translation model first.
+// Order tried for each task: only models the providers list as free (checked
+// on SiliconFlow's price list, 2026-10-22: Hunyuan-MT-7B is free, its small
+// Qwen models are not listed as free; Zhipu's GLM-4-Flash is free). The free
+// general model on SiliconFlow (Xing4.0-29B) took about a minute and got the
+// grammar wrong, so explanations go to Zhipu only.
 export const ROUTES: Record<Task, Route[]> = {
   translate: [
     { provider: "siliconflow", model: "tencent/Hunyuan-MT-7B", translationOnly: true },
-    { provider: "siliconflow", model: "Qwen/Qwen3.5-4B", noThinking: true },
     { provider: "zhipu", model: "glm-4-flash" }
   ],
-  explain: [
-    { provider: "siliconflow", model: "Qwen/Qwen3.5-4B", noThinking: true },
-    { provider: "zhipu", model: "glm-4-flash" }
-  ]
+  explain: [{ provider: "zhipu", model: "glm-4-flash" }]
 };
 
 export type OnlineKeys = Record<ProviderId, string[]>;

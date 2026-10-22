@@ -44,12 +44,12 @@ describe("free online AI", () => {
     expect(calls[0].body.response_format).toBeUndefined();
   });
 
-  it("falls back to the next model and to the other provider when one fails", async () => {
-    const { calls, fetcher } = provider({ failModels: ["tencent/Hunyuan-MT-7B", "Qwen/Qwen3.5-4B"], answer: () => "谢谢" });
+  it("falls back to the other provider when the translation model fails", async () => {
+    const { calls, fetcher } = provider({ failModels: ["tencent/Hunyuan-MT-7B"], answer: () => "谢谢" });
     const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"] }, fetcher);
     const [line] = await backend.translateLines(["Merci."], "fr");
     expect(line).toBe("谢谢");
-    expect(calls.map((call) => call.model)).toEqual(["tencent/Hunyuan-MT-7B", "Qwen/Qwen3.5-4B", "glm-4-flash"]);
+    expect(calls.map((call) => call.model)).toEqual(["tencent/Hunyuan-MT-7B", "glm-4-flash"]);
     expect(calls.at(-1)!.url).toBe("https://open.bigmodel.cn/api/paas/v4/chat/completions");
     expect(calls.at(-1)!.key).toBe("zhipu.bbbbbbbbbbbbbbbbbbbb");
   });
@@ -67,12 +67,12 @@ describe("free online AI", () => {
   it("asks general models for explanations as JSON, never the translation model, and labels the answer", async () => {
     const answer = '```json\n{"summary":"你好。","structure":"感叹词 Bonjour","grammarPoints":["问候语。"],"pitfalls":[],"examples":["Salut !（嗨！）"]}\n```';
     const { calls, fetcher } = provider({ answer: () => answer });
-    const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: [] }, fetcher);
+    const backend = new OnlineBackend({ siliconflow: ["sk-aaaaaaaaaaaaaaaaaaaa"], zhipu: ["zhipu.bbbbbbbbbbbbbbbbbbbb"] }, fetcher);
     const explanation = await explainSentence(backend, "在线 AI", material, material.sentences[0], null);
     expect(explanation.summary).toBe("你好。");
-    expect(explanation.model).toBe("Qwen/Qwen3.5-4B");
-    expect(calls[0].model).toBe("Qwen/Qwen3.5-4B");
-    expect(calls[0].body).toMatchObject({ response_format: { type: "json_object" }, enable_thinking: false });
+    expect(explanation.model).toBe("glm-4-flash");
+    expect(calls.map((call) => call.model)).toEqual(["glm-4-flash"]);
+    expect(calls[0].body).toMatchObject({ response_format: { type: "json_object" } });
     expect(String((calls[0].body.messages as { content: string }[])[0].content)).toContain("只返回一个 JSON 对象");
   });
 
