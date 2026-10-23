@@ -62,7 +62,7 @@ export function CardSheet({ card, wordbooks, settings, onClose }: { card: Card; 
           <section className="issue-banner">
             <div className="grow stack-2">
               <b className="small">你标记过：词典里的释义有误</b>
-              <span className="dim small">{ai.phase === "ready" ? "现在连着本机 AI，可以修正了" : "连上电脑上的本机 AI 后可以修正"}</span>
+              <span className="dim small">{ai.phase === "ready" && ai.canExplain ? "AI 已就绪，可以修正了" : "有 AI 时可以修正（我的 → AI 翻译与讲解）"}</span>
             </div>
             <div className="stack-4 issue-actions">
               <button type="button" className="button button-primary button-small" onClick={() => setFixing(true)}>修正释义</button>

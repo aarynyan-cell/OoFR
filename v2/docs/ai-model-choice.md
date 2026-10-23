@@ -1,4 +1,23 @@
-# 本机 AI 模型选择（2026-10-19）
+# AI 模型选择
+
+## 在线模型（3.x，2026-10-22）
+
+用学习者自己的免费密钥。同一批 13 句测试句（含习语），整课按编号行一次翻译：
+
+| 模型 | 结果 |
+|---|---|
+| Groq `qwen/qwen3.8-27b` | 0 处错误，每课约 0.2 秒；讲解也完全正确（0.75 秒） |
+| Groq `gpt-oss-120b` | 一处习语译错；讲解里术语有误 |
+| 硅基流动 `Qwen/Qwen3.5-4B`、`THUDM/GLM-4-9B-0414` | 较好，但漏掉习语 |
+| 硅基流动 `tencent/Hunyuan-MT-7B` | “Tu me manques” 译反，voler 译成“丢” |
+| Groq `gpt-oss-20b` | 把 3,40 € 变成 34 € |
+| `DeepSeek-R1-0528-Qwen3-8B` | 慢（11–17 秒），有上下文错误 |
+
+结论：翻译和讲解都先用 **Groq Qwen3.8-27B**（关闭思考：`reasoning_effort: none`），硅基流动 GLM-4-9B / Qwen3.5-4B / Hunyuan-MT 和智谱 glm-4-flash 作为备用（路由见 `src/ai/online.ts`）。Groq 免费额度：每个模型每天约 1000 次请求、每分钟 8000 tokens；遇到 429 按 retry-after 暂停，后台任务等 Groq 恢复，前台请求换下一个模型。
+
+朗读：Gemini 语音模型免费额度只有每个模型每天 10 次请求，所以手机的主力声音改为本地 Piper 语音（`src/speech/piper/`），Gemini 只读课文句子。
+
+## 本机模型（Mac 应用没有填密钥时，2026-10-19）
 
 在作者的 Mac（M4，24 GB）上用 `v2/scripts/compare_models.py` 对比，同一批题目、关闭“思考”模式。
 

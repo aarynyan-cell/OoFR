@@ -61,7 +61,7 @@ export function PhonePairing() {
   return (
     <section className="stack-10">
       <h3 className="sheet-subtitle">连接手机</h3>
-      <p className="dim small">手机上的译文和讲解也由这台电脑生成。手机和电脑连同一个 Wi-Fi，用手机上的 OoFR（我的 → 本机 AI）或相机扫码。学校、公司的 Wi-Fi 常常不让设备互连，这时让电脑连手机热点。</p>
+      <p className="dim small">连接后磁带、素材和词句本自动同步，手机还能用这台电脑的增强版声音、一键导入这里的密钥。手机和电脑连同一个 Wi-Fi，用手机上的 OoFR（我的 → AI 翻译与讲解）或相机扫码。学校、公司的 Wi-Fi 常常不让设备互连，这时让电脑连手机热点。</p>
       {rows ? (
         <div className="stack-6 qr-box">
           <QrCode rows={rows} label="连接手机的二维码" />

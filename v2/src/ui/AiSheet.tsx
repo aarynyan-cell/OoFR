@@ -89,7 +89,7 @@ export function AiPanel() {
         </>
       )}
 
-      {ai.paired && ai.phase === "needs-model" && <p>电脑上还没下载 AI 模型：请在电脑上的 OoFR 里点 我的 → 本机 AI → 一键下载。</p>}
+      {ai.paired && ai.phase === "needs-model" && <p>电脑上还没下载 AI 模型：请在电脑上的 OoFR 里点 我的 → AI 翻译与讲解 → 一键下载。</p>}
       {ai.paired && ai.phase === "stopped" && <p>电脑上的本机 AI 没有启动：打开电脑上的 OoFR 就会自动启动。</p>}
       {ai.paired && ai.phase !== "ready" && <button type="button" className="button button-outline" onClick={() => void refreshAi()}>重新检测</button>}
 
@@ -134,7 +134,7 @@ export function AiPanel() {
           </>
         ) : isPhone() ? (
           <>
-            <p>手机上的 AI 由你的电脑提供：在电脑上的 OoFR 里点 我的 → 本机 AI → 显示二维码，再用手机扫码。</p>
+            <p>手机上的 AI 由你的电脑提供：在电脑上的 OoFR 里点 我的 → AI 翻译与讲解 → 显示二维码，再用手机扫码。</p>
             {scanButton("扫码连接电脑")}
           </>
         ) : (
@@ -146,7 +146,7 @@ export function AiPanel() {
 
       {ai.online && isPhone() && !ai.hasPairing && (
         <>
-          <p className="dim small">想和电脑同步磁带、素材和词句本？在电脑上的 OoFR 里点 我的 → 本机 AI → 显示二维码，再扫码。</p>
+          <p className="dim small">想和电脑同步磁带、素材和词句本？在电脑上的 OoFR 里点 我的 → AI 翻译与讲解 → 显示二维码，再扫码。</p>
           {scanButton("扫码连接电脑")}
         </>
       )}

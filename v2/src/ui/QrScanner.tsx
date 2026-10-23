@@ -61,7 +61,7 @@ export function QrScanner({ onText, onClose }: { onText: (text: string) => void;
       <div className="stack-16">
         <h2 className="sheet-title">扫码连接电脑</h2>
         {error ? <p className="error-text">{error}</p> : <video ref={video} className="scanner-video" playsInline muted aria-label="相机画面" />}
-        <p className="dim small">对准电脑上 OoFR 显示的二维码（我的 → 本机 AI → 连接手机）。</p>
+        <p className="dim small">对准电脑上 OoFR 显示的二维码（我的 → AI 翻译与讲解 → 连接手机）。</p>
         <button type="button" className="button button-outline" onClick={onClose}>取消</button>
       </div>
     </Modal>

@@ -1,6 +1,8 @@
 # Third-Party Notices
 
-OoFR 法语磁带 includes a generated French-Chinese lexicon in `lexicon.js`.
+OoFR 法语磁带 uses the open data, software and voice models below. The offline dictionary in `dictionary/` (used by the app in `v2/`) and the 1.0 lexicon in `lexicon.js` are generated from the dictionary sources.
+
+# Dictionary data
 
 ## FreeDict fra-zho
 
@@ -62,16 +64,46 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 - License: MIT
 - Use in OoFR 法语磁带: broader Simplified Chinese meanings for English entries and a supplementary semantic bridge for French definitions. OoFR keeps a small reviewed override layer for cross-language homographs that cannot be translated safely by headword alone.
 
+# Speech
+
+## Piper voices
+
+- Source: `rhasspy/piper-voices` v1.0.0 on Hugging Face (`https://huggingface.co/rhasspy/piper-voices`)
+- `fr_FR-siwis-medium`: trained on the SIWIS French Speech Synthesis Database (University of Edinburgh, `https://datashare.is.ed.ac.uk/handle/10283/2353`), Creative Commons Attribution 4.0
+- `fr_FR-tom-medium`: dataset `https://git.bksp.space/Tjiho/French-tts-model-piper`, GNU AGPL v3
+- Use in OoFR 法语磁带: the phone's own voices. They are not bundled: a learner who taps “下载” downloads them from Hugging Face to their device.
+
+## Piper
+
+- Source: `https://github.com/rhasspy/piper`
+- License: MIT
+- Use in OoFR 法语磁带: the voice model format and the way text is turned into speech (`v2/src/speech/piper/`).
+
+## ONNX Runtime Web
+
+- Source: `onnxruntime-web` 1.30.0, `https://github.com/microsoft/onnxruntime`
+- License: MIT
+- Use in OoFR 法语磁带: runs the Piper voice models in the browser (WebAssembly).
+
+## piper-wasm and eSpeak NG
+
+- Source: `@diffusionstudio/piper-wasm` 1.0.0 (MIT, `https://github.com/diffusion-studio/piper-wasm`), a WebAssembly build of `piper-phonemize` with eSpeak NG
+- eSpeak NG: `https://github.com/rhasspy/espeak-ng` (fork of `https://github.com/espeak-ng/espeak-ng`), GNU GPL v3; its data files are included in `piper_phonemize.data`
+- Use in OoFR 法语磁带: turns French text into phonemes for the Piper voices. Served unchanged as `voice-engine/piper_phonemize.{js,wasm,data}`; the source and build steps are at the links above.
+
+# AI
+
+## Online AI services
+
+- Groq, SiliconFlow (硅基流动), Zhipu (智谱) and Google Gemini are used only with the learner's own keys, under each provider's terms. No model is bundled.
+
 ## Ollama
 
 - Source: Ollama runtime
 - URL: `https://github.com/ollama/ollama`
 - License: MIT
-- Use in OoFR 法语磁带: optional local model runtime for the macOS desktop test build. OoFR downloads the official macOS runtime only after user confirmation and binds it to `127.0.0.1`.
+- Use in OoFR 法语磁带: optional local model runtime in the Mac app when no online key is set. The app downloads the official runtime only after the learner confirms, and binds it to `127.0.0.1`.
 
-## Gemma 3
+## Local models
 
-- Model: `gemma3:4b`, distributed through the Ollama model library
-- URL: `https://ollama.com/library/gemma3:4b`
-- Terms: Google Gemma Terms of Use and Prohibited Use Policy shown by the desktop installer before download
-- Use in OoFR 法语磁带: optional local generation of translations, material analysis and sentence explanations. The model is not bundled in this repository or installer.
+- Models from the Ollama model library (for example `qwen3.5:9b` / `qwen3.5:4b`), under their own licenses, downloaded only after the learner confirms. Not bundled in this repository or installer.
