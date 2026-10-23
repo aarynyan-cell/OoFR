@@ -5,12 +5,13 @@ import { devKeys } from "./plugins/devkeys.ts";
 import { devLogReceiver } from "./plugins/devlog.ts";
 import { dictionaryFiles } from "./plugins/dictionary.ts";
 import { serviceWorker } from "./plugins/service-worker.ts";
+import { voiceEngine } from "./plugins/voice-engine.ts";
 import { appVersion, dictionaryVersion } from "./plugins/versions.ts";
 
 export default defineConfig({
   // Relative paths: the same build runs from a GitHub Pages sub-folder, the Mac app and a local server.
   base: "./",
-  plugins: [react(), dictionaryFiles(), serviceWorker(), devLogReceiver(), devKeys()],
+  plugins: [react(), dictionaryFiles(), voiceEngine(), serviceWorker(), devLogReceiver(), devKeys()],
   // Phone tests over https (an iPhone records only on a secure address), with a
   // certificate made on this Mac (v2/.dev-cert, never committed): OOFR_HTTPS=1.
   server: process.env.OOFR_HTTPS

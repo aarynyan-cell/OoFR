@@ -17,8 +17,10 @@ export function serviceWorker(): Plugin {
     closeBundle() {
       // .woff copies are only for browsers without woff2 support; none of our targets need them offline.
       // The dictionary is far too big to download up front: its shards are cached as words are looked up.
+      // So are the voice engine's files (only for learners who download the phone's own voices,
+      // src/speech/piper), including the WebAssembly the runtime's bundle also emits into assets/.
       const files = listFiles(outDir).filter(
-        (file) => file !== "sw.js" && !file.endsWith(".map") && !file.endsWith(".woff") && !file.startsWith("dictionary/")
+        (file) => file !== "sw.js" && !file.endsWith(".map") && !file.endsWith(".woff") && !file.startsWith("dictionary/") && !file.startsWith("voice-engine/") && !file.endsWith(".wasm")
       );
       const template = readFileSync(new URL("./sw-template.js", import.meta.url), "utf8");
       const hash = createHash("sha256").update(template);

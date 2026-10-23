@@ -9,7 +9,9 @@ import { getSettings, saveSettings } from "../db/repo";
 import type { ThemeChoice } from "../db/types";
 import { backupFileName, createBackup, importAnyFile, restoreSnapshot, snapshotInfo } from "../backup/backup";
 import { shareOrDownload } from "../app/download";
-import { canDownloadBetterVoice, frenchVoices, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
+import { canDownloadBetterVoice, frenchVoices, isTinyVoice, pickVoice, voiceId, voiceLabel, voiceQuality } from "../speech/voices";
+import { localVoices, useLocalVoices } from "../speech/piper/local";
+import { ENGINE_BYTES, LOCAL_VOICE_IDS, VOICES } from "../speech/piper/voices";
 import { studyRecord } from "../app/studyRecord";
 import { AiSheet, aiSummary } from "../ui/AiSheet";
 import { StudyRecordView } from "../ui/StudyRecordView";
@@ -28,9 +30,55 @@ function voiceNote(voices: SpeechSynthesisVoice[]): string {
   const apple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
   const webkitOnly = apple && !/Chrome|Edg\//.test(navigator.userAgent) && !tauri();
   if (voices.some((voice) => voice.voiceURI?.startsWith("mac:"))) return "已连接电脑：选带“电脑朗读”的声音，由电脑用增强版声音读，读过的句子会存在这台设备上，之后不连电脑也能用。";
-  if (webkitOnly) return "苹果只允许网页使用两个基础声音，系统里下载的“增强版”只有应用能用。手机和电脑上的 OoFR 应用扫码连接后，就会用电脑的增强版声音朗读。";
+  if (voices.some((voice) => voice.voiceURI?.startsWith("local:"))) return "";
+  if (webkitOnly) return "苹果只允许网页使用两个基础声音。下载下面的“手机本地语音”，就有自然的法语朗读，不需要电脑。";
   if (canDownloadBetterVoice(voices, navigator.userAgent)) return "可以在 系统设置 → 辅助功能 → 朗读内容 → 系统声音 → 管理声音 里免费下载法语“增强版”声音，会自然很多。";
   return "";
+}
+
+const megabytes = (bytes: number) => `约 ${Math.round(bytes / 1e6)} MB`;
+
+// The phone's own natural voices (3.0): downloaded once, then read on the
+// device, offline, with no key, no limit and no Mac.
+function LocalVoiceRows({ onReady }: { onReady: (id: string) => void }) {
+  const local = useLocalVoices();
+  const engineKept = local.stored.length > 0;
+  const missing = LOCAL_VOICE_IDS.filter((id) => !local.stored.includes(id));
+  if (!missing.length && !local.error) return null;
+  return (
+    <>
+      {missing.map((id) => {
+        const voice = VOICES[id];
+        const downloading = local.downloading?.voice === id ? local.downloading : null;
+        const percent = downloading?.total ? Math.min(100, Math.round((downloading.loaded / downloading.total) * 100)) : 0;
+        return (
+          <div key={id} className="list-row">
+            <span className="grow stack-2">
+              <span>手机本地语音 · {voice.name}（{voice.gender}）</span>
+              {downloading ? (
+                <span className="progress" aria-hidden="true"><span style={{ width: `${percent}%` }} /></span>
+              ) : (
+                <span className="dim small">下载一次（{megabytes(voice.modelBytes + (engineKept ? 0 : ENGINE_BYTES))}），之后不联网、不连电脑也能读，没有次数限制</span>
+              )}
+            </span>
+            <button
+              type="button"
+              className="button button-small button-outline"
+              disabled={Boolean(local.downloading)}
+              onClick={() => {
+                void localVoices.download(id).then(() => {
+                  if (localVoices.has(id)) onReady(`local:${voice.name}|fr-FR`);
+                });
+              }}
+            >
+              {downloading ? `${percent}%` : "下载"}
+            </button>
+          </div>
+        );
+      })}
+      {local.error && <p className="list-note error-text">{local.error}</p>}
+    </>
+  );
 }
 
 function relativeDays(iso: string): string {
@@ -50,10 +98,15 @@ export function MePage() {
   const [aiOpen, setAiOpen] = useState(false);
 
   // The joke voices (Grandma, Eddy…) stay out of the list unless one is already chosen.
-  const french = frenchVoices(voices).filter((voice) => voiceQuality(voice) !== "novelty" || voiceId(voice) === settings?.voice);
+  // So do the iPhone's "super-compact" copies when a fuller copy is listed.
+  const french = frenchVoices(voices).filter(
+    (voice) =>
+      voiceId(voice) === settings?.voice ||
+      (voiceQuality(voice) !== "novelty" && !(isTinyVoice(voice) && voices.some((other) => other.name === voice.name && other.lang === voice.lang && !isTinyVoice(other))))
+  );
   const active = settings ? pickVoice(voices, settings.voice) : null;
   // 后台播放 joins the Mac's voice into one track: the Mac app always has it, a phone once it has met the Mac.
-  const macVoice = Boolean(tauri()) || voices.some((voice) => voice.voiceURI?.startsWith("mac:"));
+  const macVoice = Boolean(tauri()) || voices.some((voice) => voice.voiceURI?.startsWith("mac:") || voice.voiceURI?.startsWith("local:"));
 
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -157,6 +210,15 @@ export function MePage() {
             </select>
           </label>
           {voiceNote(voices) && <p className="list-note">{voiceNote(voices)}</p>}
+          {!tauri() && (
+            <LocalVoiceRows
+              onReady={(id) => {
+                // A voice just downloaded becomes the one that reads, and says hello.
+                void saveSettings({ voice: id });
+                if (settings) speakOnce("Bonjour, je suis prêt.", { ...settings, voice: id });
+              }}
+            />
+          )}
           <div className="list-row">
             <span className="grow">每句读几遍</span>
             <div className="segmented segmented-inline segmented-count" role="group" aria-label="每句读几遍">
@@ -170,7 +232,7 @@ export function MePage() {
           <label className="list-row">
             <span className="grow stack-2">
               <span>后台播放</span>
-              <span className="dim small">{macVoice ? "锁屏或切到别的 App 时，整课接着播放" : "锁屏时接着播放整课。要用电脑朗读的声音，先连接一次电脑"}</span>
+              <span className="dim small">{macVoice ? "锁屏或切到别的 App 时，整课接着播放" : "锁屏时接着播放整课。先下载手机本地语音，或连接一次电脑"}</span>
             </span>
             <input type="checkbox" className="switch" checked={settings?.backgroundPlay ?? false} onChange={(event) => void saveSettings({ backgroundPlay: event.target.checked })} />
           </label>

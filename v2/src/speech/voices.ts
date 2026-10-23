@@ -14,14 +14,23 @@ const fromMac = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("mac:")
 // "gemini:…": an online voice read by Gemini with the learner's key (src/speech/gemini.ts).
 const fromGemini = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("gemini:"));
 const GEMINI_GENDER: Record<string, string> = { Kore: "女声", Aoede: "女声", Charon: "男声", Puck: "男声" };
+// "local:…": a natural voice downloaded to this device and read on it (src/speech/piper).
+const fromLocal = (voice: VoiceLike) => Boolean(voice.voiceURI?.startsWith("local:"));
+const LOCAL_GENDER: Record<string, string> = { Siwis: "女声", Tom: "男声" };
 
 export type VoiceQuality = "premium" | "enhanced" | "natural" | "standard" | "novelty";
 
 // iOS/macOS joke and robot voices (Eloquence) exist in every language; never pick them.
 const NOVELTY = /\b(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|kathy|ralph)\b/i;
 
+// iPhone web pages also list a "super-compact" copy of each basic voice, the
+// smallest and roughest one: a fuller copy of the same voice is preferred.
+export function isTinyVoice(voice: VoiceLike): boolean {
+  return /super-compact/i.test(voice.voiceURI ?? "");
+}
+
 export function voiceId(voice: VoiceLike): string {
-  return `${fromMac(voice) ? "mac:" : fromGemini(voice) ? "gemini:" : ""}${voice.name}|${voice.lang}`;
+  return `${fromMac(voice) ? "mac:" : fromGemini(voice) ? "gemini:" : fromLocal(voice) ? "local:" : ""}${voice.name}|${voice.lang}`;
 }
 
 export function isFrench(voice: VoiceLike): boolean {
@@ -29,7 +38,7 @@ export function isFrench(voice: VoiceLike): boolean {
 }
 
 export function voiceQuality(voice: VoiceLike): VoiceQuality {
-  if (fromGemini(voice)) return "natural";
+  if (fromGemini(voice) || fromLocal(voice)) return "natural";
   const name = voice.name;
   if (NOVELTY.test(name)) return "novelty";
   if (/premium/i.test(name)) return "premium";
@@ -42,6 +51,8 @@ const QUALITY_SCORE: Record<VoiceQuality, number> = { premium: 50, enhanced: 40,
 
 export function scoreVoice(voice: VoiceLike): number {
   // Gemini's voices come first when the learner added the key for them (Kore first).
+  // The device's own natural voices come first: they read anything, offline, without limits.
+  if (fromLocal(voice)) return 110 - Object.keys(LOCAL_GENDER).indexOf(voice.name);
   if (fromGemini(voice)) return 100 - Object.keys(GEMINI_GENDER).indexOf(voice.name);
   let score = QUALITY_SCORE[voiceQuality(voice)];
   const lang = voice.lang.replace("_", "-").toLowerCase();
@@ -49,6 +60,7 @@ export function scoreVoice(voice: VoiceLike): number {
   else if (isFrench(voice)) score += 10;
   if (/^(thomas|amélie|audrey|aurélie|marie|daniel|google français|microsoft (henri|denise|vivienne|remy))/i.test(voice.name)) score += 5;
   if (voice.default) score += 2;
+  if (isTinyVoice(voice)) score -= 30;
   return score;
 }
 
@@ -77,6 +89,7 @@ export function pickVoice<T extends VoiceLike>(voices: T[], saved = ""): T | nul
 }
 
 export function voiceLabel(voice: VoiceLike): string {
+  if (fromLocal(voice)) return `${voice.name} · ${LOCAL_GENDER[voice.name] ?? ""}（手机本地）`;
   if (fromGemini(voice)) return `${voice.name} · ${GEMINI_GENDER[voice.name] ?? ""}（在线语音）`;
   const quality = voiceQuality(voice);
   const tag = quality === "premium" ? " · 高品质" : quality === "enhanced" ? " · 增强版" : quality === "natural" ? " · 自然" : "";

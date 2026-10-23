@@ -97,6 +97,9 @@ class TestSynth extends RemoteSynth {
   constructor(web: FakeWeb, audio: FakeAudio, private readonly delay: number | null) {
     super(web as unknown as SpeechSynthesis, audio as unknown as HTMLAudioElement);
   }
+  protected override canReadBetter(): boolean {
+    return this.delay !== null;
+  }
   protected override async audioFor(utterance: RemoteUtterance): Promise<Blob | null> {
     if (this.delay === null) return null;
     await sleep(this.delay);

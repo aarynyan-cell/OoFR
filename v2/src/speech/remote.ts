@@ -11,10 +11,13 @@ import { loadKeys, onKeysChange } from "../ai/online";
 import { checkMacAgain, onPairedMac, pairedMac } from "../ai/state";
 import type { MacVoice } from "../ai/paired";
 import { GEMINI_VOICE, GEMINI_VOICES, GeminiSpeech } from "./gemini";
+import { LOCAL_VOICE, localVoices } from "./piper/local";
+import { type LocalVoiceId, LOCAL_VOICE_IDS, VOICES } from "./piper/voices";
 import { type VoiceLike, pickVoice, voiceBase } from "./voices";
 
-// Where a sentence's better audio comes from.
-type Source = { kind: "gemini" | "mac"; name: string };
+// Where a sentence's better audio comes from: the phone's own voice (read here),
+// Gemini (online, a few requests a day), or the paired Mac.
+type Source = { kind: "local" | "gemini" | "mac"; name: string };
 // Gemini reads a sentence with the ones after it (its free allowance counts requests).
 const GEMINI_STRETCH = 8;
 
@@ -98,6 +101,7 @@ export class RemoteSynth {
     web?.addEventListener?.("voiceschanged", () => this.notify());
     void this.loadGeminiKey();
     onKeysChange(() => void this.loadGeminiKey());
+    localVoices.subscribe(() => this.notify());
     // A new connection may bring other voices: ask again before the next sentence.
     onPairedMac(() => {
       this.voicesAsked = false;
@@ -160,21 +164,33 @@ export class RemoteSynth {
     return GEMINI_VOICES.map((voice) => ({ name: voice.name, lang: "fr-FR", voiceURI: `${GEMINI_VOICE}${voice.name}`, localService: false, default: false }) as SpeechSynthesisVoice);
   }
 
-  getVoices(): SpeechSynthesisVoice[] {
-    return [...this.geminiVoices(), ...this.macVoices, ...(this.web?.getVoices() ?? [])];
+  // The phone's own voices once downloaded (src/speech/piper).
+  private localVoices(): SpeechSynthesisVoice[] {
+    return localVoices.getState().stored.map((id) => ({ name: VOICES[id].name, lang: "fr-FR", voiceURI: `${LOCAL_VOICE}${id}`, localService: true, default: false }) as SpeechSynthesisVoice);
   }
 
-  // The chosen Gemini or Mac voice; with a basic voice chosen (or none),
-  // Gemini when there is a key, else the Mac's best.
+  getVoices(): SpeechSynthesisVoice[] {
+    return [...this.localVoices(), ...this.geminiVoices(), ...this.macVoices, ...(this.web?.getVoices() ?? [])];
+  }
+
+  // The chosen voice when it is the phone's own, Gemini's or the Mac's. With
+  // none chosen: the phone's own, else Gemini, else the Mac's best. A basic
+  // voice chosen stays that voice (the Mac reads it in its better version).
   private sourceFor(voice: SpeechSynthesisVoice | null, lang: string): Source | null {
-    if (voice?.voiceURI?.startsWith(GEMINI_VOICE) && this.geminiKey) return { kind: "gemini", name: voice.name };
-    if (voice?.voiceURI?.startsWith(MAC_VOICE)) return { kind: "mac", name: voice.name };
-    if (this.geminiKey) return { kind: "gemini", name: GEMINI_VOICES[0].name };
+    const uri = voice?.voiceURI ?? "";
+    if (uri.startsWith(LOCAL_VOICE) && localVoices.has(uri.slice(LOCAL_VOICE.length))) return { kind: "local", name: uri.slice(LOCAL_VOICE.length) };
+    if (uri.startsWith(GEMINI_VOICE) && this.geminiKey) return { kind: "gemini", name: voice!.name };
+    if (uri.startsWith(MAC_VOICE)) return { kind: "mac", name: voice!.name };
+    if (!voice || uri.startsWith(LOCAL_VOICE) || uri.startsWith(GEMINI_VOICE)) {
+      const local = LOCAL_VOICE_IDS.find((id) => localVoices.has(id));
+      if (local) return { kind: "local", name: local };
+      if (this.geminiKey) return { kind: "gemini", name: GEMINI_VOICES[0].name };
+    }
     const mac = this.macVoiceFor(voice, lang);
     return mac ? { kind: "mac", name: mac } : null;
   }
 
-  // Gemini audio plays at the learner's speed (it is read once, at its own); the Mac reads at the speed asked.
+  // Gemini audio plays at the learner's speed (it is read once, at its own); the Mac and the phone's own voices read at the speed asked.
   playbackRateFor(voice: SpeechSynthesisVoice | null, lang: string, rate: number): number {
     return this.sourceFor(voice, lang)?.kind === "gemini" ? rate : 1;
   }
@@ -190,6 +206,7 @@ export class RemoteSynth {
   // The Mac voice to ask for: the chosen one when it is a Mac voice, else the Mac's best for the language.
   private macVoiceFor(voice: SpeechSynthesisVoice | null, lang: string): string {
     if (voice?.voiceURI?.startsWith(MAC_VOICE)) return voice.name;
+    if (voice?.voiceURI?.startsWith(LOCAL_VOICE) || voice?.voiceURI?.startsWith(GEMINI_VOICE)) voice = null;
     const sameLanguage = this.macVoices.filter((item) => item.lang.slice(0, 2) === lang.slice(0, 2));
     const base = voice ? voiceBase(voice as VoiceLike) : "";
     return (sameLanguage.find((item) => voiceBase(item as VoiceLike) === base && /enhanced|premium/i.test(item.name)) ?? pickVoice(sameLanguage))?.name ?? "";
@@ -241,6 +258,9 @@ export class RemoteSynth {
     try {
       const under = this.reading.get(`${voice}|${text}`);
       const at = this.lessonTexts.indexOf(text);
+      // A few requests a day: none for a single word or a sentence outside the
+      // open lesson, nor while every model rests (the other voices read it now).
+      if (!under && ((at < 0 && !patient) || this.gemini.unavailable)) return null;
       // Something being played waits a few seconds at most for a reading under way (it may be waiting for the allowance).
       const waited = under && !patient ? Promise.race([under, new Promise<Map<string, Blob>>((resolve) => setTimeout(() => resolve(new Map()), 8000))]) : under;
       const audios = waited ? await waited : await this.readWithGemini(at >= 0 ? this.lessonTexts.slice(at, at + GEMINI_STRETCH) : [text], name, patient);
@@ -249,6 +269,23 @@ export class RemoteSynth {
       return audio;
     } catch (error) {
       devLog("voice-from-gemini", { ok: false, ms: Date.now() - started, error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
+  // A sentence in the phone's own voice: kept, or read here now (at the learner's speed).
+  private async fromLocal(id: LocalVoiceId, rate: number, text: string, urgent: boolean): Promise<Blob | null> {
+    const voice = `${LOCAL_VOICE}${id}`;
+    const kept = await this.kept(voice, rate, text);
+    if (kept) return kept;
+    const started = Date.now();
+    try {
+      const audio = await localVoices.speak(id, text, rate, urgent);
+      devLog("voice-from-local", { ok: true, ms: Date.now() - started, urgent });
+      await this.keep(voice, rate, text, audio);
+      return audio;
+    } catch (error) {
+      devLog("voice-from-local", { ok: false, ms: Date.now() - started, error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -273,6 +310,7 @@ export class RemoteSynth {
     await Promise.race([this.macVoicesReady(), new Promise((resolve) => setTimeout(resolve, 3000))]);
     const source = this.sourceFor(utterance.voice, utterance.lang);
     if (!source) return null;
+    if (source.kind === "local") return this.fromLocal(source.name as LocalVoiceId, utterance.rate, utterance.text, !patient);
     if (source.kind === "gemini") {
       const audio = await this.fromGemini(source.name, utterance.text, patient);
       if (audio || patient) return audio;
@@ -290,6 +328,11 @@ export class RemoteSynth {
     return fetched;
   }
 
+  // Whether a voice better than the browser's may read it: the phone's own, Gemini's, or the Mac's.
+  protected canReadBetter(utterance: RemoteUtterance): boolean {
+    return Boolean(pairedMac()) || Boolean(this.sourceFor(utterance.voice, utterance.lang));
+  }
+
   // One sentence's better audio: kept on the phone, or read now (for 后台播放's track, which can wait).
   audioBlob(text: string, voice: SpeechSynthesisVoice | null, lang: string, rate: number): Promise<Blob | null> {
     return this.audioFor({ ...remoteUtterance(text), voice, lang, rate }, true);
@@ -300,6 +343,15 @@ export class RemoteSynth {
   prefetch(texts: string[], voice: SpeechSynthesisVoice | null, lang: string, rate: number, later = false): void {
     if (!later) this.lessonTexts = texts;
     const source = this.sourceFor(voice, lang);
+    if (source?.kind === "local") {
+      // The open lesson is read in the background, a sentence at a time (the
+      // rest of the library is read when it is opened).
+      if (later) return;
+      const lesson = new Set(texts);
+      localVoices.dropBackground((text) => lesson.has(text));
+      for (const text of texts) void this.fromLocal(source.name as LocalVoiceId, rate, text, false);
+      return;
+    }
     if (source?.kind === "gemini") {
       // The open lesson is read in the background, waiting for Gemini's
       // allowance; the rest of the library is not (it would use it all up).
@@ -331,10 +383,18 @@ export class RemoteSynth {
 
   speak(utterance: RemoteUtterance): void {
     const number = (this.number += 1);
-    this.mode = "audio";
     this.audioPaused = false;
-    this.pending = true;
     this.dropCurrent();
+    // Nothing better to read it (no voice of the phone's own, no Gemini, no
+    // Mac): the browser's voice starts at once, inside the tap, with the audio
+    // element left alone. On an iPhone the voice was heard this way and stayed
+    // silent when it started after the element had been used.
+    if (!this.canReadBetter(utterance)) {
+      devLog("voice", { words: utterance.text.split(/\s+/).length, audio: false, ms: 0, current: true });
+      return this.speakWithBrowser(utterance, number);
+    }
+    this.mode = "audio";
+    this.pending = true;
     // Still inside the learner's tap the first time: start the element now, so
     // the sentence can play when its audio arrives.
     if (this.audio && !this.unlocked) {
@@ -405,6 +465,7 @@ export class RemoteSynth {
     const webVoices = this.web.getVoices();
     const chosen = utterance.voice && webVoices.includes(utterance.voice) ? utterance.voice : pickVoice(webVoices.filter((voice) => voice.lang.slice(0, 2) === utterance.lang.slice(0, 2)));
     if (chosen) spoken.voice = chosen;
+    devLog("web-speak", { voice: chosen?.voiceURI ?? "(system)" });
     spoken.onend = () => {
       if (number === this.number) this.mode = "";
       utterance.onend?.();
@@ -422,6 +483,8 @@ export class RemoteSynth {
     this.audio.pause();
     this.audio.onended = null;
     this.audio.onerror = null;
+    // Never used (only the browser's voice has spoken): left alone.
+    if (!this.audio.src) return;
     this.audio.removeAttribute("src");
     this.audio.load();
   }

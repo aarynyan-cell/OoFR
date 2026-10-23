@@ -2,8 +2,9 @@
 // models with the learner's free key. Web pages on an iPhone only get the two
 // basic voices; with this the phone needs neither the Mac nor a download.
 //
-// The free key allows about 3 requests a minute per model, so a stretch of a
-// lesson (up to 8 sentences) is read in one request and the audio is cut at
+// The free key allows only about 10 requests a day per model (and 3 a minute),
+// so a stretch of a lesson (up to 8 sentences) is read in one request, single
+// words are left to the other voices, and the audio is cut at
 // the pauses between sentences. A cut that does not match the sentences'
 // lengths is not trusted: those sentences are read one by one instead. The
 // audio is kept by the caller (src/speech/remote.ts), so each sentence is read
@@ -24,6 +25,10 @@ const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 export const GEMINI_MODELS = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
 const PER_REQUEST = 8;
 const BUSY_PAUSE_MS = 60000;
+// Background reading waits for a minute's allowance, not for the next day's.
+const LONGEST_WAIT_MS = 120000;
+const DAY_USED_UP = "Gemini 今天的免费额度用完了，明天会恢复";
+const MINUTE_USED_UP = "Gemini 的免费额度这一分钟用完了";
 
 type Fetcher = typeof fetch;
 
@@ -106,11 +111,19 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 export class GeminiSpeech {
   // A model that answered "too many requests" rests until then.
   private resting = new Map<string, number>();
+  // Models whose allowance for the day is used up (they rest until it renews).
+  private dayUsedUp = new Set<string>();
 
   constructor(private readonly key: () => string | null, private readonly fetcher: Fetcher = (...args) => fetch(...args)) {}
 
   get available(): boolean {
     return Boolean(this.key());
+  }
+
+  // Every model resting (for the day or the minute): nothing can be read now.
+  get unavailable(): boolean {
+    const now = Date.now();
+    return GEMINI_MODELS.every((name) => (this.resting.get(name) ?? 0) > now);
   }
 
   private async request(model: string, text: string, voice: string, signal?: AbortSignal): Promise<Pcm> {
@@ -123,10 +136,13 @@ export class GeminiSpeech {
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60000)]) : AbortSignal.timeout(60000)
     });
     if (response.status === 429) {
-      const data = (await response.json().catch(() => ({}))) as { error?: { details?: { retryDelay?: string }[] } };
-      const seconds = Number.parseFloat(data.error?.details?.find((detail) => detail.retryDelay)?.retryDelay ?? "");
+      const data = (await response.json().catch(() => ({}))) as { error?: { details?: { retryDelay?: string; violations?: { quotaId?: string }[] }[] } };
+      const details = data.error?.details ?? [];
+      const seconds = Number.parseFloat(details.find((detail) => detail.retryDelay)?.retryDelay ?? "");
+      const daily = details.some((detail) => detail.violations?.some((violation) => /PerDay/i.test(violation.quotaId ?? "")));
       this.resting.set(model, Date.now() + (Number.isFinite(seconds) ? seconds * 1000 + 500 : BUSY_PAUSE_MS));
-      throw new GeminiBusyError("Gemini 的免费额度这一分钟用完了");
+      if (daily) this.dayUsedUp.add(model);
+      throw new GeminiBusyError(daily ? DAY_USED_UP : MINUTE_USED_UP);
     }
     if (!response.ok) throw new Error(`Gemini 返回 ${response.status}`);
     const data = (await response.json()) as { candidates?: { content?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] } }[] };
@@ -149,8 +165,9 @@ export class GeminiSpeech {
           throw error;
         }
       }
-      if (!patient) throw new GeminiBusyError("Gemini 的免费额度这一分钟用完了");
       const wait = Math.min(...GEMINI_MODELS.map((name) => (this.resting.get(name) ?? 0) - now));
+      const message = GEMINI_MODELS.every((name) => this.dayUsedUp.has(name)) ? DAY_USED_UP : MINUTE_USED_UP;
+      if (!patient || wait > LONGEST_WAIT_MS) throw new GeminiBusyError(message);
       await sleep(Math.max(500, wait), signal);
     }
   }
