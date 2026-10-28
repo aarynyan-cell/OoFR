@@ -1,0 +1,30 @@
+{
+  "type": "multape.grammar-manifest.v1",
+  "version": "2026-10-26T02:36:07",
+  "languages": {
+    "ja": {
+      "points": 291,
+      "bytes": 661318
+    },
+    "zh": {
+      "points": 162,
+      "bytes": 312058
+    },
+    "es": {
+      "points": 167,
+      "bytes": 372259
+    },
+    "ko": {
+      "points": 205,
+      "bytes": 438994
+    },
+    "fr": {
+      "points": 172,
+      "bytes": 425425
+    },
+    "en": {
+      "points": 141,
+      "bytes": 331985
+    }
+  }
+}
