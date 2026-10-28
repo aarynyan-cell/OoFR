@@ -1,0 +1,48 @@
+{
+  "type": "multape.cjk-dictionary.v1",
+  "version": "2026.10.25-1719",
+  "builtAt": "2026-10-25T17:19:20.205410+00:00",
+  "shards": 512,
+  "languages": {
+    "zh": {
+      "keys": 211242,
+      "bytes": 24076043,
+      "sources": [
+        "CC-CEDICT (MDBG, CC BY-SA 4.0)",
+        "CFDICT (Chine Informations, CC BY-SA)"
+      ]
+    },
+    "ja": {
+      "keys": 451460,
+      "bytes": 60004762,
+      "sources": [
+        "JMdict (EDRDG, CC BY-SA 4.0)",
+        "Chinese senses for 43,130 common words: AI translation (SiliconFlow GLM-4-9B) of JMdict's English senses"
+      ]
+    },
+    "es": {
+      "keys": 672305,
+      "bytes": 38912480,
+      "entries": 106089,
+      "formKeys": 587881,
+      "pointers": 613873,
+      "zhRows": 15942,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 15,942 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+      ]
+    },
+    "ko": {
+      "keys": 366195,
+      "bytes": 22009935,
+      "entries": 39780,
+      "formKeys": 332295,
+      "pointers": 339820,
+      "zhRows": 10153,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 10,153 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+      ]
+    }
+  }
+}
