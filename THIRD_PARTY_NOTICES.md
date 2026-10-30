@@ -63,6 +63,7 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 - URL: `https://github.com/skywind3000/ECDICT`
 - License: MIT
 - Use in OoFR 法语磁带: broader Simplified Chinese meanings for English entries and a supplementary semantic bridge for French definitions. OoFR keeps a small reviewed override layer for cross-language homographs that cannot be translated safely by headword alone.
+- Use in MulTape (English): the Chinese meanings of English words, the English word forms (went → go, `dictionary/en/forms-XX.json`, built by `v2/scripts/build_en_forms.py` from ECDICT's exchange column) and the word frequencies that choose which words get AI-written Chinese.
 
 ## CC-CEDICT (MulTape, Chinese)
 
@@ -79,19 +80,19 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 ## JMdict (MulTape, Japanese)
 
 - Source: https://www.edrdg.org/jmdict/j_jmdict.html
-- Use: Japanese words with kana readings, parts of speech, English and French meanings (`dictionary/ja/`).
+- Use: Japanese words with kana readings, parts of speech, English and French meanings (`dictionary/ja/`), and the list of common verbs, adjectives and kana words that joins conjugated words the browser splits apart (`dictionary/ja-inflecting.json`, `v2/scripts/build_ja_inflecting.py`).
 - License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0), under the licence of the Electronic Dictionary Research and Development Group (https://www.edrdg.org/edrdg/licence.html). © EDRDG.
 
 ## Kaikki / Wiktionary (MulTape, Spanish and Korean)
 
 - Source: Kaikki.org machine-readable extractions of the English Wiktionary (wiktextract, Tatu Ylonen): `https://kaikki.org/dictionary/Spanish/` and `https://kaikki.org/dictionary/Korean/`
-- Use: Spanish and Korean headwords, parts of speech, English meanings, Spanish noun genders, Korean romanization and hanja, and the inflected-form → dictionary-word index from Wiktionary's conjugation and declension tables (`dictionary/es/`, `dictionary/ko/`, built by `v2/scripts/build_wiktionary_dictionary.py`). The Chinese meanings of common words in these files are an AI translation of the Wiktionary English meanings (`v2/scripts/build_es_ko_zh.py`).
+- Use: Spanish and Korean headwords, parts of speech, English meanings, Spanish noun genders, Korean romanization and hanja, and the inflected-form → dictionary-word index from Wiktionary's conjugation and declension tables (`dictionary/es/`, `dictionary/ko/`, built by `v2/scripts/build_wiktionary_dictionary.py`). The Chinese meanings of common words in these files are an AI translation of the Wiktionary English meanings (`v2/scripts/build_es_ko_zh.py`; for Korean since MulTape 1.1 written by Claude, `v2/scripts/build_ai_zh.py`).
 - License: Wiktionary text is available under Creative Commons Attribution-ShareAlike (CC BY-SA 4.0) and the GNU Free Documentation License (GFDL). © Wiktionary contributors. The built files are shared under the same terms.
 
-## FrequencyWords (MulTape, Spanish and Korean)
+## FrequencyWords (MulTape)
 
-- Source: Hermit Dave, FrequencyWords (`https://github.com/hermitdave/FrequencyWords`), 2018 lists built from OpenSubtitles (`content/2018/es/es_50k.txt`, `content/2018/ko/ko_50k.txt`)
-- Use: only to order things at build time: which reading of an ambiguous form comes first, and which common words get Chinese meanings. No list is shipped.
+- Source: Hermit Dave, FrequencyWords (`https://github.com/hermitdave/FrequencyWords`), 2018 lists built from OpenSubtitles (`content/2018/<language>/<language>_50k.txt` for es, ko, fr, en, zh_cn)
+- Use: to order things at build time: which reading of an ambiguous form comes first, which common words get Chinese meanings, and the order of 词句's search suggestions (`dictionary/suggest/<language>.json`, `v2/scripts/build_suggest.py`: dictionary words ordered by these lists, shared under CC BY-SA 4.0 like the dictionaries they come from). The lists themselves are not shipped.
 - License: content CC BY-SA 4.0 (code MIT). © Hermit Dave.
 
 # Speech
@@ -155,3 +156,7 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 ## Local models
 
 - Models from the Ollama model library (for example `qwen3.5:9b` / `qwen3.5:4b`), under their own licenses, downloaded only after the learner confirms. Not bundled in this repository or installer.
+
+## AI-written Chinese meanings (MulTape 1.1)
+
+- The Chinese meanings of the most common English (15,000), Japanese (about 44,000 dictionary rows) and Korean (about 10,000) words were written by Claude (Anthropic) from each word's meanings in the dictionaries above (WordNet and ECDICT; JMdict; Wiktionary), with `v2/scripts/build_ai_zh.py`. They are part of the dictionary files built from those sources and are shared under the same terms as each source.

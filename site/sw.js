@@ -7,18 +7,17 @@
 // "oofr3-shell-" ones, and this worker only ever deletes its own older copies.
 // They may share a site (aarynyan-cell.github.io), so names must never clash.
 const CACHE_PREFIX = "multape-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}d1ea8a0ca1a6`;
+const CACHE_NAME = `${CACHE_PREFIX}b6e3f3a0ac8f`;
 // Dictionary shards stay cached across app updates (a different prefix).
 const DICTIONARY_CACHE = "multape-dictionary";
-const DICTIONARY_VERSION = "2026.10.07+zh.2026.10.20.2233+cjk.2026.10.25-1719+g.2026-10-26T02:36:07";
+const DICTIONARY_VERSION = "2026.10.07+zh.2026.10.30-2012+cjk.2026.10.28-0141+g.2026-10-26T02:36:07+ja.2026.10.28-0142+en.2026.10.28-0119+s.2026.10.30-1909";
 const ASSETS = [
   "./",
-  "./assets/engine.worker-CSJL9CYV.js",
-  "./assets/engine.worker-aHg5uHvM.ts",
+  "./assets/engine.worker-Di042GGu.js",
   "./assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2",
   "./assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2",
-  "./assets/index-BlUSr14b.js",
-  "./assets/index-a4oHyxNw.css",
+  "./assets/index-CaMCQx08.css",
+  "./assets/index-D7enKtsM.js",
   "./assets/literata-latin-400-normal-CLtNJ872.woff2",
   "./assets/literata-latin-500-normal-Dbph1WrK.woff2",
   "./assets/ort-wasm-simd-threaded-qyIweqWS.mjs",
@@ -27,7 +26,25 @@ const ASSETS = [
   "./icons/icon-32.png",
   "./icons/icon-512.png",
   "./index.html",
-  "./manifest.webmanifest"
+  "./manifest.webmanifest",
+  "./voices/supertonic-3-int8/LICENSE",
+  "./voices/supertonic-3-int8/NOTICE.md",
+  "./voices/supertonic-3-int8/duration_predictor.onnx",
+  "./voices/supertonic-3-int8/text_encoder.onnx",
+  "./voices/supertonic-3-int8/tts.json",
+  "./voices/supertonic-3-int8/unicode_indexer.json",
+  "./voices/supertonic-3-int8/vector_estimator.onnx",
+  "./voices/supertonic-3-int8/vocoder.onnx",
+  "./voices/supertonic-3-int8/voice_styles/F1.json",
+  "./voices/supertonic-3-int8/voice_styles/F2.json",
+  "./voices/supertonic-3-int8/voice_styles/F3.json",
+  "./voices/supertonic-3-int8/voice_styles/F4.json",
+  "./voices/supertonic-3-int8/voice_styles/F5.json",
+  "./voices/supertonic-3-int8/voice_styles/M1.json",
+  "./voices/supertonic-3-int8/voice_styles/M2.json",
+  "./voices/supertonic-3-int8/voice_styles/M3.json",
+  "./voices/supertonic-3-int8/voice_styles/M4.json",
+  "./voices/supertonic-3-int8/voice_styles/M5.json"
 ];
 
 self.addEventListener("install", (event) => {
