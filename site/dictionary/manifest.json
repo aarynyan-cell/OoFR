@@ -1,6 +1,6 @@
 {
   "type": "oofr.dictionary.v3",
-  "version": "2026.10.07",
+  "version": "2026.10.30-2304",
   "builtAt": "2026-10-07T07:50:27.431192+00:00",
   "shards": 128,
   "languages": {
@@ -2332,5 +2332,8 @@
         "ECDICT"
       ]
     }
-  }
+  },
+  "fixes": [
+    "peut: a form of pouvoir (the obsolete spelling of put took its place)"
+  ]
 }
