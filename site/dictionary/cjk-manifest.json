@@ -1,7 +1,7 @@
 {
   "type": "multape.cjk-dictionary.v1",
-  "version": "2026.10.28-0141",
-  "builtAt": "2026-10-28T01:20:29.950738+00:00",
+  "version": "2026.10.30-2141",
+  "builtAt": "2026-10-30T21:41:54.780038+00:00",
   "shards": 512,
   "languages": {
     "zh": {
@@ -42,6 +42,54 @@
       "sources": [
         "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
         "Chinese senses for 10,153 common words: written by Claude (Anthropic) from the English senses"
+      ]
+    },
+    "de": {
+      "keys": 455154,
+      "bytes": 31913127,
+      "entries": 92803,
+      "formKeys": 377935,
+      "pointers": 387575,
+      "zhRows": 12184,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 12,184 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+      ]
+    },
+    "sv": {
+      "keys": 352281,
+      "bytes": 20754678,
+      "entries": 60733,
+      "formKeys": 298781,
+      "pointers": 307688,
+      "zhRows": 12361,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 12,361 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+      ]
+    },
+    "pt": {
+      "keys": 434561,
+      "bytes": 26051143,
+      "entries": 66466,
+      "formKeys": 385391,
+      "pointers": 402966,
+      "zhRows": 12988,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 12,988 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+      ]
+    },
+    "it": {
+      "keys": 996647,
+      "bytes": 36190688,
+      "entries": 156163,
+      "formKeys": 865139,
+      "pointers": 887209,
+      "zhRows": 12705,
+      "sources": [
+        "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
+        "Chinese senses for 12,705 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
       ]
     }
   }
