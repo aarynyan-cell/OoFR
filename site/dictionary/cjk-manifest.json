@@ -1,7 +1,7 @@
 {
   "type": "multape.cjk-dictionary.v1",
-  "version": "2026.10.25-1719",
-  "builtAt": "2026-10-25T17:19:20.205410+00:00",
+  "version": "2026.10.28-0141",
+  "builtAt": "2026-10-28T01:20:29.950738+00:00",
   "shards": 512,
   "languages": {
     "zh": {
@@ -13,11 +13,11 @@
       ]
     },
     "ja": {
-      "keys": 451460,
-      "bytes": 60004762,
+      "keys": 451504,
+      "bytes": 55667968,
       "sources": [
         "JMdict (EDRDG, CC BY-SA 4.0)",
-        "Chinese senses for 43,130 common words: AI translation (SiliconFlow GLM-4-9B) of JMdict's English senses"
+        "Chinese senses for 43,767 common words: written by Claude (Anthropic) from the English senses"
       ]
     },
     "es": {
@@ -41,7 +41,7 @@
       "zhRows": 10153,
       "sources": [
         "Kaikki.org / English Wiktionary (wiktextract), CC BY-SA 4.0 / GFDL",
-        "Chinese senses for 10,153 common entries: AI translation (SiliconFlow GLM-4-9B) of the English senses"
+        "Chinese senses for 10,153 common words: written by Claude (Anthropic) from the English senses"
       ]
     }
   }

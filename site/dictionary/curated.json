@@ -660,6 +660,62 @@
    "ipa": "/ɑ̃tʁ/",
    "zh": "在……之间",
    "en": "between; among"
+  },
+  "le": {
+   "word": "le",
+   "pos": "article; pronoun",
+   "ipa": "/lə/",
+   "zh": "（阳性单数定冠词）这个、那个；他、它（宾语代词）",
+   "en": "the (masculine singular); him, it (object pronoun)"
+  },
+  "la": {
+   "word": "la",
+   "pos": "article; pronoun",
+   "ipa": "/la/",
+   "zh": "（阴性单数定冠词）这个、那个；她、它（宾语代词）",
+   "en": "the (feminine singular); her, it (object pronoun)"
+  },
+  "les": {
+   "word": "les",
+   "pos": "article; pronoun",
+   "ipa": "/le/",
+   "zh": "（复数定冠词）这些、那些；他们、她们、它们（宾语代词）",
+   "en": "the (plural); them (object pronoun)"
+  },
+  "l'": {
+   "word": "l'",
+   "pos": "article; pronoun",
+   "ipa": "/l/",
+   "zh": "（le、la 在元音前的省略形式）这个、那个；他、她、它",
+   "en": "the (before a vowel); him, her, it"
+  },
+  "un": {
+   "word": "un",
+   "pos": "article; numeral",
+   "ipa": "/œ̃/",
+   "zh": "一个（阳性不定冠词）；一",
+   "en": "a, an (masculine); one"
+  },
+  "une": {
+   "word": "une",
+   "pos": "article; numeral",
+   "ipa": "/yn/",
+   "zh": "一个（阴性不定冠词）；一",
+   "en": "a, an (feminine); one"
+  },
+  "des": {
+   "word": "des",
+   "pos": "article",
+   "ipa": "/de/",
+   "zh": "一些（复数不定冠词）；de 与 les 的缩合",
+   "en": "some (plural indefinite article); of the"
+  },
+  "de": {
+   "word": "de",
+   "pos": "preposition",
+   "ipa": "/də/",
+   "zh": "……的；从……；关于",
+   "en": "of; from; about"
   }
  },
  "en": {
