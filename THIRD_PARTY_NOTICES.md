@@ -95,18 +95,33 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 - Use: to order things at build time: which reading of an ambiguous form comes first, which common words get Chinese meanings, and the order of 词句's search suggestions (`dictionary/suggest/<language>.json`, `v2/scripts/build_suggest.py`: dictionary words ordered by these lists, shared under CC BY-SA 4.0 like the dictionaries they come from). The lists themselves are not shipped.
 - License: content CC BY-SA 4.0 (code MIT). © Hermit Dave.
 
+## Kaikki / Wiktionary (MulTape v1.3 data: German, Swedish, Portuguese, Italian)
+
+- Source: Kaikki.org machine-readable extractions of the English Wiktionary (wiktextract, Tatu Ylonen), downloaded 2026-10-28: `https://kaikki.org/dictionary/German/`, `.../Swedish/`, `.../Portuguese/`, `.../Italian/`
+- Use: headwords, parts of speech, English meanings, noun genders and the inflected-form → dictionary-word index (`dictionary/de/`, `dictionary/sv/`, `dictionary/pt/`, `dictionary/it/`, built by `v2/scripts/build_latin_dictionary.py`). The Chinese meanings of common words are an AI translation of the Wiktionary English meanings (`v2/scripts/build_latin_zh.py`).
+- License: CC BY-SA 4.0 and GFDL. © Wiktionary contributors. The built files are shared under the same terms.
+
+## HanDeDict (MulTape v1.3 data, German)
+
+- Source: HanDeDict Chinese–German dictionary, 2011-05-28 release, as kept at `https://github.com/zydeo/HanDeDict` (`handedict_nb.u8`)
+- Use: only at build time, shown to the AI as a reference when it writes the Chinese meanings of common German words. No HanDeDict file is shipped.
+- License: Creative Commons Attribution-ShareAlike 2.0 Germany (CC BY-SA 2.0 DE). © HanDeDict contributors (chdw.de).
+
+## FreeDict / WikDict swe-zho (MulTape v1.3 data, Swedish)
+
+- Source: FreeDict `Swedish - Chinese` 2025.11.23, created by WikDict (Karl Bartel) from Wiktionary data via DBnary
+- Use: only at build time, as a reference for the AI when it writes the Chinese meanings of common Swedish words. Not shipped.
+- License: Creative Commons Attribution-ShareAlike 3.0 Unported.
+
+## FrequencyWords (MulTape v1.3 data)
+
+- Source: Hermit Dave, FrequencyWords 2018 lists `de_50k.txt`, `sv_50k.txt`, `pt_br_50k.txt`, `it_50k.txt`
+- Use: build-time ordering only (which common words get Chinese meanings, which reading of a form comes first). Not shipped.
+- License: content CC BY-SA 4.0. © Hermit Dave.
+
 # Speech
 
-## Piper voices
-
-- Source: `rhasspy/piper-voices` v1.0.0 on Hugging Face (`https://huggingface.co/rhasspy/piper-voices`)
-- `fr_FR-siwis-medium`: trained on the SIWIS French Speech Synthesis Database (University of Edinburgh, `https://datashare.is.ed.ac.uk/handle/10283/2353`), Creative Commons Attribution 4.0
-- `fr_FR-tom-medium`: dataset `https://git.bksp.space/Tjiho/French-tts-model-piper`, GNU AGPL v3
-- `en_US-ljspeech-medium` (shown as “Linda”): trained on the LJ Speech Dataset (`https://keithito.com/LJ-Speech-Dataset/`), public domain
-- `en_US-joe-medium`: dataset `https://github.com/NabuCasa/voice-datasets`, CC0
-- `es_ES-sharvard-medium` (female and male speakers): trained on the Sharvard corpus (University of Edinburgh, `https://datashare.ed.ac.uk/handle/10283/574`), Creative Commons Attribution 3.0
-- `zh_CN-huayan-medium` was offered by MulTape until October 2026 and withdrawn (its dataset states no licence, and its espeak-ng input cannot tell the 1st tone from the 4th); devices that downloaded it delete it. Chinese now uses MeloTTS (below).
-- Use in OoFR 法语磁带 and MulTape: the device's own natural voices (MulTape: French, English, Spanish, Chinese; Piper has no Japanese or Korean voices). They are not bundled: a learner who taps “下载” downloads them from Hugging Face to their device.
+MulTape 1.0 offered Piper voices (`rhasspy/piper-voices`: French, English and Spanish, and Huayan for Chinese until October 2026), read through the eSpeak NG phonemizer (`@diffusionstudio/piper-wasm`). MulTape 1.1 no longer uses either: French, English and Spanish are read by Supertonic 3 (below), and devices that downloaded the Piper voices or the phonemizer delete them.
 
 ## MeloTTS (MulTape, Chinese voice “Melo”)
 
@@ -115,30 +130,18 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 - Converted model: `csukuangfj/vits-melo-tts-zh_en` on Hugging Face (`https://huggingface.co/csukuangfj/vits-melo-tts-zh_en`), converted to ONNX by the sherpa-onnx project (`https://github.com/k2-fsa/sherpa-onnx`, Apache License 2.0); its `model.onnx`, `tokens.txt` and `lexicon.txt` are used
 - Use in MulTape: the device's own natural Chinese voice (optional download). It reads the lesson's own pinyin (`v2/src/speech/zh/`), so polyphones, neutral tones and tone changes are said as written.
 
-## Supertonic 3 (MulTape, Japanese and Korean voices “Supertonic F / M”)
+## Supertonic 3 (MulTape, French, English, Spanish, Japanese, Korean, German, Swedish, Portuguese and Italian voices “Supertonic F / M”)
 
 - Source: `Supertone/supertonic-3` on Hugging Face, revision `3cadd1ee6394adea1bd021217a0e650ede09a323` (`https://huggingface.co/Supertone/supertonic-3`), Supertone Inc.
 - License: BigScience OpenRAIL-M (the `LICENSE` file of that repository). Free, commercial use allowed, but with use-based restrictions (its paragraph 5 and Attachment A) that bind everyone who uses the model or a copy of it, among them: no unlawful use, no impersonating people without consent, no harassment or defamation, no harming minors, no medical advice, and content made with it must not be presented without saying it is machine-generated (Attachment A (e)). Anyone MulTape gives the model to must get a copy of the licence and be told of these restrictions.
 - Modified copy: MulTape stores the large weights of its four ONNX models as int8 with per-channel scales (`v2/scripts/build_supertonic_int8.py`; the computation is unchanged), which brings the download from about 400 MB to about 103 MB. The changed files carry a notice saying so (in each model's metadata and in `NOTICE.md` next to them); `tts.json`, `unicode_indexer.json` and the voice styles are unchanged.
-- Use in MulTape: the device's own natural Japanese and Korean voices (optional download). The copy is served next to the app (`voices/supertonic-3-int8/`, with `LICENSE` and `NOTICE.md`), and the app shows that these voices are AI-synthesised, the licence's restrictions and a link to the licence where they are offered. Japanese sentences with furigana are read from their kana (`v2/src/speech/ja/`).
-
-## Piper
-
-- Source: `https://github.com/rhasspy/piper`
-- License: MIT
-- Use in OoFR 法语磁带: the voice model format and the way text is turned into speech (`v2/src/speech/piper/`).
+- Use in MulTape: the device's own natural French, English, Spanish, Japanese, Korean, German, Swedish, Brazilian Portuguese and Italian voices (optional download; one model for all of them, two of its preset voices per language). The copy is served next to the app (`voices/supertonic-3-int8/`, with `LICENSE` and `NOTICE.md`), and the app shows that these voices are AI-synthesised, the licence's restrictions and a link to the licence where they are offered and where one is chosen. It reads the text itself, with no phonemizer (`v2/src/speech/supertonic/`); Japanese sentences with furigana are read from their kana (`v2/src/speech/ja/`).
 
 ## ONNX Runtime Web
 
 - Source: `onnxruntime-web` 1.30.0, `https://github.com/microsoft/onnxruntime`
 - License: MIT
-- Use in OoFR 法语磁带: runs the Piper voice models in the browser (WebAssembly).
-
-## piper-wasm and eSpeak NG
-
-- Source: `@diffusionstudio/piper-wasm` 1.0.0 (MIT, `https://github.com/diffusion-studio/piper-wasm`), a WebAssembly build of `piper-phonemize` with eSpeak NG
-- eSpeak NG: `https://github.com/rhasspy/espeak-ng` (fork of `https://github.com/espeak-ng/espeak-ng`), GNU GPL v3; its data files are included in `piper_phonemize.data`
-- Use in OoFR 法语磁带: turns French text into phonemes for the Piper voices. Served unchanged as `voice-engine/piper_phonemize.{js,wasm,data}`; the source and build steps are at the links above.
+- Use in MulTape: runs the device's own voice models (Supertonic 3, MeloTTS) in the browser (WebAssembly).
 
 # AI
 

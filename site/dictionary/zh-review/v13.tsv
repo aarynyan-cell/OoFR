@@ -1,0 +1,2394 @@
+# Hand-checked Chinese senses for the 1,000 most common words of each v1.3 language (2026-10-28/29).
+# lang	word	pos	start of the first English sense	Chinese senses (；-separated)
+de	sie	pron	she; her	她；它
+de	das	pron	who, that, which	那；这；（关系代词）……的
+de	der	article	nominative masculine singular definite	（阳性定冠词）这个；那个
+de	der	pron	who; that; which	那个；（关系代词）……的
+de	der	pron	dative feminine singular of der	（阴性与格）她；那个
+de	sein	verb	forms the present perfect	是；在；（构成完成时）
+de	nicht	intj	right?	对吧？；不是吗？
+de	Es	noun	E-flat	降E音
+de	und	intj	so?, now?	那又怎样？；然后呢？
+de	was	pron	what	什么；（关系代词）……的事
+de	was	intj	eh?, huh?	啊？；嗯？
+de	etwas	pron	something	某物；一些
+de	etwas	det	some, a bit of	一些；一点
+de	zu	prep	to, towards	到；往；在；为了
+de	zu	adv	too (excessively)	太；过于
+de	zu	adj	shut, closed	关着的；关闭的
+de	zu	particle	to	（不定式标志）
+de	er	pron	he	他；它
+de	Er	noun	a person or animal of male gender	男性；雄性
+de	Er	pron	you (form of address to a male	您（旧时对下级男子的称呼）
+de	ein	num	one	一
+de	ein	article	a, an	一个
+de	ein	article	nominative/accusative neuter	一个
+de	ein	adv	indicating	进；入
+de	einen	verb	to unite	统一；联合
+de	in	prep	[with dative] in	在……里；在……内；进入
+de	in	contraction	contraction of in + den	在……里
+de	in	adj	in, popular	流行的；时髦的
+de	ja	adv	obviously	确实；毕竟；当然
+de	ja	intj	yes	是；对
+de	Ja	noun	a yes	肯定的回答
+de	mit	adv	among	一起；也
+de	wie	adv	how	怎样；多么
+de	wie	conj	like	像；如同；当……时
+de	den	pron	that; whom	那个；（关系代词）……的
+de	auf	prep	[with dative] on	在……上；向……上
+de	auf	adj	open	开着的
+de	auf	adv	finished; gone	完了；吃光了
+de	auf	intj	carry on	加油；继续
+de	dass	conj	that	（引导从句）……这件事
+de	aber	adv	rather; quite	真是；可真
+de	Aber	noun	an objection	异议；“但是”
+de	so	adv	so, such, that	这样；那么；如此
+de	so	conj	thus, so	因此；那么
+de	so	pron	that, which, who	（旧）那个；……的
+de	so	particle	quotative particle	（口语）……说
+de	Sonntag	noun	Sunday	星期日
+de	haben	verb	forms the perfect	有；（构成完成时）
+de	hier	adv	here	这里
+de	hier	intj	listen, hey	喂；嘿
+de	Hier	noun	here, this place	这里
+de	Haben	noun	credit	贷方
+de	können	verb	to be able	能；会；可以
+de	für	prep	for (intended for)	为了；给；对于
+de	wenn	conj	when, whenever	如果；每当
+de	Wenn	noun	if	（条件）“如果”
+de	Habe	noun	belongings	财物
+de	noch	adv	still, yet	还；仍然；再
+de	noch	conj	nor	也不
+de	nur	adv	only, just	只；仅仅
+de	da	adv	there	那里；这时
+de	Hast	noun	haste	匆忙
+de	auch	intj	in answering	也
+de	schon	adv	already	已经；早就；倒是
+de	schonen	verb	to spare	爱护；保护
+de	als	conj	at (approximately) the same moment	当……时；作为；比
+de	Als	noun	creek	小溪；水沟
+de	Sein	noun	existence	存在
+de	mal	adv	times (indicating multiplication	乘；（口语）一下
+de	Mal	noun	time (as in	次；回
+de	Mal	noun	a mark on the body	痣；疤痕
+de	jetzt	adv	now	现在
+de	Jetzt	noun	the present	现在；当下
+de	ihn	pron	(obsolete) dative of sie	他（宾格）；它
+de	aus	adv	out	出；完
+de	aus	adj	over; finished	结束了；关着的
+de	aus	prep	out of; from	从……里；来自；由……制成
+de	Aus	noun	an out	出局；结束
+de	um	prep	about	围绕；在……点钟；为了
+de	um	conj	in order to	为了
+de	um	adj	up, in the sense of finished	结束了；过去了
+de	um	adv	around, about	大约；周围
+de	IM	noun	initialism of Inoffizieller	（东德）非正式线人
+de	werden	verb	will, to be going to	将要；变成；（构成被动）
+de	doch	particle	yes; surely	（反驳否定）不，是的；倒是
+de	all	det	all	所有；全部
+de	Weiß	noun	white, whiteness	白色
+de	wissen	verb	to know; to be aware	知道；懂得
+de	kein	pron	no; not a(n)	没有；不是一个
+de	oder	conj	or	或者；还是
+de	oder	particle	right?	是吧？；对吗？
+de	nach	prep	after, past	在……之后；往；根据
+de	S	noun	S	字母 S
+de	man	adv	just; only	（北德）就；只管
+de	los	adv	rid of, free of	摆脱了；发生了
+de	Los	noun	lottery ticket	彩票；命运
+de	wieder	adv	again	又；再；重新
+de	alle	adj	finished; gone	用完了；没有了
+de	denn	adv	so, then	到底；究竟；那么
+de	Männin	noun	woman	（旧）女人
+de	tun	verb	to do	做；干
+de	tunen	verb	to tune	改装；调校
+de	wer	pron	who	谁
+de	einer	pron	one	一个；某人
+de	einer	pron	strong genitive/dative	一个（阴性属格/与格）
+de	Einer	noun	unit, units	个位；单人艇
+de	einfach	adj	easy	简单；容易；单程的
+de	einfach	adv	easily	简单地；干脆；就是
+de	Leben	noun	a state in which	生命；生活
+de	zeit	prep	for the entire time	在……期间
+de	weilen	verb	to be, be present	逗留
+de	heuen	verb	to make hay	晒干草
+de	Wolle	noun	wool	羊毛；毛线
+de	ganz	adj	entire, whole	整个的；完整的
+de	ganz	adv	quite, rather	相当；完全
+de	sicher	adj	safe, secure	安全的；确定的
+de	sicher	adv	safely	肯定；安全地
+de	frau	pron	one, they	（女性主义用法）人们
+de	Frau	noun	woman	女人；妻子；女士
+de	bis	prep	until	到；直到
+de	Bis	noun	B-sharp	升B音
+de	leid	adj	distressing	（tut mir leid）遗憾的；难受的
+de	Leid	noun	woe, grief	痛苦；悲伤
+de	leiden	verb	to suffer	受苦；忍受
+de	na	intj	well!, so!	嗯；那么；好吧
+de	Macht	noun	power, authority	力量；权力
+de	zurück	adv	back, backward	回；向后
+de	zurück	intj	stand back!	退后！
+de	Zurück	noun	going back	回头路
+de	lassen	verb	to allow	让；允许；留下
+de	lass	adj	powerless, tired	（旧）疲倦的；无力的
+de	hallo	intj	a general greeting	你好；喂
+de	Hallo	noun	hullabaloo	喧闹；欢呼
+de	meinen	verb	to opine	认为；意思是
+de	Gott	noun	god	神；上帝
+de	zwei	num	two	二；两
+de	Zwei	noun	two (digit	数字二
+de	genau	adj	exact	精确的；准确的
+de	genau	adv	just, exactly	正是；确切地
+de	klar	adj	clear; transparent	清楚的；透明的
+de	klar	adv	obviously, surely	当然；显然
+de	klar	intj	okay!; sure!	好的！；当然！
+de	morgen	adv	tomorrow	明天
+de	Morgen	noun	morning	早晨；上午
+de	Leute	noun	people	人们
+de	schön	adj	beautiful	美丽的；好的
+de	schön	adv	well, beautifully	好好地；漂亮地
+de	schönen	verb	to massage	粉饰
+de	ab	prep	beginning at	从……起
+de	ab	adj	off, detached	脱落的；掉了的
+de	gerade	adj	even	偶数的
+de	gerade	adv	now (at the moment)	正在；刚才；恰好
+de	gerade	adj	straight	直的
+de	Tag	noun	tag (label)	标签
+de	Tag	intj	hello	你好（日安）
+de	tagen	verb	to meet	开会
+de	Rede	intj	Used to show agreement	（青年用语）没错
+de	wohl	adv	possibly, probably	大概；可能；好
+de	Wohl	noun	good	幸福；健康
+de	durch	adj	crazy	（口语）累垮的；熟透的
+de	ob	conj	Introduces an indirect	是否
+de	ob	prep	on account of	由于
+de	OB	noun	abbreviation of Oberbootsmann	上士（海军）
+de	Mutter	noun	mother	母亲
+de	raus	intj	get out!	出去！
+de	paar	det	some; few	几个；一些
+de	passiert	adj	sieved	过筛的
+de	passieren	verb	to happen	发生；通过
+de	denken	verb	not to forget	想；认为；记得
+de	wieso	adv	why	为什么
+de	selbst	adv	even	甚至；连……也
+de	selbst	particle	personally, by oneself	自己；亲自
+de	Selbst	noun	the self	自我
+de	hören	verb	to hear	听；听见
+de	ohne	conj	without	不……而
+de	ohne	prep	without	没有；无
+de	ohne	adv	without	无；没有
+de	finden	verb	to find	找到；觉得
+de	Nacht	noun	night	夜；夜晚
+sv	jag	noun	I, self, ego	自我
+sv	det	pron	it; third-person singular	它；这
+sv	det	pron	that	那；这
+sv	det	noun	id	本我
+sv	det	article	the (when an adjective	（中性定冠词）这个
+sv	vara	verb	to occupy a place	是；在
+sv	vara	noun	existence, being	存在
+sv	vara	verb	to last	持续
+sv	vara	noun	care	照看
+sv	du	pron	you (singular	你
+sv	att	conj	that	（引导从句）……这件事；（不定式标志）
+sv	a	prep	from (very formal	（正式）从
+sv	en	pron	object form of the indefinite	（口语）人；一个人
+sv	en	num	one	一
+sv	en	article	the indefinite article	一个
+sv	en	adv	like, approximately	大约
+sv	och	intj	and, so, so what	那又怎样
+sv	ha	intj	ha!	哈！
+sv	vi	pron	we	我们
+sv	vi	adv	why	（方言）为什么
+sv	vi	noun	sanctuary	（古）圣地
+sv	på	prep	on, on top of	在……上
+sv	I	pron	ye (second-person	（旧）你们
+sv	för	adv	too (to an excessive	太
+sv	för	noun	bow; the front part	船头
+sv	för	prep	for; during which	为了；对于；在……期间
+sv	föra	verb	to (actively) move	带领；运送
+sv	med	noun	a runner	滑板；（雪橇）滑木
+sv	mede	noun	runner	滑木
+sv	som	adv	at its/his/hers	最……（som bäst 正在兴头）
+sv	som	pron	who, which, that	（关系代词）……的
+sv	vad	pron	what	什么
+sv	vad	noun	bet, wager	赌注
+sv	vad	noun	a ford	浅滩；渡口
+sv	vad	noun	calf; the back side	小腿肚
+sv	var	noun	pus	脓
+sv	mig	pron	me	我（宾格）
+sv	här	adv	here	这里
+sv	hä	verb	to put	（方言）放
+sv	så	noun	a tub	木桶
+sv	den	pron	it (for common gender	它；那个
+sv	den	article	the (when an adjective	（通性定冠词）这个
+sv	kunna	verb	"to can"	能；会；可以
+sv	till	prep	to	到；给；向
+sv	till	adv	another, more	另外；再
+sv	de	article	the, a definite article	（复数定冠词）这些
+sv	men	noun	a handicap	后遗症；损伤
+sv	ett	article	a, an (neuter	一个
+sv	ska	noun	ska; a style	斯卡（音乐风格）
+sv	ska	verb	will, be going to	将要；应该；要
+sv	vill	adj	lost	迷路的
+sv	vilja	noun	will; a person	意志；意愿
+sv	vilja	verb	to want	想要；愿意
+sv	nu	adv	now	现在
+sv	nu	noun	present, now	现在
+sv	nej	adv	no; a negative	不
+sv	nej	noun	a no, a nay	否定的回答
+sv	bar	adj	bare, uncovered	赤裸的；光秃的
+sv	bar	noun	a bar (place where	酒吧
+sv	bar	noun	A bar; a unit	巴（压强单位）
+sv	min	noun	min; minute	分钟（缩写）
+sv	min	noun	min; minimum	最小值（缩写）
+sv	min	noun	a facial expression	表情；神色
+sv	måste	verb	must, have to	必须；得
+sv	måste	noun	a must	必需品；必做的事
+sv	göra	noun	work, task	事情；活儿
+sv	göra	noun	sludge	（方言）泥浆
+sv	göra	verb	to rub snow	（方言）往脸上搓雪
+sv	skulle	noun	an attic	阁楼
+sv	nära	verb	to nourish	滋养；怀有
+sv	då	adv	then; at that time	那时；那么
+sv	då	conj	when; at the same	当……时
+sv	kom	intj	over	（无线电）请讲
+sv	få	verb	to get, to receive	得到；可以；不得不
+sv	upp	adv	up	向上；起来
+sv	ingen	det	no	没有
+sv	ingen	pron	none	没有人；没有一个
+sv	inge	verb	to inspire	引起；使产生
+sv	tack	noun	a thank you	感谢
+sv	tack	intj	thanks	谢谢
+sv	gå	verb	to walk	走；去；（车）开
+sv	igen	adv	again	又；再；关上
+sv	nåt	noun	a groove	槽；褶
+sv	nåt	noun	a seam	接缝
+sv	nåt	pron	any (at all	（口语）某个；什么
+sv	någon	det	any	某个；任何
+sv	någon	pron	anybody	某人；任何人
+sv	går	adv	yesterday	（i går）昨天
+sv	mycken	adj	much	（旧）许多
+sv	lite	adj	little, some	一点；少许
+sv	lite	adv	a little	有点；稍微
+sv	finna	verb	to find	找到；发现
+sv	än	adv	still, yet	还；仍然
+sv	än	conj	than	比
+sv	än	noun	indefinite plural of ä	（字母）ä 的复数
+sv	inget	pron	synonym of ingenting	什么也没有；没有
+sv	efter	adj	slow	落后的；（钟表）慢的
+sv	efter	adv	after	之后；后面
+sv	efter	prep	after; subsequent	在……之后；沿着
+sv	bli	verb	to become	变成；成为；（构成被动）
+sv	ju	adv	Indicates an expectation	（你也知道）嘛；毕竟
+sv	sen	adj	late	晚的；迟的
+sv	två	num	two	二；两
+sv	två	verb	to wash	洗
+sv	nå	verb	to reach	到达；够得着；联系上
+sv	nå	adv	any (at all	（口语）任何
+sv	nå	intj	well?	嗯？；那么？
+sv	något	pron	any, some	某物；一些；什么
+sv	något	adv	somewhat	有点；稍微
+sv	över	adv	over; above	过；以上；剩下
+sv	över	prep	above	在……上方；越过；超过
+sv	över	postp	over; all over	遍及
+sv	ditt	pron	you (vocative	你这个（ditt dumhuvud 你这笨蛋）
+sv	ditt	noun	only used in ditt och datt	（ditt och datt）这个那个
+sv	väl	adv	well	好；充分地
+sv	väl	noun	well-being	福祉；利益
+sv	väl	adv	Used to ask for confirmation	……吧；想必
+sv	mina	noun	mine; a device	地雷
+sv	åt	prep	for	给；为；朝
+sv	nog	adv	enough	足够；大概
+sv	fan	noun	the devil	魔鬼
+sv	fan	adv	A (positive or negative)	（粗）他妈的；真
+sv	fan	noun	a fan (admirer)	粉丝；狂热者
+sv	fan	noun	a vane, a web	羽片
+sv	ÅR	noun	R³	三维空间（缩写）
+sv	mot	noun	A point where	交接处
+sv	andra	verb	to advance	（旧）陈述
+sv	annan	pron	other	别的；另一个
+sv	böra	verb	should	应该
+sv	känna	verb	to feel	感觉；认识；摸
+sv	rätt	adj	right, correct	对的；正确的
+sv	rätt	adv	rightly, correctly	正确地；相当
+sv	rätt	noun	a dish	菜；（一道）菜肴
+sv	vid	prep	next to, beside	在……旁；在
+sv	hela	verb	to heal	治愈
+sv	hel	adj	(the) whole	整个的；完整的
+sv	såg	noun	a saw	锯子
+sv	hit	adv	to here	到这里
+sv	hit	noun	a hit	热门；成功之作
+sv	låta	verb	to make sound	听起来；让
+sv	denna	det	this, that	这个；该
+sv	denna	pron	this one	这个
+sv	själv	pron	oneself	自己；本人
+sv	vår	noun	spring	春天
+sv	utan	adv	outside	在外面
+sv	dag	noun	a day	天；日
+sv	liv	noun	life	生命；生活
+sv	mena	verb	to mean	意思是；认为
+sv	visst	adv	with certainty	当然；确实
+sv	visst	intj	sure	当然
+sv	viss	adj	certain, convinced	确信的；某些
+sv	va	noun	water supply	供排水（缩写）
+sv	va	intj	huh? what?	啊？；什么？
+sv	VA	noun	initialism of vatten	供排水
+sv	sin	noun	Dryness	（奶牛）停奶期
+sv	tid	noun	time	时间；时期
+sv	sätt	noun	a manner	方式；方法
+sv	sätta	verb	(reflexive) to sit	放；（sätta sig）坐下
+sv	tänka	verb	to think	想；思考；打算
+sv	många	pron	many	许多
+sv	folk	noun	people	人们；民族
+sv	sluta	verb	to stop	停止；结束
+sv	sluta	verb	to close, to shut	关闭
+sv	precis	adj	precise	精确的
+sv	precis	adv	precisely	正好；恰恰
+sv	inga	adv	not	没有（复数）
+sv	barn	noun	a child	孩子；儿童
+sv	under	prep	under; below	在……下面；在……期间
+sv	förlåt	noun	a veil	（宗教）幔子
+sv	förlåt	intj	I'm sorry	对不起
+sv	bort	adv	away, off	离开；走掉
+sv	hjälp	noun	help	帮助
+sv	hjälp	intj	help!	救命！
+sv	helt	adv	entirely	完全；十分
+sv	tycka	verb	to be of the opinion	认为；觉得
+sv	håll	noun	a direction	方向；方面
+sv	hålla	verb	to hold	拿着；握；保持；举行
+sv	ledsen	adj	sad	难过的；抱歉的
+sv	snäll	adj	kind, nice	善良的；友好的
+sv	snäll	adj	fast	（方言）快的
+sv	sak	noun	a thing	东西；事情
+sv	hitta	verb	to find	找到
+sv	fortfarande	adj	continuing	持续的
+sv	stå	verb	stand	站；（写着）
+sv	ens	adv	even	（inte ens）连……也不
+sv	ens	noun	alignment	对齐
+sv	ens	pron	genitive of the indefinite	（人们的）自己的
+sv	ursäkta	verb	to excuse	原谅；为……辩解
+sv	ursäkta	intj	excuse me	对不起；打扰一下
+sv	enda	pron	only	唯一的
+sv	gud	noun	a god	神；上帝
+pt	que	conj	that (connecting noun	（引导从句）……这件事；因为；比
+pt	que	det	what (used to ask	什么；多么
+pt	que	pron	which; that; who	（关系代词）……的；什么
+pt	não	adv	not; don't	不；没
+pt	não	noun	no (a negative answer	否定的回答
+pt	não	intj	no (used to show	不
+pt	o	article	the (the definite	（阳性定冠词）这个
+pt	de	prep	of (in relation to)	……的；从；关于
+pt	a	prep	to, introduces	向；给；到
+pt	é	intj	Indicates agreement	是啊；对
+pt	ser	verb	to be (to have the given	是
+pt	ser	noun	being	生物；存在
+pt	você	pron	second-person singular	你
+pt	e	conj	and (connects	和；而且
+pt	e	noun	and, conjunction	（连词）和
+pt	eu	pron	I (first-person	我
+pt	eu	intj	Used to draw attention	到！；我！
+pt	um	article	a, an	一个
+pt	um	noun	the figure or digit	数字一
+pt	um	pron	a person; one	一个人；某人
+pt	para	prep	for (directed at	为了；给；往
+pt	estar	verb	to be (indicates location	在；是（状态）
+pt	se	pron	third-person singular and plural reflexive	自己；互相；（无人称）人们
+pt	com	prep	with; against	和；用；带着
+pt	por	prep	for (on behalf of)	为了；通过；被；经过
+pt	pôr	verb	to put; to place	放；穿上
+pt	isso	pron	that (the thing near you	那；这件事
+pt	em	prep	in; inside; within	在……里；在
+pt	me	pron	first-person singular objective	我（宾格）；我自己
+pt	mas	conj	but (introduces	但是
+pt	mas	adv	emphasises a previous	（强调）真的
+pt	como	adv	how (in what way	怎样；如何
+pt	como	conj	but also; as well as	和；像；因为
+pt	bem	noun	good (the ensemble	善；财产；亲爱的
+pt	bem	intj	Used to express approval	好；那么
+pt	os	pron	third-person plural direct	他们（宾格）；它们
+pt	ela	pron	third-person feminine singular	她；它
+pt	sim	adv	indeed; do (used for emphasis	确实；的确
+pt	sim	noun	yes; yea	肯定的回答
+pt	sim	intj	yes	是；对
+pt	aqui	adv	here	这里
+pt	aqui	noun	here (the present place	这里
+pt	mais	adv	used to form the comparative	更；更多；最
+pt	meu	pron	mine (used predicatively)	我的
+pt	meu	noun	mine (used substantively	我的
+pt	meu	intj	hey; oi	（口语）伙计；哇
+pt	Meu	pron	Same as entry above.	我的
+pt	seu	noun	Mister	（口语）先生
+pt	foi	intj	indicates that an action	好了；搞定
+pt	as	pron	them (as a direct	她们（宾格）；它们
+pt	ir	verb	to go	去；将要
+pt	estou	intj	hello (a greeting used when answering	（接电话）喂
+pt	vamos	verb	forms the analytic	我们……吧
+pt	vamos	intj	let's go	走吧；来吧
+pt	tudo	pron	everything	一切；所有
+pt	tudo	det	every; all	所有的
+pt	só	adj	alone	独自的；孤单的
+pt	então	intj	so (used after a pause	那么；所以
+pt	agora	conj	on the other hand	然而；不过
+pt	quando	conj	when (at such time	当……时
+pt	quando	noun	when (a point	时间
+pt	fazer	verb	to create; to produce	做；制作；使
+pt	sei	intj	yeah, right	是啊，才怪
+pt	saber	verb	to be aware, to know	知道；会；尝起来
+pt	te	pron	you (singular), thee	你（宾格）
+pt	certo	adj	right; correct	对的；确定的
+pt	certo	adv	correctly	正确地；当然
+pt	quer	conj	whether … or	无论……还是……
+pt	querer	verb	to want	想要；爱
+pt	já	adv	already	已经；马上
+pt	era	noun	era	时代；纪元
+pt	quem	pron	who; whom	谁
+pt	nada	noun	nothingness	虚无
+pt	nadar	verb	to swim	游泳
+pt	dizer	verb	to speak	说；告诉
+pt	haver	verb	there be; exist	有；存在；（助动词）
+pt	haver	noun	credit	贷方；财产
+pt	haver	adj	misspelling of a ver	（错误拼写）
+pt	lá	adv	there (in that place	那里
+pt	lá	noun	la (sixth note	音符 la
+pt	lá	intj	meaningless syllable	啦（歌唱用）
+pt	bom	adj	desirable, positive	好的
+pt	bom	intj	well, very well	好；那么
+pt	são	adj	sound, healthy	健康的；完好的
+pt	são	noun	someone or something healthy	健康的人
+pt	São	adj	forms the titles	圣（用于男性圣人名前）
+pt	achar	verb	to find	认为；觉得；找到
+pt	sobre	prep	on; atop	在……上；关于
+pt	mim	pron	first-person singular prepositional	我（介词后）
+pt	mesmo	adv	really; actually	真的；甚至；即使
+pt	coisar	verb	A placeholder verb	（口语）那个（代替想不起的动词）
+pt	até	adv	even	甚至
+pt	até	intj	short for any farewell	再见
+pt	tempo	noun	time	时间；天气；时态
+pt	tempo	intj	time out	暂停
+pt	assim	adj	full of	（口语）满是
+pt	assim	adv	this way	这样；如此
+pt	assim	intj	well	嗯；就是说
+pt	ah	intj	ah!	啊！
+pt	nunca	noun	neverness	永不
+pt	casa	noun	structure serving	房子；家
+pt	quê	noun	a characteristic	（um quê de）一点……味道
+pt	essa	noun	catafalque	灵柩台
+pt	à	prep	forms adverbs	（a + a）到；在；以……方式
+pt	ainda	adv	still, yet	还；仍然；更
+pt	tão	adv	so	这么；那么
+pt	cara	noun	man, fellow, guy	家伙；哥们
+pt	cara	intj	dude!	哥们！；天哪！
+pt	caro	adj	greatly valued	亲爱的；贵的
+pt	sem	prep	-less; without	没有；无
+pt	obrigado	adj	obligatory	必须的；感激的
+pt	dia	noun	period between sunrise	天；白天；日子
+pt	este	det	this	这个
+pt	mãe	noun	mother	母亲；妈妈
+pt	vida	noun	state of being alive	生命；生活
+pt	vidar	noun	kind of saw	（制梳用）锯
+pt	senhor	noun	a man	先生；主人；男士
+pt	senhor	adj	great; great big	（口语）了不起的；巨大的
+pt	senhorx	noun	gender-neutral	（中性称呼）先生/女士
+pt	sempre	adv	always	总是；一直
+pt	seus	noun	their or your kin	（他们/你的）家人
+pt	delir	verb	to destroy	（古）毁掉；抹去
+pt	ficar	verb	to become	留下；变得；在（位置）
+pt	ó	intj	o; hey	喂；噢
+pt	claro	adj	light (pale	浅色的；明亮的；清楚的
+pt	depois	adv	later	后来；之后
+pt	tinha	noun	ringworm	癣
+pt	antes	adv	before	以前；之前；宁可
+pt	antes	noun	Antes	安特人（古斯拉夫部落）
+pt	pessoa	noun	person	人
+pt	pelo	noun	hair	毛；汗毛
+pt	pelar	verb	to skin	剥皮
+pt	preciso	adj	precise	精确的；必要的
+pt	precisar	verb	to need	需要
+pt	homem	adj	manly	有男子气概的
+pt	dever	verb	should	应该；欠
+pt	nem	intj	nah, no	才不
+pt	boa	noun	an interesting story	趣事；好消息
+pt	boa	intj	good one!	好样的！
+pt	dois	noun	deuce	（纸牌）二
+pt	fez	noun	a piece of faeces	（俚）粪便
+pt	aí	adv	there (close to the second	那里；然后
+pt	fora	noun	rejection of a romantic	（被）拒绝；失言
+pt	dêsse	contraction	pre-reform spelling	（旧拼写）desse
+pt	trabalho	noun	job	工作；劳动
+pt	ninguém	noun	nobody (someone	无名小卒
+pt	novo	adj	recently made	新的；年轻的
+pt	novo	noun	new ideas	新事物
+pt	comigo	adv	prepositional form	和我一起
+pt	mundo	noun	world	世界；人们
+pt	dar	verb	to transfer	给；给予
+pt	grande	adj	large; great	大的；伟大的
+pt	grande	noun	A term of address	（称呼）大人物
+pt	sentir	verb	to sense	感觉；感到
+pt	nossa	intj	oh, my God!	天哪！
+pt	dinheiro	noun	money	钱
+pt	será	intj	used to indicate doubt	是吗？；难道
+pt	nome	noun	name	名字；名声；名词
+pt	quanto	prep	as (to the same	（tanto…quanto）和……一样
+pt	quanto	pron	how much (what price	多少（钱）
+pt	quanto	adv	how (to what degree	多么
+pt	outro	pron	other one	另一个；别人
+pt	lhe	pron	dative of ele	给他；给她；给您
+pt	oi	intj	hey	嗨；你好
+pt	oi	intj	sorry? I beg your pardon	什么？；啊？
+pt	meus	noun	my kin	我的家人
+pt	Meus	pron	Same as entry above.	我的家人
+pt	desculpar	verb	to forgive	原谅；（desculpe）对不起
+pt	filho	noun	son	儿子；孩子
+pt	certeza	intj	asserting that	当然；肯定
+pt	vão	adj	pretentious	徒劳的；虚荣的
+pt	sair	verb	to exit	出去；离开
+pt	volta	noun	return	返回；圈；大约（por volta de）
+pt	voltar	verb	to return	回来；返回
+pt	problema	noun	problem	问题；麻烦
+pt	tipo	noun	guy; bloke	家伙
+pt	tipo	particle	(just) like	（口语）就像
+pt	tipar	verb	to type (determine	（医学）分型
+pt	realmente	adv	truly, really	真的；确实
+pt	acontecer	verb	to happen	发生
+pt	mulher	adj	pansy	（贬）娘娘腔的
+it	e	conj	and	和；而且
+it	essere	verb	Used as a copula	是；在；（助动词）
+it	essere	noun	being, living	生物；存在
+it	non	adv	not	不；没有
+it	che	conj	that	（引导从句）……这件事；比
+it	che	det	some (a remarkable)	多么；什么
+it	che	conj	proscribed spelling of ché	（ché 的误写）因为
+it	di	prep	used to indicate possession	……的；从；比
+it	la	article	the	（阴性定冠词）这个
+it	la	pron	her, it	她（宾格）；它；您
+it	la	noun	la (musical note)	音符 la；A 音
+it	il	article	the	（阳性定冠词）这个
+it	uno	article	an; a	一个
+it	a	prep	Indicates the indirect	给；到；在
+it	a	conj	Only used in the words	（数词中用）
+it	ha	intj	ah!	哈！（多为讽刺）
+it	per	prep	for	为了；给；经过；因为
+it	in	prep	in	在……里；去；用
+it	mi	pron	Used as ethical dative	我（宾格）；给我
+it	mi	noun	the third note	音符 mi；E 音
+it	mi	noun	mu (Greek letter)	希腊字母 μ
+it	io	pron	I (the first-person	我
+it	io	noun	ego, self	自我
+it	l'	article	apocopic form	（定冠词省略形）这个
+it	si	pron	(reflexive) oneself	自己；互相；（无人称）人们
+it	si	noun	si (musical note B)	音符 si；B 音
+it	ma	conj	but, however	但是；然而
+it	mah	intj	an expression of doubt	谁知道呢；嗯……
+it	Cosa	noun	what's-her-name	某某（女）
+it	Coso	noun	what's-his-name	某某（男）
+it	come	adv	how	怎样；像；如同
+it	no	det	no, anti-	反（no global 等）
+it	le	article	the	（阴性复数定冠词）这些
+it	le	pron	them (third-person plural feminine	她们（宾格）
+it	le	pron	her, to her	给她；给您
+it	ti	noun	ti (note)	音符 ti
+it	da	prep	from (all senses)	从；在……家；由；自从
+it	dare	verb	to give	给；举行
+it	dare	noun	debit	借方
+it	coma	noun	coma	昏迷
+it	coma	noun	coma (deep sleep)	沉睡
+it	ci	pron	us	我们；互相
+it	ci	adv	to there, here	在那里；在这里
+it	ci	noun	the Twi language	契维语
+it	questo	det	this, these	这个；这些
+it	questo	pron	this, this one	这个
+it	bene	adj	upper-class	（口语）上流的
+it	bene	adv	well, nicely	好；对
+it	bene	noun	good	善；财产；幸福
+it	sei	num	six	六
+it	sei	noun	six	六
+it	tu	pron	you (singular)	你
+it	solo	adj	alone, by oneself	单独的；唯一的
+it	solo	noun	the only one	唯一的人
+it	al	prep	with (an ingredient	（菜名）加……的
+it	era	noun	age, epoch	时代；纪元
+it	fatto	adj	done, made	做好的；（口语）醉的
+it	fare	verb	to do	做；使
+it	so	prep	under, beneath	（古）在……下
+it	so	adv	down	（古）向下
+it	sapere	verb	to know	知道；会；有……味道
+it	quando	conj	when	当……时
+it	quando	noun	when, moment	时刻
+it	sì	adv	so, thus	（古）如此
+it	ora	conj	first... then	时而……时而……
+it	orare	verb	to pray	祈祷
+it	lei	pron	she	她
+it	lei	pron	you	您
+it	lui	pron	he	他
+it	gli	article	form of the article i	（阳性复数定冠词）这些
+it	gli	pron	him, to him	给他；给它
+it	gli	pron	her, to her	（口语）给她
+it	gli	pron	them, to them	给他们
+it	ne	adv	from there	从那里
+it	ne	pron	from this	（代词）其中的；关于这个
+it	ne	pron	synonym of ci	（古）我们
+it	detto	adj	known as	叫做；所说的
+it	detto	noun	saying	谚语；格言
+it	dire	verb	to utter	说；告诉
+it	andare	verb	to go	去；走；（运转）
+it	perca	noun	perch	鲈鱼
+it	alla	prep	-style, à la	……式的
+it	ovest	noun	west	西；西方
+it	anca	noun	hip	髋部；臀部
+it	stato	noun	state	状态；国家；州
+it	tutti	pron	all; everybody	大家；所有人
+it	dei	contraction	some	一些；（di + i）……的
+it	dio	noun	god, deity	神；上帝
+it	grazia	noun	grace	优雅；恩典；赦免
+it	chi	pron	he/she/they who	……的人
+it	stare	verb	to stay, remain	待；停留；（身体）过得
+it	molto	noun	the many	许多
+it	più	adv	anymore	（non…più）不再；更
+it	più	prep	plus	加
+it	perché	conj	because, why	因为；为了
+it	beh	intj	well	嗯；好吧
+it	sia	conj	both ... and	（sia…sia…）既……又……
+it	nel	contraction	contraction of in il	在……里（in + il）
+it	potere	verb	can, could	能；可以
+it	prima	adv	before	以前；先
+it	prima	noun	the first	首演；一档
+it	primo	adj	first	第一的
+it	primo	noun	clipping of primo piatto	第一道菜（意面等）
+it	suo	pron	his, hers, its	他的；她的
+it	niente	pron	nothing	没有什么
+it	niente	noun	nothing	虚无；一点点
+it	qualcosa	pron	something	某物；什么东西
+it	coso	noun	thingie	那玩意儿
+it	fa	noun	fa (fourth diatonic	音符 fa；F 音
+it	dove	conj	where	在……的地方
+it	su	intj	come on!	加油！；来吧！
+it	due	num	two	二
+it	due	noun	two	二
+it	quindi	adv	therefore	因此；然后
+it	diro	adj	cruel	（诗）残酷的
+it	delle	contraction	contraction of di le	（di + le）……的；一些
+it	altro	det	other	别的；另一个；上一个
+it	sto	phrase	ellipsis of sto bene	我很好
+it	AD	noun	initialism of amministratore	首席执行官
+it	dovere	verb	to owe	必须；应该；欠
+it	dovere	intj	Dismisses gratitude	应该的
+it	li	pron	them (masculine)	他们（宾格）
+it	li	article	the (used in dates	（书信日期中）……日
+it	li	pron	him	（方言）他
+it	proprio	adv	really, quite	真；正是
+it	tempo	noun	time	时间；天气；（音乐）拍子
+it	nella	contraction	contraction of in la	在……里（in + la）
+it	poi	noun	the future	以后
+it	vi	pron	second-person personal plural	你们（宾格）
+it	vi	adv	there	那里
+it	Vi	pron	you (in the singular)	您（宾格）
+it	credo	noun	creed	信条；信经
+it	vita	noun	life	生命；生活；腰
+it	quanto	pron	how much, however much	多少
+it	quanto	adv	how	多么
+it	fuori	prep	out, outside	在……外
+it	cui	det	whose	（il cui）……的
+it	dell'	contraction	contraction of di l'	（di + l'）……的
+it	parte	noun	part	部分；方面；角色
+it	partire	verb	to divide	（古）分开
+it	vedere	verb	to see	看；看见
+it	ciao	intj	hello!	你好；再见
+it	dea	noun	goddess	女神
+it	volta	noun	time, instance	次；回；拱顶
+it	volto	adj	facing	朝向……的
+it	uomo	noun	person, man	人；男人
+it	bisogno	noun	need	需要
+it	posto	noun	place, spot	地方；座位；职位
+it	porre	verb	to put	放；提出
+it	nessuno	det	no, any	没有一个
+it	via	adv	away	走开；离开
+it	signore	noun	Lord, God	主；先生
+it	signore	adj	great, exceptional	（口语）一流的
+it	Signore	noun	Mister or Sir	先生
+it	meglio	noun	the best thing	最好的事
+it	cazzo	noun	dick, cock	（粗）阴茎；（口语）屁事
+it	cazzo	intj	fuck!, shit!	（粗）他妈的！
+it	cazzare	verb	to frap	（航海）拉紧
+it	dal	contraction	since	从；自从（da + il）
+it	sembrare	verb	to seem	好像；似乎
+it	senza	adj	coxless	（赛艇）无舵手的
+it	qualche	det	few	一些；几个
+it	qualche	adv	some, about	大约
+it	pensare	verb	to think	想；认为；考虑
+it	ecco	adv	used to call someone's attention	这就是；瞧
+it	ecco	intj	here it is!	给你！；就是这样
+it	eco	noun	echo	回声；反响
+it	parlare	verb	to talk, to speak	说话；谈
+it	tra	prep	between	在……之间；……之后
+it	mamma	noun	synonym of carciofo	（一种）洋蓟
+it	già	adv	already, yet	已经；对啊
+it	possiamo	verb	first-person plural	（我们）能
+it	ce	adv	reinforcing particle	（加强语气）
+it	male	adv	badly, wrongly	坏；不好；错
+it	male	noun	evil, harm	坏事；痛；病
+it	mala	noun	underworld	黑社会
+it	madre	adj	mother	母……；原……
+it	tanto	det	so much	那么多的
+it	tanto	adv	so much	那么；非常
+it	tanto	conj	after all	反正
+it	favore	noun	favour/favor	帮忙；恩惠；（per favore）请
+it	succedere	verb	to take the place	接替；（succede）发生
+it	sulla	noun	plant of the genus Sulla	岩黄芪
+it	giusto	adv	just, exactly	正好；正确地
+it	miei	noun	"my parents"	我的父母
+de	Gute	noun	nominalization of gut	好处；好的东西
+de	lang	postp	for (temporal)	（时间）……之久；在……期间
+de	natürlich	adj	natural, normal	自然的；天然的；正常的
+de	gar	adj	cooked, done (of food such as	熟了的；煮好的
+de	gar	adv	at all; even	根本（不）；甚至
+de	weiter	adv	further, farther, more	更远；进一步；继续
+de	weiter	intj	go on	继续！；接着说
+de	weit	adj	wide	宽的；宽阔的；远的
+de	seit	conj	since	自从
+de	seit	prep	since	自……以来；从……起
+de	gleich	adj	equal	相同的；相等的；一样的
+de	gleich	adv	alike	同样；马上；立刻
+de	gleichen	verb	to be like, to equal to, to re	相像；类似；等于
+de	recht	adj	right, right-hand (direction)	右边的；正确的；合适的
+de	recht	adv	very, quite, rather, pretty, f	很；相当；颇
+de	Recht	noun	right, privilege	权利；法律；正确
+de	richtig	adj	correct, accurate, right	正确的；对的
+de	richtig	adv	really	真正地；确实；非常
+de	Ordnung	noun	arrangement, regulation	秩序；整齐；规定
+de	Hören	noun	hearing	听；听力
+de	davon	adv	from it, from that, therefrom,	从那里；由此；其中
+de	dafür	adv	for that, for it	为此；对此；赞成
+de	wegen	prep	for, because of	因为；由于
+de	Haus	noun	house, building	房子；房屋；家
+de	Mädchen	noun	girl	女孩；姑娘
+de	hin	adj	gone (somewhere), left, situat	坏了的；完了的；（口）着迷的
+de	Hin	noun	hin	（往返中的）去程
+de	Warte	noun	lookout, guarding post	瞭望台；岗哨
+de	Mensch	noun	woman	（方言，贬）女人；娘们
+de	Welt	noun	world	世界
+de	unter	prep	under	在……下面；在……之间
+de	Unter	noun	jack, knave (playing card)	（纸牌）杰克
+de	Unterreddit	noun	subreddit	子版块
+de	schnell	adj	quick, fast	快的；迅速的
+de	schnell	adv	quickly	快；迅速地
+de	Andere	noun	nominalization of andere: the	别人；其他的东西
+de	tot	adj	dead, deceased	死的；死亡的
+de	dürfen	verb	to be allowed (to do something	允许；可以
+de	erst	adv	first, at first	首先；才；直到……才
+de	erstmal	adv	first (before anything else)	首先；先
+de	rein	adj	pure, clear, plain	纯的；纯净的；干净的
+de	rein	adv	purely	纯粹地；完全
+de	stimmt	intj	correct	对；没错
+de	stimmen	verb	to be right, to be correct, to	对；正确；（乐器）调音；投票
+de	scheiße	adj	shit, bad, ill, poor	糟糕的；烂的
+de	Scheiße	noun	feces, shit	屎；粪便；糟糕的事
+de	Scheiß	noun	shit (feces)	屎；胡扯；废话
+de	brauchen	verb	to need, to be in need of, to	需要
+de	gegen	prep	against	反对；对着；靠着；（时间）大约
+de	Moment	noun	momentum	动量；力矩
+de	Junge	noun	boy	男孩；小伙子
+de	arbeiten	verb	to work (to do a specific task	工作；劳动；运转
+de	Herr	noun	man, gentleman	先生；男士；主人
+de	dabei	adv	with one, on one	在旁边；同时；在场
+de	bevor	conj	before	在……之前
+de	bevor	adv	before	在……之前
+de	Problem	noun	problem	问题；困难
+de	fertig	adj	ready for use; done; fully pre	完成的；准备好的；（口）筋疲力尽
+de	halt	adv	Indicating that something is g	（语气词）就是；反正
+de	Halt	noun	hold; adhesion	支撑；支点；停止
+de	halten	verb	to hold (an object in one's ha	拿着；握住；保持；停住
+de	allein	adj	alone	单独的；孤独的
+de	allein	adv	alone	单独；独自；仅仅
+de	allein	conj	only, but	但是；然而
+de	sprechen	verb	to speak (some language, the t	说；讲
+de	beide	det	both	两个；两者都
+de	beide	pron	both	两个；两者都
+de	gefunden	adj	found, located	被找到的
+de	verdammen	verb	to condemn, to doom	谴责；判处；诅咒
+de	ne	article	alternative spelling of 'ne	（口）一个（= eine）
+de	ne	particle	right?; is it?; is it not?; ta	对吧；是不是
+de	jeder	pron	each	每个；每一个
+de	jeder	det	each, every	每个；每一个
+de	gern	adv	willingly; gladly; with pleasu	乐意；喜欢；高兴地
+de	darüber	adv	above, above it/this/that	在那上面；关于此事；超过
+de	verstehen	verb	to hear and interpret (speech)	懂；理解；听懂
+de	wahr	adj	true, real	真的；真实的
+de	dazu	adv	in addition to it, in addition	此外；为此；加上
+de	Bruder	noun	brother	兄弟；哥哥；弟弟
+de	daran	adv	on it, on that	在那上面；对此
+de	dank	prep	thanks to, because of, courtes	多亏；由于
+de	danken	verb	to thank	感谢
+de	Lieber	noun	dear	亲爱的（男性）
+de	Fall	noun	fall, drop (the act of falling	下落；跌倒；情况；案件
+de	Fall	noun	halyard	（航海）升降索
+de	fallen	verb	to fall, to drop	落下；跌倒；掉
+de	egal	adj	all the same, unimportant	无所谓的；一样的
+de	egal	adv	no matter	不管；无论
+de	egal	intj	expresses indifference	无所谓
+de	kennen	verb	to know; to be acquainted with	认识；熟悉；知道
+de	vergessen	verb	to forget (lose remembrance of	忘记；忘掉
+de	vergessen	verb	past participle of vergessen	忘记（过去分词）
+de	vergessen	adj	forgotten	被遗忘的
+de	echt	adj	authentic, genuine, true	真的；真正的；地道的
+de	echt	adv	really; indeed	真的；确实
+de	echt	intj	expresses disbelief or shock a	真的？；不会吧
+de	eigentlich	adv	really, actually, in truth (wi	其实；实际上；本来
+de	eigentlich	adj	actual, real, proper	真正的；实际的；本来的
+de	Uhr	noun	hours, o'clock (indicates the	钟；表；……点钟
+de	Stadt	noun	city (a large settlement)	城市；城
+de	Baby	noun	baby (infant)	婴儿；宝宝
+de	fahren	verb	to go at speed	行驶；乘车；驾驶
+de	Name	noun	name (forename, Christian name	名字；名称
+de	bekommen	verb	to receive; to get	得到；收到；获得
+de	Kopf	noun	head	头；脑袋
+de	hi	intj	hi	嗨
+de	klein	adj	small, little, wee (in physica	小的；矮小的
+de	später	adv	later	以后；稍后；后来
+de	spät	adj	late	晚的；迟的
+de	Glück	noun	happiness, joy, bliss (state o	幸福；运气；幸运
+de	glücken	verb	to succeed, be successful	成功；顺利
+de	letzte	adj	last	最后的；上一个
+de	letzen	verb	to injure, to harm, to hurt, t	（旧）伤害；（旧）使振奋
+de	N	noun	N	字母N
+de	darauf	adv	after (behind; later in time;	在那上面；随后；对此
+de	enden	verb	to end	结束；终止
+de	Doktor	noun	doctor	博士；医生
+de	toll	adj	great, nice, wonderful	极好的；了不起的；疯狂的
+de	tollen	verb	to romp, gambol, cavort	嬉闹；蹦跳
+de	eins	adv	only used in (sich) eins sein	一致（sich eins sein）
+de	bereit	adj	ready	准备好的；愿意的
+de	bereiten	verb	to prepare, to make	准备；带来；造成
+de	Ahnung	noun	anticipation, inkling	预感；概念；想法
+de	Biss	noun	bite (instance or way of bitin	咬；咬伤
+de	euer	det	your (addressing two or more p	你们的
+de	Auge	noun	eye	眼睛；眼
+de	Polizei	noun	police; law enforcement	警察；警方
+de	sterben	verb	to die	死；去世
+de	fast	adv	almost; nearly	几乎；差不多
+de	treffen	verb	(reflexive) to meet; to encoun	遇见；碰到；击中
+de	Treffen	noun	a meeting	会面；聚会；会议
+de	gerne	intj	don't mention it, not at all,	不客气；乐意效劳
+de	dran	adv	to be in a particular situatio	在上面；轮到
+de	verrückt	adj	crazy, mad	疯狂的；发疯的
+de	verrücken	verb	to shift, to move by pushing	挪动；推移
+de	neu	adj	new	新的
+de	hinter	prep	behind, after	在……后面
+de	hinter	adv	over; to some place fairly nea	到后面
+de	sorgen	verb	to take care of, to care for,	照顾；照料；操心
+de	Sorge	noun	concern, care, responsibility,	担忧；忧虑；照顾
+de	einzig	adv	only	唯一；仅仅
+de	darum	adv	around it, around that	围绕着它；因此；为此
+de	Idee	noun	idea	主意；想法
+de	ruhig	adj	quiet	安静的；平静的
+de	ruhig	adv	quietly	安静地；尽管（语气）
+de	ziemlich	adj	considerable, sizable	相当大的；可观的
+de	sogar	adv	even, actually, in fact	甚至；居然
+de	kurz	adj	short, quick, brief	短的；简短的
+de	kurz	adv	briefly (for a short extent)	简短地；短暂地
+de	liegen	verb	to lie (to be in a horizontal	躺；平放；位于
+de	Suche	noun	search	寻找；搜索
+de	je	adv	ever	曾经；每；越……
+de	woher	adv	where from, whence	从哪里
+de	langen	verb	to reach, to grab	伸手拿；够；足够
+de	Job	noun	job, position, employment	工作；职位
+de	keiner	pron	none	没有一个；谁也不
+de	spielen	verb	to play (engage in some activi	玩；演奏；扮演；比赛
+de	Spiel	noun	a game (instance or way of pla	游戏；比赛；赌博
+de	überhaupt	adv	overall, in general	总的来说；根本；究竟
+de	Teufel	noun	the Devil, Satan (supreme evil	魔鬼；撒旦
+de	verloren	adj	lost, missing	丢失的；失去的；无望的
+de	verlieren	verb	to lose (something, or a game)	丢失；失去；输掉
+de	groß	adj	big, large, large-scale	大的；高大的；伟大的
+de	Grund	noun	ground, land (usually as someo	土地；地面；底；原因
+de	Mama	noun	mum, mummy, mom, mommy	妈妈
+de	Ruhe	noun	calm, relative quietness (abse	安静；平静；休息
+de	ruhen	verb	to rest; to sleep	休息；睡觉；静止
+de	gewesen	adj	former; erstwhile neutral, but	以前的；前任的
+de	Tod	noun	death	死；死亡
+de	Stunde	noun	hour (unit of time consisting	小时；钟点；课时
+de	hoffen	verb	to hope	希望；盼望
+de	oben	adv	above	在上面；上方；楼上
+de	gestern	adv	yesterday	昨天
+de	Gestern	noun	yesterday (the recent past)	昨天；过去
+de	versuchen	verb	to try, to attempt (often with	尝试；试图；品尝
+de	Art	noun	kind, sort, type	种类；类型；方式；方法
+de	arten	verb	to become [with nach (+ dative	像（某人）；变得像
+de	Schatz	noun	treasure	宝藏；宝贝；亲爱的
+de	he	intj	An exclamation to get attentio	嘿
+de	etwa	adv	approximately	大约；大概；难道
+de	erzählen	verb	to tell, to narrate, to recoun	讲述；叙述；告诉
+de	läuft	verb	third-person singular present	跑（laufen 第三人称单数）
+de	laufen	verb	to walk; to jog; to run (to mo	走；跑；运行
+de	schwer	adj	heavy, weighty	重的；沉重的；困难的
+de	anders	adv	different, differently	不同；不一样；另外
+de	Miss	noun	Miss (form of address)	小姐；选美冠军
+de	messen	verb	to measure (something) (to asc	测量；量
+de	fünf	num	five (numerical value represen	五
+de	Fünf	noun	five	五（数字）
+de	Wasser	noun	water (H₂O)	水
+de	erste	adj	first	第一的；第一个
+de	Erster	noun	winner (person in first place)	第一名；冠军
+de	Geschichte	noun	history	历史；故事
+de	wenig	adj	little, few (a small amount, a	少的；不多的
+de	holen	verb	to (go) get, to fetch (to go s	取来；拿来；去叫
+de	nett	adj	nice; friendly; likable	友好的；和善的；可爱的
+de	Wahrheit	noun	truth	真相；真理；实话
+de	Woche	noun	week (period of seven days cou	星期；周
+de	deshalb	adv	therefore; for that (reason),	因此；所以
+de	welche	pron	some	一些；有些
+de	welcher	det	which; what	哪个；什么样的
+de	welcher	pron	which (one)	哪个；哪一个
+de	bestimmt	adj	certain	确定的；特定的；坚决的
+de	bestimmt	adv	certainly, definitely	肯定；一定
+de	bestimmen	verb	to determine	确定；规定；决定
+de	hoch	adj	high, tall	高的
+de	hoch	adv	up, upwards	向上；高高地
+de	Hoch	noun	high, anticyclone	高气压；高压区
+de	Alter	noun	age, old age	年龄；老年
+de	Alter	noun	nominalization of alt (“someon	老人；老家伙
+de	Alter	intj	man, dude, mate; used for emph	哥们；伙计
+de	alt	adj	old	老的；旧的；……岁的
+de	Schau	noun	show	展览；表演
+de	schauen	verb	to watch, to view (a movie or	看；瞧；观看
+de	ah	intj	expressing understanding	啊；哦（表示明白）
+de	Land	noun	country (territory of a nation	国家；土地；农村
+de	landen	verb	to land (to reach solid ground	降落；着陆
+de	Zimmer	noun	room (separate part of a build	房间；屋子
+de	zimmern	verb	to build something from wood	用木头做；做木工
+de	wagen	verb	to dare (to do something, desp	敢；冒险
+de	Wagen	noun	a car, an automobile, a vehicl	汽车；车；车厢
+de	vier	num	four (numerical value represen	四
+de	gefallen	verb	to please; to appeal to [with	喜欢；使满意
+de	gefallen	adj	fallen, dropped	掉下的；落下的；阵亡的
+de	gefallen	verb	past participle of gefallen	喜欢（过去分词）
+de	Spaß	noun	fun	乐趣；玩笑
+de	spaßen	verb	to joke; to jest; to frolic	开玩笑；嬉戏
+de	schuld	adj	only used in schuld sein (“to	有过错的；该负责的
+de	Schuld	noun	debt	债务；过错；罪责
+de	schulden	verb	to owe	欠（债）；欠
+de	verlassen	verb	to leave, to abandon; to depar	离开；抛弃；离弃
+de	verlassen	verb	past participle of verlassen	离开；抛弃（过去分词）
+de	verlassen	adj	lonely, forsaken	被抛弃的；孤零零的；荒凉的
+de	verlassen	adv	forlornly	孤零零地
+de	zeigen	verb	to point	指；指出；展示
+de	Beste	noun	best (female person)	最好的人（女）；最好的东西
+de	ernst	adj	serious, severe, grave	严肃的；认真的；严重的
+de	Ernst	noun	earnestness, seriousness	认真；严肃
+de	denen	pron	(to) whom, (to) which, that	（关系代词，复数与格）那些人；对他们
+de	Ort	noun	end of a shaft or adit	（采矿）坑道尽头
+de	Ort	noun	awl	（旧）锥子
+de	Ort	noun	of a Reichstaler (coin)	（旧）四分之一塔勒（硬币）
+de	Seite	noun	side (a bounding straight edge	边；面；页；方面
+de	zwischen	prep	between	在……之间
+de	eben	adj	flat, smooth, even (of a surfa	平坦的；平滑的
+de	eben	adv	just, simply, indicating that	就是；刚才；恰好
+de	eben	intj	exactly; used to express agree	正是；对啊
+de	während	conj	while (at the same time as)	当……时；而
+de	während	prep	during, at the time of	在……期间
+de	währen	verb	to last, persist	持续
+de	Guter	noun	nominalization of gut	好人
+de	Krieg	noun	war, warfare	战争
+de	kriegen	verb	to get	得到；收到
+de	Anderes	noun	nominalization of andere: the	别的东西；其他事物
+de	Tage	noun	period, that time of the month	（口）月经；例假
+de	entschuldigen	verb	to excuse (something or (forma	原谅；道歉
+de	betten	verb	to bed (place in a bed)	安放在床上；使躺下
+de	schlecht	adj	bad, evil, wicked (the opposit	坏的；差的；不好的
+de	schlecht	adv	badly, poorly, not well (in a	不好地；差
+de	Schule	noun	school (an institution dedicat	学校；学派
+de	Entschuldigung	noun	apology (expression of remorse	道歉；借口
+de	Entschuldigung	intj	excuse me, pardon, sorry	对不起；劳驾
+de	Wort	noun	word as an isolated unit	词；单词；话
+de	Typ	noun	type	类型；型号
+de	Typ	noun	guy; bloke	家伙；小伙子
+de	schlafen	verb	to sleep	睡觉；睡
+de	äh	intj	an exclamation of disgust; yuc	呸；恶心
+de	Gesicht	noun	face	脸；面孔
+de	Gesicht	noun	vision, sight (an observation	幻象；视力
+de	falls	conj	if, in the event that	如果；假如；万一
+de	bloß	adj	mere, sole	仅仅的；赤裸的
+de	bloß	adv	merely, only	只是；仅仅
+de	unten	adv	below	在下面；楼下
+de	Teil	noun	part, piece (of a whole, often	部分；份
+de	Teil	noun	part, piece (a physical object	零件；部件
+de	teilen	verb	to split, to share	分；分开；分享；除
+de	mensch	pron	one, they (indefinite third-pe	（中性代词）人们；有人
+de	Kleiner	noun	boy, young man	小家伙；小男孩
+de	stellen	verb	to pose, to lodge	放；摆；提出（问题）
+de	oft	adv	often	经常；常常
+de	trinken	verb	to drink (to drink liquids (in	喝；饮
+de	Trinken	noun	drinking (consumption of liqui	喝；饮酒
+de	einig	pron	some, a few, plenty	一些；若干
+de	einig	adj	united	一致的；团结的
+de	dingen	verb	to hire for a crime	雇用（行凶者）；收买
+de	ehrlich	adj	honest, truthful, true	诚实的；真诚的
+de	scheinen	verb	to shine; to gleam	照耀；发光；似乎
+de	herzen	verb	to hug, embrace	拥抱；爱抚
+de	glücklich	adj	happy; both momentarily and ge	幸福的；快乐的；幸运的
+de	Alt	noun	alto (musical voice; person or	女低音；中音
+de	Altbier	noun	altbier (form of German top-fe	老啤酒（德国上层发酵深色啤酒）
+de	wiedersehen	verb	(reflexive) to see again, to m	再见到；重逢
+de	Wiedersehen	noun	reunion; seeing again; instanc	重逢；再见
+de	freien	verb	Synonym of befreien	解放；（旧）求婚
+de	drauf	adv	high	在上面；（口）情绪高涨
+de	möglich	adj	possible (what can be done or	可能的
+de	reichen	verb	to reach (extend a certain dis	伸到；足够；递给
+de	fest	adj	firm; compact; hard	坚固的；结实的；固定的
+de	festen	verb	to celebrate, to party	庆祝；聚会
+de	kaum	adv	barely, hardly (qualifying ver	几乎不；刚刚
+de	irgendetwas	pron	anything (at all) (any matter,	任何东西；某事
+de	klingen	verb	to ring; to clink	响；发出声音；听起来
+de	Platz	noun	square, plaza, piazza	广场；地方；座位
+de	platzen	verb	to burst, to pop (to be torn a	爆裂；破裂；（计划）落空
+de	falsch	adj	false, unfactual, untrue	错误的；不对的；假的
+de	sondern	verb	to separate, to sunder	分开；分离
+de	Nummer	noun	number; see usage notes below	号码；编号
+de	früher	adj	former, erstwhile, previous (t	以前的；从前的
+de	früher	adv	formerly, in the past (often y	以前；从前
+de	früh	adj	early	早的；早期的
+de	früh	adv	early	早；早上
+de	jungen	verb	to give birth	（动物）下崽
+de	wohin	adv	where to, whither	去哪里；往何处
+de	außer	prep	except; besides; apart from	除了……以外
+de	außer	conj	except; referring to a followi	除非；除了
+de	Frühe	noun	morning	清晨；早上
+de	setzen	verb	(reflexive) to sit down	坐下；放；安置
+de	sitzen	verb	to sit; to perch	坐；合身
+de	Arsch	noun	arse (mean or despicable perso	混蛋；讨厌鬼
+de	Telefon	noun	telephone	电话
+de	plan	adj	planar, flat, level, smooth	平的；平面的
+de	Plan	noun	project	计划；方案；图纸
+de	Plan	noun	battleground, arena	（旧）战场；场地
+de	planen	verb	to plan (some action or event)	计划；规划
+de	retten	verb	to save, to rescue	救；拯救
+de	hierher	adv	to here, here (to this place),	到这里
+de	Fehler	noun	fault, error, mistake	错误；缺点
+de	Dollar	noun	dollar	美元；元
+de	allem	pron	Dative singular masculine and	（all 的与格）一切
+de	Pass	noun	pass, mountain pass	山口；关隘
+de	Pass	noun	pass (document granting permis	护照；通行证
+de	Pass	noun	gothic pass (an ornament consi	（哥特式建筑）花饰
+de	nah	adj	near (in space or time or in a	近的；接近的
+de	gegeben	adj	given	给定的；已知的
+de	Menge	noun	quantity	数量；大量；一群；集合
+de	bereits	adv	already	已经
+de	Sech	noun	coulter (knife on a plough, fi	犁刀
+de	Ruf	noun	call, shout, cry	呼喊；名声
+de	schaffen	verb	to create, to call into being	创造；创作
+de	Schaff	noun	wooden container, tub, barrel	木桶；（方言）柜子
+de	leider	adv	unfortunately	可惜；遗憾地
+de	Leider	noun	sufferer	受苦的人
+de	scheiß	adj	shitty, shit	糟糕的；该死的
+de	scheiß	adv	very, damn, piss	非常；该死地
+de	scheißen	verb	to shit	拉屎；（口）不在乎
+de	trotzdem	adv	anyhow, nevertheless	尽管如此；仍然
+de	trotzdem	conj	although	尽管；虽然
+de	Doktorin	noun	female doctor, woman doctor	女医生；女博士
+de	voll	adj	full; filled	满的；充满的
+de	voll	adv	fully	完全；（口）非常
+de	Film	noun	film (a thin layer of some sub	膜；薄层；电影；胶片
+de	filmen	verb	to film, to shoot	拍摄；拍电影
+de	überall	adv	everywhere	到处；处处
+de	geworden	adj	become, got	变成的；已成为的
+de	direkt	adj	direct, straight, without devi	直接的；径直的
+de	direkt	adv	directly	直接地；径直
+de	Tat	noun	deed	行为；行动；作为
+de	Schiff	noun	ship	船；舰
+de	schiffen	verb	to transport by ship	用船运输；航行
+de	schiffen	verb	to urinate	（俗）撒尿；（俗）下大雨
+de	König	noun	king (monarch, chess, card gam	国王；王
+de	danach	adv	after it, after that; thereaft	此后；随后；然后
+de	lernen	verb	to learn, to acquire knowledge	学；学习
+de	deswegen	adv	therefore, because of that	因此；所以
+de	nennen	verb	to name (to give a name to)	叫做；称呼；命名
+de	Höhenmeter	noun	vertical meter	海拔高度差（米）
+de	Feuer	noun	fire (chemical process)	火；火灾；开火
+de	feuern	verb	to fire	开火；射击；（口）解雇
+de	erinnern	verb	to remind	提醒；记起
+de	völlig	adj	complete, total, utter	完全的；彻底的
+de	Stelle	noun	location, spot (specific locat	地方；位置；职位
+de	Kumpel	noun	miner	矿工；（口）伙伴
+de	Luft	noun	air, atmosphere	空气；大气
+de	I	noun	I	字母I
+de	ziehen	verb	to pull; to drag	拉；拖；拔
+de	verschwinden	verb	to disappear, to vanish, to mo	消失；不见；（口）走开
+de	Verschwinden	noun	disappearance	消失；失踪
+de	aufhören	verb	to stop; to quit; to cease	停止；结束
+de	eigen	adj	own, peculiar or private to so	自己的；特有的；独特的
+de	zwar	adv	Signals a following contrary c	虽然；固然
+de	Gros	noun	a gross, 144	罗（十二打）
+de	Buch	noun	book (collection of sheets of	书；书本
+de	Buch	noun	omasum, the third compartment	（反刍动物）重瓣胃
+de	buchen	adj	beech	山毛榉木的
+de	buchen	verb	to book	预订；记账
+de	krank	adj	ill, sick (in bad health)	生病的；有病的
+de	kranken	verb	to be ailing (from), to be hel	患有；受……困扰
+de	Wert	noun	value (determinable numerical	价值；值；数值
+de	werten	verb	to rate	评价；评分
+de	froh	adj	glad; (momentarily) happy; (mo	高兴的；快乐的
+de	Straße	noun	street; road (a way wide enoug	街道；马路
+de	Heirat	noun	marrying; marriage; wedding (t	结婚；婚姻
+de	super	adj	super, great, awesome	超棒的；极好的
+de	Super	noun	petrol with high octane number	高级汽油
+de	Onkel	noun	uncle	叔叔；舅舅；伯伯
+de	total	adj	total, absolute, complete, utt	完全的；彻底的
+de	total	adv	totally, absolutely, completel	完全；彻底
+de	gebracht	adj	brought, carried	带来的；运送的
+de	erklären	verb	to explain, to make clear	解释；说明；声明
+de	Wahl	noun	choice, selection	选择；选举
+de	damals	adv	at that time (in the past); at	当时；那时
+de	leicht	adj	light (not heavy)	轻的；容易的
+de	leicht	adv	slightly	轻微地；稍微
+de	nachdem	conj	after (that)	在……之后
+de	Gefühl	noun	feeling (either physical sensa	感觉；感情
+de	geschafft	adj	exhausted	筋疲力尽的；累坏的
+de	Type	noun	a type in typesetting	铅字；活字；（口）怪人
+de	Stück	noun	one, item, piece, unit(of some	块；件；个；部分
+de	licht	adj	sparse (e.g. of hair or a fore	稀疏的；明亮的
+de	Licht	noun	light (electromagnetic radiati	光；光线；灯
+de	lichten	verb	to thin out; to clear; to make	使稀疏；清理
+de	lichten	verb	to weigh (the anchor)	起锚
+de	getroffen	adj	hit, struck, met	被击中的；被打动的
+de	himmeln	verb	to look at the sky; to ogle (t	仰望天空；痴痴地看
+de	kümmern	verb	(reflexive) to take care, to l	照顾；关心；操心
+de	laut	adj	loud, noisy	响亮的；大声的；吵闹的
+de	laut	prep	according to	根据；按照
+de	Laut	noun	any sound	声音；音
+de	lauten	verb	to be, to read (have a certain	内容是；写着
+de	anrufen	verb	to call, to ring (by telephone	打电话；呼唤；求助于
+de	Sitz	noun	seat	座位；所在地
+de	daß	conj	Formerly standard spelling of	（dass 的旧拼写）引导从句的连词
+de	Erde	noun	earth	地球；土地；泥土
+de	Großer	noun	great (referring to a male)	大帝；大人物
+de	schlüsseln	verb	to calculate according to give	按比例分配；按数据计算
+de	Rest	noun	rest, remainder, remnant	剩余；余数；残余
+de	eher	adv	fairly, relatively, somewhat;	宁可；更早；相当
+de	gefragt	adj	in demand; requested; asked fo	受欢迎的；需求大的
+de	Gefängnis	noun	prison, jail (building)	监狱；监禁
+de	opfern	verb	to sacrifice, to give up (for	献祭；牺牲
+de	Körper	noun	body (of a person, animal, etc	身体；物体；躯体
+de	solch	pron	such	这样的；如此的
+de	Mist	noun	manure (domestic animals’ excr	粪肥；（口）废话；垃圾
+de	Mist	intj	crap! darn! (expresses mild an	糟糕！；该死！
+de	misten	verb	to manure	施肥；清除粪便
+de	Schreibe	noun	writing	（口）文笔；写作风格
+de	böse	adv	nastily, evilly	恶狠狠地；严重地
+de	Böse	noun	the Evil One	魔鬼；恶魔
+de	vorstellen	verb	to introduce (someone), to pre	介绍；想象
+de	wovon	adv	(reflexive) about what, what .	关于什么；从什么
+de	wovon	pron	of which (referring to the who	（关系副词）其中；关于此
+de	sobald	conj	as soon as, by the time	一……就
+de	nochmal	adv	once again	再一次
+de	Sex	noun	sex (sexual intercourse)	性；性交
+de	Wohnung	noun	domicile; dwelling; lodging; a	住宅；公寓；住所
+de	weh	adj	sore, painful	疼的；痛的
+de	weh	intj	alas! woe!	唉！；哎呀
+de	klasse	adj	great, awesome	棒极了；一流的
+de	Klasse	noun	form; grade; year	班级；年级；等级
+de	hart	adj	hard	硬的；坚硬的；严厉的
+de	hart	adv	hard (with force or effort)	努力地；猛烈地
+de	Sinn	noun	sense	感官；意义；意思
+de	sinnen	verb	to think, to ponder, to cogita	沉思；思索
+de	verletzt	adj	hurt, injured	受伤的
+de	verletzen	verb	to hurt, to injure (cause bodi	伤害；弄伤；违反
+de	erfahren	verb	to find out, learn, to come to	得知；了解到；经历
+de	erfahren	verb	past participle of erfahren	得知；经历（过去分词）
+de	tragen	verb	to carry, to bear (something o	携带；搬运；穿着；承担
+de	vorsichtig	adj	deliberate (not hasty or sudde	小心的；谨慎的
+de	stolz	adj	proud	骄傲的；自豪的
+de	stark	adj	strong (intense, powerful, uny	强壮的；强大的；强烈的
+de	besonders	adv	especially, particularly	尤其；特别
+de	Schöne	noun	nominalization of schön	美人；美好的东西
+de	schicken	verb	to send, to dispatch (a person	寄；送；派遣
+de	schicken	verb	to chew tobacco	嚼烟草
+de	solange	adv	meanwhile	在此期间；暂且
+de	solange	conj	while, since	只要；在……期间
+de	großartig	adj	terrific, superb, etc.	极好的；了不起的
+de	großartig	adv	magnificently, greatly	出色地；极好地
+de	Stand	noun	standing, state, status, posit	状况；状态；摊位
+de	erwartet	adj	expected, anticipated	预期的；期待的
+de	erwarten	verb	to expect, to consider likely	期待；预期；等待
+de	Boden	noun	ground, soil	地面；土壤；地板
+de	Stimme	noun	voice (speaking or singing), c	声音；嗓音；选票
+de	still	adj	quiet, silent	安静的；寂静的
+de	still	adv	quietly, silently	静静地；默默地
+de	Sicherheit	noun	certainty	确定；把握；安全
+de	Mund	noun	hand	（旧）监护；保护
+de	kämpfen	verb	to fight, to struggle	战斗；斗争；奋斗
+de	Kampf	noun	struggle, battle, campaign, fi	斗争；战斗；比赛
+de	Lache	noun	puddle	水坑；水洼
+de	Lache	noun	loud laughter	大笑；笑声
+de	Zeug	noun	stuff, gear, equipment	东西；物品；装备
+de	zeugen	verb	to beget, father, procreate	生育；生（孩子）
+de	lustig	adj	funny, humorous	好笑的；有趣的
+de	umbringen	verb	to kill, to murder, to do away	杀死；谋杀
+de	hassen	verb	to hate	恨；憎恨
+de	schlimm	adj	bad, terrible, serious (seriou	坏的；糟糕的；严重的
+de	schlimm	adv	badly, severely	严重地；糟糕地
+de	fliegen	verb	to fly; to travel by air	飞；飞行；乘飞机
+de	Fliege	noun	fly (insect)	苍蝇；领结
+de	Team	noun	team	团队；小组
+de	General	noun	general (officer in any genera	将军
+de	Schluss	noun	end, ending, conclusion, finis	结束；结尾；结论
+de	verdient	adj	deserved	应得的；有功的
+de	verdienen	verb	to make money, to earn	挣（钱）；赚；值得
+de	perfekt	adj	perfect	完美的
+de	Perfekt	noun	perfect	（语法）现在完成时
+de	versprechen	verb	to promise	答应；许诺
+de	Handy	noun	mobile phone, mobile, cell pho	手机
+de	hinten	adv	behind; in the back	在后面；后边
+de	acht	num	eight (numerical value represe	八
+de	Acht	noun	the natural number eight	八
+de	Acht	noun	attention; regard; heed	注意；留心
+de	Acht	noun	sworn enmity; declaration of v	（旧）放逐令；剥夺法律保护
+de	Acht	noun	land belonging to a mansion or	（旧）庄园属地
+de	achten	verb	to care about, to pay attentio	注意；重视；尊重
+de	nötig	adj	necessary	必要的；需要的
+de	nötig	adv	urgently	急需地
+de	nötigen	verb	to coerce (force someone throu	强迫；胁迫；（礼貌地）催促
+de	A	noun	A	字母A；（音乐）A音
+de	A	noun	abbreviation of Arbeitsjuden	（纳粹用语）劳动犹太人（缩写）
+de	morden	verb	to commit murder	杀人；谋杀
+de	unmöglich	adv	impossibly	不可能地；无论如何不
+de	tatsächlich	adj	actual, real, factual	实际的；真实的
+de	tatsächlich	adv	actually, really, indeed	实际上；确实
+de	Folge	noun	sequence	顺序；序列；后果；（连续剧）一集
+de	Nähe	noun	nearness, closeness	附近；接近
+de	nähen	verb	to sew	缝；缝纫
+de	plötzlich	adj	sudden, abrupt, brusque	突然的
+de	Tisch	noun	dining table, dinner table	桌子；餐桌
+de	jemals	adv	ever	曾经；任何时候
+de	Liege	noun	a flat or slightly inclined pi	躺椅；沙发床
+de	verkaufen	verb	to sell (something in exchange	卖；出售
+de	gefährlich	adj	dangerous, hazardous	危险的
+de	Hotel	noun	hotel	酒店；旅馆
+de	Meister	noun	master	大师；师傅；冠军
+de	Antwort	noun	answer	回答；答复
+de	antworten	verb	to answer, to reply	回答；答复
+de	geschickt	adj	adept, habile, skillful, cleve	灵巧的；熟练的；聪明的
+de	geschickt	adv	adeptly, skillfully	熟练地；巧妙地
+de	obwohl	conj	although, though, while	尽管；虽然
+de	komisch	adj	comedic, comic, pertaining to	喜剧的；滑稽的；奇怪的
+de	Gewinn	noun	profit, gain, yield	利润；收益；奖金
+de	voller	prep	full of	充满……的
+de	dumm	adj	dumb, stupid	笨的；愚蠢的
+de	Ärger	noun	annoyance, anger	恼怒；生气；麻烦
+de	ärgern	verb	to annoy, to make angry	使生气；惹恼
+de	Bild	noun	digital photograph	照片；图片；画
+de	bilden	verb	to form, to train	形成；构成；培养
+de	dagegen	adv	against it, against that	反对；对此
+de	dagegen	conj	however, by contrast, on the o	相反；然而
+de	Leich	noun	a song consisting of strophes	（中世纪）莱歌
+de	Arschloch	noun	arsehole	屁眼；（骂）混蛋
+de	verheiraten	verb	to wed; to marry (officially j	使结婚；嫁；娶
+de	Agent	noun	agent (male or of unspecified	代理人；特工；间谍
+de	Agentin	noun	agent (female equivalent of Ag	女代理人；女特工
+de	Traum	noun	dream	梦；梦想
+de	regeln	verb	to regulate	调节；规定；处理
+de	Regel	noun	rule	规则；规定；（口）月经
+de	Fenster	noun	window	窗户；窗口
+de	fangen	verb	to catch (grab something flyin	抓住；接住；捕捉
+de	Fangen	noun	tag	捉人游戏
+de	fort	adv	away	离开；走开；继续
+de	Fort	noun	fort (fortified defensive stru	要塞；堡垒
+de	ständig	adj	permanent, constant (without b	经常的；持续不断的；常设的
+de	Gefahr	noun	danger, hazard, peril, risk	危险；风险
+de	Augenblick	intj	one second!, one moment!	稍等！；等一下
+de	Bescheid	noun	notification, information	通知；消息；答复
+de	bescheiden	adj	modest, humble (of a person)	谦虚的；朴素的；有限的
+de	bescheiden	verb	to confer the decision or fate	正式通知；（旧）裁决
+de	Rum	noun	rum	朗姆酒
+de	herum	adv	about, around.	围绕；到处
+de	Gedanke	noun	a thought [with an (+ accusati	想法；念头；思想
+de	benutzen	verb	to make use (of)	使用；利用
+de	Bewegung	intj	get a move on, hurry up, let's	快点！；动起来！
+de	wünschen	verb	(reflexive) to wish for; to ma	希望；祝愿；想要
+de	zahlen	verb	to pay	付钱；支付
+de	legen	verb	(reflexive) to lie down	放；平放；躺下
+de	offen	adj	open	开着的；公开的；坦率的
+de	Klappe	noun	any technical piece of equipme	盖板；活门；（口）嘴
+de	klappen	verb	to clap (make a soft clapping	啪地合上；翻开；（口）顺利
+de	fingern	verb	to fumble, to grope	摸索；摆弄；（口）设法弄到
+de	ehe	conj	before, ere	在……之前
+de	Rolle	noun	roll, reel, spool	卷；滚轮；角色
+de	rollen	verb	to roll	滚动；卷
+de	Gleiche	noun	topping out (the finishing of	（奥地利）上梁仪式；封顶
+de	Gleiche	noun	nominalization of gleich: fema	同样的人（女）；同样的东西
+de	Gleiche	noun	inflection of Gleicher: strong	同样的人（Gleicher 的变格）
+de	Hochzeit	noun	wedding, marriage (a ceremony	婚礼
+de	wachen	verb	to be awake	醒着；守夜；看守
+de	Arm	noun	an arm	胳膊；手臂；分支
+de	Informationen	noun	lowdown	信息；内情
+de	erledigt	adj	completed	完成了的；（口）累垮的
+de	erledigen	verb	to finish, to finalize, to com	办完；处理；（口）干掉
+de	ansehen	verb	(reflexive) to look at, to hav	看；观看；看作
+de	zuhause	adv	alternative spelling of zu Hau	在家
+de	Zuhause	noun	one’s living premises, home	家；住所
+de	wunderbar	adj	wonderful	美妙的；极好的；奇妙的
+de	Reise	noun	journey, travel	旅行；旅程
+de	reisen	verb	to travel	旅行；出行
+de	reisen	verb	to rise	（旧）升起；出发
+de	Dame	noun	lady (woman of good breeding a	女士；夫人；（棋牌）王后
+de	Dame	noun	draughts; checkers	国际跳棋
+de	irgendwann	adv	sometime, somewhen, anytime	某个时候；总有一天
+de	stecken	verb	causative of stecken when intr	插；塞；放进
+de	jedenfalls	adv	in any case	无论如何；至少
+de	schreien	verb	to shout; to yell; to cry; to	喊；叫；尖叫
+de	Tolle	noun	tuft (of hair); quiff	一绺头发；飞机头
+de	rüber	adv	over here	到这边来；过去
+de	hinüber	adv	across, over, there (towards a	过去；到那边；（口）坏了
+de	raum	adj	of the sea, wide open	（航海）开阔的；宽阔的
+de	Foto	noun	camera (device for making stil	（口）照相机
+de	kalt	adj	cold, chilly; the physical per	冷的；寒冷的；冷淡的
+de	kalt	adv	as base rent; excluding utilit	不含水电暖（租金）
+de	bisher	adv	so far, until now, as yet	迄今；到目前为止
+de	unbedingt	adj	absolute	绝对的；无条件的
+de	unbedingt	adv	absolutely, definitely	一定；务必；无论如何
+de	Zug	noun	train (multiple vehicles one b	火车；列车；（棋）一步；吸气
+de	wofür	adv	for what, wherefore, why	为了什么；为何
+de	freuen	verb	to gladden, to make glad, to m	使高兴；高兴
+de	Seele	noun	soul	灵魂；心灵
+de	schießen	verb	to shoot; to fire	射击；开枪；射门
+de	müde	adj	tired	累的；困的；疲倦的
+de	dauern	verb	to last, to continue, to persi	持续；需要（时间）
+de	dauern	verb	to grieve; to arouse pity; to	（旧）使怜悯；使惋惜
+de	Brief	noun	letter (written message)	信；书信
+de	Sucht	noun	addiction	瘾；成瘾
+de	bekannt	adj	known, familiar	著名的；熟悉的；认识的
+de	bekennen	verb	to confess, to avow, to profes	承认；坦白；表明（信仰）
+de	dahin	adv	there (to or into that place;	到那里；（口）过去了；消逝
+de	Kontrolle	noun	inspection	检查；控制；监督
+de	Beispiel	noun	example	例子；榜样
+de	derselbe	pron	the same	同一个；同样的
+de	derselbe	det	the same	同一个；同样的
+de	schlagen	verb	to beat; to hit; to knock; to	打；击；敲
+de	wütend	adv	angrily, furiously	愤怒地
+de	wüten	verb	to rage, to rampage, to riot,	肆虐；发狂
+de	Weise	noun	way, manner	方式；方法
+de	weisen	verb	to indicate; to show	指示；指出；指向
+de	Vorsicht	noun	caution, cautiousness	小心；谨慎
+de	Vorsicht	intj	beware!, caution!, careful!	小心！；当心！
+de	vermisst	adj	missing (of unknown whereabout	失踪的
+de	vermissen	verb	to miss (to feel the absence o	想念；怀念；发觉丢失
+de	hübsch	adj	pretty, handsome	漂亮的；好看的
+de	Verbindung	noun	connection	联系；连接；联系方式
+de	tief	adj	deep (having a long distance t	深的；低的
+de	Tief	noun	depression, low (area of compa	低气压；低谷
+de	Richtung	noun	direction	方向；流派
+de	Richtung	prep	towards, to (in the context of	朝向；往……方向
+de	sowieso	adv	anyway, anyhow, in any case	反正；无论如何
+de	sowieso	intj	something; replaces unknown or	某某（代替不重要的名字）
+de	kraft	prep	on the basis of; by virtue of;	凭借；依据
+de	Kraft	noun	power, force, strength	力量；力；能力
+de	normal	intj	sure, of course, obviously; us	当然；那还用说
+de	Normal	noun	standard, normal	标准；常规
+de	Lauf	noun	run, race	跑；赛跑；进程；（枪）管
+de	ehren	verb	to honor	尊敬；敬重；给予荣誉
+de	bar	adj	bare	赤裸的；纯粹的
+de	bar	adv	in cash	用现金
+de	Bar	noun	bar (unit of pressure), a mega	巴（压强单位）
+de	stehlen	verb	to steal	偷；偷窃
+de	Lügen	noun	bullshit (game that involves b	吹牛（纸牌游戏）
+de	verschwunden	adj	disappeared	消失的；失踪的
+sv	må	verb	may	但愿；可以
+sv	hallå	intj	hello (greeting)	喂；你好
+sv	ur	noun	prominent (windy) precipitatio	（旧）阵雨；骤雨
+sv	yr	adj	dizzy	头晕；狂野
+sv	vän	adj	fair, beautiful	（旧）美丽；可爱
+sv	vän	noun	a friend	朋友
+sv	stanna	verb	to stay; to remain at a place	停留；停下
+sv	väga	verb	to fight, to battle	（古）战斗；杀
+sv	reda	verb	to make ready, to take care of	准备；整理
+sv	helvete	intj	a curse	见鬼；该死
+sv	vart	verb	synonym of blev, past indicati	变成（bli的过去式）
+sv	fråga	noun	a question (request for inform	问题；询问
+sv	köra	verb	to sing in a choir	（少）在合唱团唱歌
+sv	verka	verb	to work, to act	起作用；工作；似乎
+sv	jo	intj	yes; used as a disagreement to	是的（反驳否定句）
+sv	justitieombudsman	noun	a parliamentary ombudsman (abb	议会监察专员
+sv	fram	adv	forth, forward, out	向前；出来
+sv	fru	noun	wife	妻子；夫人
+sv	träffa	verb	to hit a target	击中；遇见
+sv	säkert	adv	safely	安全地；肯定
+sv	slut	adj	over, finished; which has come	结束了；用完了
+sv	sedan	noun	sedan; a body style of a car	轿车
+sv	hos	prep	at someone's place or building	在…家；在…那里
+sv	ho	pron	who	（方言）谁
+sv	ingenting	pron	nothing	什么也没有
+sv	åka	verb	to go by using something more	乘坐；去
+sv	visa	noun	a song, a tune, particularly o	歌曲；民谣
+sv	visa	verb	to show, to display	显示；展示
+sv	vis	adj	wise	聪明的；明智的
+sv	lämna	verb	to leave; to not take away wit	离开；留下；交给
+sv	börja	verb	to begin; to start	开始
+sv	genom	noun	a genome; the complete DNA of	基因组
+sv	härifrån	adv	from here; herefrom	从这里
+sv	so	noun	sow (female pig)	母猪
+sv	sina	verb	to dry up; to cease containing	干涸
+sv	vilket	pron	which, who, whom, what a; neut	哪个；那个（中性关系代词）
+sv	minnas	verb	to remember, to recall (recoll	记得
+sv	sista	adj	last	最后的
+sv	era	pron	your, yours (possessed by the	你们的
+sv	tänk	intj	Expresses (mild) thoughtful am	想想看！；真没想到
+sv	tag	noun	a grip, a hold (of something)	抓握；把握
+sv	ändå	adv	still, yet (despite some thing	仍然；还是
+sv	sann	adj	true; according to the truth	真实的；真的
+sv	fast	adj	caught (unable to move freely)	被抓住；卡住；固定
+sv	fast	adv	fixed, firmly, steadily (synon	牢固地；固定地
+sv	fast	conj	even though	虽然；尽管
+sv	ligga	verb	to lie; be in a horizontal pos	躺；位于
+sv	skit	noun	the shit (as an intensifier)	屎；狗屁
+sv	skit	intj	shit, damnit	该死；妈的
+sv	skita	verb	to make (something) dirty (usu	拉屎；弄脏
+sv	skita	noun	an anus	（俚）肛门
+sv	runt	adv	around; aimlessly (about movem	四处；周围
+sv	rund	adj	round	圆的；丰满
+sv	klar	adj	ready, finished, done	准备好；完成；清楚
+sv	fall	noun	a fall (the act of falling)	跌倒；情况；案件
+sv	fyra	noun	four; the digit "4"	四；数字4
+sv	fyra	verb	to fire (a weapon, a rocket)	发射；开（炮）
+sv	dra	verb	to pull (on something, possibl	拉；拖；离开
+sv	dollar	noun	dollar	美元
+sv	åker	noun	field; a wide, open space that	田地
+sv	kul	adj	fun	好玩；有趣
+sv	tala	noun	tala (currency of Samoa)	塔拉（萨摩亚货币）
+sv	illa	adv	badly	坏；糟糕
+sv	helst	adv	preferably	最好；宁愿
+sv	gärna	adv	gladly, happily, with keenness	乐意；愿意
+sv	annars	adv	otherwise, or else	否则；不然
+sv	ensam	adj	alone	独自；孤单
+sv	lik	adj	looking like, resembling (in a	相像的
+sv	lägg	noun	knuckle, shank, shin, hand; pa	小腿；腿肉
+sv	lägga	verb	to place lying (to lay) somewh	放；摆；放平
+sv	hämta	verb	to get, to fetch, to retrieve	取；拿来；接
+sv	jobba	verb	to work (to do a specific task	工作
+sv	doktor	noun	doctor; physician	医生；博士
+sv	gången	adj	gone, past	过去的；逝去的
+sv	båda	det	both; either, each of two	两个都
+sv	båda	verb	to bode (well or ill)	预示
+sv	tur	noun	a tour; a journey through a bu	旅行；轮次；运气
+sv	svår	adj	difficult, hard (requiring sig	难；严重
+sv	lugn	adj	calm, tranquil (of a person, w	平静；冷静
+sv	lugn	noun	calm, calmness	平静；安宁
+sv	spela	verb	to play; a game, a tune, a mel	玩；演奏；扮演
+sv	älskling	noun	darling, honey	亲爱的
+sv	emo	noun	emo (3), a genre of music and	情绪核（音乐流派及风格）
+sv	öppen	adj	open (not closed)	开着的；公开
+sv	släpp	noun	a release or releasing (of som	释放；发行
+sv	släppa	verb	to let go (of); release (one's	放开；释放
+sv	hus	noun	beluga (Huso huso)	欧洲鳇
+sv	senare	adj	latter; related to or being th	后来的；较晚
+sv	ringa	adj	small, little	微小；微不足道
+sv	ringa	verb	to ring; to make a bell produc	打电话；敲（铃）
+sv	be	verb	to ask for, request someone el	请求；祈祷
+sv	röra	verb	to move (a part of the body)	动；触摸
+sv	rädda	verb	to save (prevent from dying or	救；拯救
+sv	fort	noun	a fort	堡垒
+sv	mellan	prep	between	在…之间
+sv	fler	adj	more and most (in numbers)	更多
+sv	vilka	pron	which, who, whom, what a; plur	哪些；谁
+sv	bry	noun	synonym of bryderi	烦恼
+sv	bry	verb	to concern, to bother (one's h	操心；在意
+sv	kille	noun	Kille (a card game equivalent	基勒（纸牌游戏）
+sv	bo	noun	a dwelling (of an animal), esp	巢；窝
+sv	fatta	verb	to grasp, take (hold in one's	抓住；理解
+sv	slå	verb	to hit, punch or beat (someone	打；击败；敲
+sv	slå	noun	a beam	横档；横木
+sv	ännu	adj	another, else	又一个；再
+sv	ännu	adv	thus far, yet	还；尚
+sv	tio	num	ten	十
+sv	trevligt	adv	nicely, pleasantly	愉快地；好
+sv	trevlig	adj	nice and pleasant towards othe	友好的；愉快的
+sv	gott	adv	well, good	好；很
+sv	gånger	prep	times (multiplied by)	乘以
+sv	varandra	pron	each other, one another	彼此；互相
+sv	lever	noun	liver	肝
+sv	leva	verb	to leave	（方言）离开
+sv	handla	verb	to shop, buy	购物；做生意；行动
+sv	ord	noun	a word (unit of language)	词；单词；话
+sv	mannen	noun	man (usually friendly term of	伙计；老兄
+sv	bakom	adj	slow (from notion of behind ot	迟钝；落后
+sv	eftersom	adv	over time	（旧）逐渐
+sv	dörr	noun	a door	门
+sv	par	noun	a pair, a couple (either two o	一对；几个
+sv	bad	noun	bathing; swimming (see the usa	洗澡；游泳
+sv	alls	adv	at all	根本；完全
+sv	egen	adj	peculiar, eccentric, odd, uniq	古怪的；独特的
+sv	stad	noun	a city, a town	城市；城镇
+sv	lev	noun	A loaf of bread.	（旧）面包
+sv	lev	noun	A magic spell or potion.	（旧）魔法；咒语
+sv	syster	noun	a sister (woman or girl having	姐妹；护士；修女
+sv	oroa	verb	to worry (someone)	使担心；烦扰
+sv	mat	noun	food	食物
+sv	skull	noun	sake	缘故
+sv	ställe	noun	a place, a location, a positio	地方；场所
+sv	anta	verb	to assume, to suppose	假设；认为；采纳
+sv	ganska	adv	pretty, quite, rather	相当；挺
+sv	klocka	noun	clock, watch; an instrument us	钟；表；时间
+sv	klocka	verb	to time, to measure time; e.g.	计时
+sv	räcka	verb	to stretch out (some body part	伸出；递；够
+sv	fin	adj	nice to look at or listen to o	漂亮；好；精致
+sv	lätt	adj	light; of low weight	轻；容易
+sv	jack	noun	eye	（方言）眼睛
+sv	lova	verb	to promise (to commit to somet	承诺；保证
+sv	lova	verb	to turn a sailing boat more to	（航海）迎风转向
+sv	förut	adv	bowwards, in the direction for	（航海）向船首
+sv	iväg	adv	away, off	走开；出发
+sv	direkt	adv	directly	直接；立即
+sv	stämma	noun	a voice (language; words; spee	声音；声部；（会议）大会
+sv	stämma	verb	to agree, to correspond, to ta	符合；调音；起诉
+sv	stort	adv	largely	大大地；大量
+sv	lära	verb	to be said to	据说
+sv	stoppa	verb	to stop	停止；塞；填
+sv	undan	adv	away	走开；让开
+sv	rolig	adj	funny (amusing; comical), fun	好玩；有趣
+sv	val	noun	a whale	鲸鱼
+sv	val	noun	a choice	选择；选举
+sv	val	noun	the fallen; casualties of a wa	（古）阵亡者
+sv	kalla	verb	to call, denote, refer to; to	称作；叫
+sv	förälder	noun	a parent	父亲或母亲；家长
+sv	vidare	adv	on, further, along (continuing	继续；此外
+sv	före	prep	in front of; ahead of	在…之前；在…前面
+sv	före	noun	ground surface conditions for	雪况（滑雪路面状况）
+sv	alltså	intj	An expression of exasperation.	真是的！
+sv	uppe	adv	up (in a more elevated positio	在上面；醒着
+sv	gälla	verb	to be valid; to be correct or	有效；适用；涉及
+sv	ont	adv	pain	疼痛
+sv	ond	adj	evil, wicked	恶的；邪恶
+sv	huvud	noun	head	头；首脑
+sv	ursäkt	noun	an excuse	借口；道歉
+sv	medan	conj	while; during the same time th	当…时候；而
+sv	betala	verb	to pay; to give money in excha	付款；支付
+sv	önska	verb	to wish	希望；祝愿
+sv	sent	adv	late	晚；迟
+sv	miss	noun	Miss ((title for an) unmarried	小姐；选美小姐
+sv	miss	intj	Used to call a cat.	咪咪（唤猫声）
+sv	nere	adv	down, below, downstairs, at th	在下面；情绪低落
+sv	kärlek	noun	love (strong affection, romant	爱；爱情
+sv	roll	noun	role	角色
+sv	kall	noun	a calling (strong urge to dedi	使命；天职
+sv	sida	verb	to seed (a player into a compe	（比赛中）定种子选手
+sv	te	verb	(reflexive) to appear (a certa	显得（反身）
+sv	te	prep	synonym of till	（口）到
+sv	kompis	noun	only used in i kompis (“togeth	（仅用于 i kompis）一起
+sv	satt	adj	short and wide; "compact"	矮壮
+sv	jaha	intj	Expression of understanding; a	噢；好吧
+sv	tyvärr	intj	sorry, unfortunately not	抱歉，不行
+sv	tja	intj	hey, yo (a colloquial greeting	嘿（招呼）
+sv	tja	intj	an expression of doubt and unc	嗯…（犹豫）
+sv	vecka	noun	a week, a period of 7 days.	星期；周
+sv	vecka	verb	to make more or less sharp fol	打褶
+sv	gifta	verb	(reflexive) to marry (followed	结婚（反身）
+sv	gift	noun	a gift, a present	（旧）礼物
+sv	enligt	prep	according to	根据；按照
+sv	undra	verb	to wonder (to ponder about som	想知道；纳闷
+sv	tänkt	adj	planned	计划的；设想的
+sv	konstig	adj	weird, strange	奇怪
+sv	ok	noun	a wooden bar used to connect t	轭；重担
+sv	typ	noun	a type	类型；家伙
+sv	typ	adv	kinda, ish, around	大概；之类
+sv	missta	verb	to mistake	弄错；误认
+sv	lugna	verb	to calm (someone)	使平静；安慰
+sv	person	noun	a person, (in the plural, in t	人
+sv	hård	adj	hard; inflexible; rigid; unben	硬；严厉
+sv	allihop	pron	everybody, everyone, all peopl	大家；全部
+sv	tom	noun	A tome, a volume (in a series	卷；册
+sv	skyldig	adj	guilty	有罪；欠
+sv	träffas	verb	to meet (of two or more people	见面
+sv	toppen	adj	great	极好的；棒
+sv	värre	adv	very	（口）非常
+sv	egentligen	adv	actually, really, in truth, "i	其实；实际上
+sv	lycka	verb	to close (a door, gate, or the	（方言）关上
+sv	skrev	noun	a measure for wet goods (wine)	（旧）液量单位（约6.5升）
+sv	fungera	verb	function; to be in action	运作；起作用
+sv	bruka	verb	to use to (present tense of us	惯常；使用；耕种
+sv	miljon	num	A million, 10⁶.	百万
+sv	sjuk	adj	sick, ill (having a disease)	生病的；变态的
+sv	kära	verb	to sue, to indict, to petition	起诉；控告
+sv	kär	adj	[with i] in love, enamored	爱上的；亲爱的
+sv	stick	noun	a sting; a bite from an insect	蜇；刺痛
+sv	sticka	noun	a (wood) splinter	木刺；小棍
+sv	sticka	verb	to sting, prick	刺；扎；溜走
+sv	hemsk	adj	ghastly, frightful, horrifying	可怕的；恐怖
+sv	aning	noun	a suspicion, an idea, a notion	预感；一点儿
+sv	skada	noun	scathe; damage (abstract measu	损坏；伤害；遗憾
+sv	skada	verb	scathe; to injure, to harm, to	伤害；损坏
+sv	dåligt	adv	bad, badly	糟糕地；不好
+sv	inför	adv	in front of, before; while hav	在…面前；面临
+sv	dess	noun	D-flat; the note D♭	降D音
+sv	synd	noun	sin	罪；罪孽
+sv	synd	intj	pity, shame	可惜；遗憾
+sv	förbi	adv	past, over	经过；结束了
+sv	någonting	adv	something, anything	某事；任何事
+sv	igång	adv	in motion, moving, running	运行中；开动
+sv	strax	adv	soon	马上；很快
+sv	framföra	verb	to express, to deliver (an opi	表达；转达；表演
+sv	skall	noun	a loud or shrill and widely au	响声；吠叫
+sv	annorlunda	adj	abnormal, nonstandard	不同的
+sv	ögonblick	noun	a moment, an instant, a blink	片刻；瞬间
+sv	läge	noun	a position (same location/orie	位置；情况
+sv	ofta	intj	Expresses skepticism or surpri	才不呢！（表怀疑）
+sv	tjänst	noun	a favor	帮忙；职位；服务
+sv	chef	noun	A boss, manager; person in cha	老板；上司
+sv	jord	noun	earth, soil; a rock- or sand-b	土；土地；地面
+sv	la	adv	synonym of väl	（口）想必；吧
+sv	enkel	adj	simple, easy (not difficult)	简单；单一；朴素
+sv	stund	noun	while	一会儿；时刻
+sv	arbete	noun	work, job (economic role for w	工作；劳动
+sv	arbeta	verb	to work, to be employed to do	工作；劳动
+sv	David	intj	The letter "D" in the Swedish	（通话字母）D
+sv	Peter	intj	The letter "P" in the Swedish	（通话字母）P
+sv	land	noun	a country, a land (independent	国家
+sv	land	noun	land (as opposed to sea)	陆地
+sv	land	noun	a smaller piece of land for sm	小块地；菜园
+sv	agent	noun	an agent	代理人；特工
+sv	mord	noun	murder	谋杀
+sv	råd	noun	a piece of advice, counsel	建议；劝告
+sv	råda	verb	to advise (give advice (to som	建议；劝告；占优势
+sv	funka	verb	to function, to work, to opera	运作；行得通
+sv	spring	noun	a running (back and forth)	跑来跑去
+sv	springa	verb	to run (move quickly on legs)	跑
+sv	springa	noun	a very narrow, elongated openi	缝隙；狭缝
+sv	ansikte	noun	a face; front side of the head	脸
+sv	beklaga	verb	to regret, to be sorry	遗憾；抱怨
+sv	jävel	noun	a son of a bitch, a bastard, a	混蛋；家伙
+sv	särskild	adj	distinct, special	特别；特殊
+sv	finnas	verb	to exist; to be	存在；有
+sv	A	adj	indication of being of a highe	一流的
+sv	A	noun	the highest grade in the curre	A（最高成绩）
+sv	herre	noun	a man, a gentleman, a sir (a r	先生；主人；主
+sv	fantastisk	adj	fantastic (great, amazing)	极好的；奇妙
+sv	omkring	prep	around (near)	周围；大约
+sv	passa	verb	fit, suit; be suitable	合适；看管；传球
+sv	äntligen	intj	finally! (Used to express sudd	终于！
+sv	stark	adj	strong (capable of producing g	强壮；浓；辣
+sv	någonstans	adv	somewhere, anywhere; in, at or	某处；任何地方
+sv	anda	noun	spirit (in the sense of manner	精神；风气；气息
+sv	skaffa	verb	to get, to acquire, to procure	获得；弄到
+sv	rätta	verb	to correct, to rectify	改正；批改
+sv	uppfatta	verb	to understand correctly; to re	理解；领会
+sv	max	adv	max	最多
+sv	klä	verb	to clothe, to dress, to wear (	给…穿衣；适合
+sv	fart	noun	speed	速度
+sv	istället	adv	instead	代替；反而
+sv	allting	adv	everything	一切
+sv	allting	noun	a thing (governing assembly) c	（古）全民议会
+sv	vita	noun	white (egg white)	蛋白
+sv	dan	noun	Dane (inhabitant of ancient De	丹人（古丹麦人）
+sv	dan	adj	constituted in a certain manne	（旧）…样的
+sv	bära	verb	to carry; to lift and transpor	搬；携带；穿戴
+sv	lycklig	adj	happy, joyous, enjoying peace,	快乐；幸福
+sv	intressant	adj	interesting (arousing or holdi	有趣的
+sv	levande	adj	living, live (not dead)	活着的；生动的
+sv	meddelande	noun	a message (communication)	消息；通知
+sv	meddela	verb	to communicate, to notify ((tr	通知；告知
+sv	beslut	noun	decision, resolution	决定
+sv	kontor	noun	office; building or room	办公室
+sv	mark	noun	ground (surface of the Earth (	地面；土地
+sv	snygg	adj	good-looking; handsome (of a p	好看；帅
+sv	knappt	adv	hardly, scarcely, barely, almo	几乎不；勉强
+sv	knapp	adj	scarce, not much of something	稀少；不足
+sv	knapp	noun	a button (fastener for clothes	扣子；按钮
+sv	möta	verb	to meet (come together)	遇见；迎接；对阵
+sv	skål	noun	a bowl (container)	碗；干杯
+sv	försökt	adj	tried	尝试过的
+sv	ers	pron	your (only in address)	您的（用于称呼）
+sv	snacka	verb	to talk	聊天；说话
+sv	underbart	adv	wonderfully	美妙地
+sv	bok	noun	collection of sheets of paper	书
+sv	både	conj	both; each of (out of two)	既…又…；两者都
+sv	skön	adj	comfortable, pleasurable	舒服的；美丽
+sv	skön	noun	liking, preference, arbitratio	斟酌；随意
+sv	duktig	adj	good; talented; capable	能干；有本事
+sv	president	noun	a chairman, presiding member o	主席；院长；总统
+sv	morse	noun	Morse (Morse code)	摩尔斯电码
+sv	tydligen	adv	apparently (seemingly)	显然；看来
+sv	kontakt	noun	contact (connection)	联系；接触；插头
+sv	omöjlig	adj	impossible	不可能的
+sv	e	adv	forever, ever	（旧）永远
+sv	mål	noun	language; dialect	语言；方言
+sv	mål	noun	target; what one aims to hit	目标；进球；终点
+sv	ändra	verb	to change, to alter	改变；修改
+sv	leda	verb	to (gently) lead; to guide, to	带领；引导；领先
+sv	stopp	noun	n a stop (interruption of trav	停止；阻塞
+sv	stjäla	verb	to steal	偷
+sv	meter	noun	a metre; the SI-unit	米
+sv	o	noun	the letter o	字母o
+sv	o	intj	O (particle)	啊；哦
+sv	stiga	verb	to step; to move the foot in w	迈步；上升；登上
+sv	fly	verb	to flee, to run away, to escap	逃跑；逃离
+sv	vare	phrase	Pronunciation spelling of "var	是…（var det 的口语）
+sv	uppdra	verb	to command	委托；委派
+sv	vackert	adv	beautifully	美丽地；好好地
+sv	värsta	adj	An intensifier.	超级；最
+sv	skämma	verb	to spoil, to ruin, to dishonou	损坏；玷污
+sv	lös	adj	loose; not tightened, able to	松的；散装
+sv	upptagen	adj	busy, engaged in activity	忙；占用
+sv	säkerhet	noun	safety, security (not being in	安全；把握
+sv	äkta	adj	genuine, authentic; not faked	真的；正宗
+sv	äkta	verb	to marry	（旧）娶；嫁
+sv	därifrån	adv	from there	从那里
+sv	stiftsstad	noun	A see city, an episcopal see;	主教座城
+sv	drog	noun	a drug, a narcotic	毒品；药物
+sv	general	noun	a general; a military title	将军
+sv	ungefär	adv	about, approximately	大约
+sv	stänga	verb	to close, to shut (a door, hat	关；关闭
+sv	kasta	verb	to throw (make an object fly t	扔；投
+sv	adjö	intj	goodbye	再见
+sv	brott	noun	a break, a snap; an instance o	断裂；骨折；犯罪
+sv	område	noun	a sphere (region of activity)	领域；地区
+sv	vann	noun	water; body of water	（旧）水
+sv	intressera	verb	to interest	使感兴趣
+sv	nick	noun	nod (movement of the head to i	点头；头球
+sv	nick	noun	nick, nickname	昵称
+sv	åk	noun	a ride ((fancier) vehicle)	车；乘坐
+sv	fröken	noun	a young girl, a miss	小姐；女老师
+sv	framtid	noun	future	未来
+sv	make	noun	a spouse, a husband, a married	丈夫；配偶
+sv	maka	verb	To move (slightly) a big, heav	挪动
+sv	stör	noun	a pole, chiefly used in the co	杆；桩
+sv	stör	noun	common sturgeon (Acipenser stu	鲟鱼
+sv	hänga	verb	to be suspended	悬挂；吊
+sv	hinna	verb	to have time, to have the time	来得及；赶上
+sv	hinna	noun	a film, a skin (very thin	薄膜；膜
+sv	lukta	verb	to smell; to use one’s nose	闻；有气味
+sv	närmare	adv	closer, more closely	更近；更仔细
+sv	drink	noun	a drink ((mixed) alcoholic bev	酒；鸡尾酒
+sv	detsamma	intj	same to you	你也一样
+sv	å	noun	a river, a creek, a big stream	小河；溪流
+sv	å	prep	on	（口）在…上
+sv	boken	adj	overripe, spoiled	过熟；腐烂
+sv	bill	noun	a share; the cutting blade of	犁铧
+sv	bill	noun	a draft of a law in English-sp	（英语国家）法案
+sv	pistol	noun	a pistol (gun)	手枪
+sv	akta	verb	to be careful with, to watch,	小心；爱护
+sv	säkra	verb	to secure, to guarantee	保障；确保
+sv	måna	verb	to care for, to look after	关心；照顾
+sv	äga	noun	an estate, grounds, property,	地产；田产
+sv	stackars	adj	poor (to be pitied)	可怜的
+sv	kontroll	noun	control (to be in control)	控制；检查
+sv	utmärkt	adj	excellent	出色的
+sv	utmärkt	adv	excellently	出色地
+sv	utmärkt	verb	supine of märka ut	标出（märka ut 的目的分词）
+sv	utmärkt	intj	excellent!, perfect!	好极了！
+sv	märka	verb	to notice	注意到；标记
+sv	uppskatta	verb	to appreciate	欣赏；感激；估计
+sv	gill	adj	(third) time's the charm, (thi	（tredje gången gillt）第三次就灵
+sv	tanke	noun	a thought	想法；思想
+sv	tanka	noun	thought	（旧）想法
+sv	tanka	verb	to refuel, to fill up (put gas	加油；（口）下载
+sv	bestämma	verb	to decide (something) from a p	决定；规定
+sv	gode	noun	a priest	（古）祭司；首领
+sv	liksom	adv	sort of, kind of	好像；有点
+sv	sällskap	noun	company, companionship	陪伴；团体；社团
+sv	förresten	adv	by the way (incidentally)	顺便说一句
+sv	unge	noun	a young, a baby (offspring of	孩子；幼崽
+sv	rena	verb	to purify, to remove impuritie	净化；提纯
+sv	ren	noun	reindeer (Rangifer tarandus)	驯鹿
+sv	tal	noun	number	数；讲话
+sv	inse	verb	to realize; to become aware of	意识到；认识到
+sv	skitsnack	noun	blatantly false statements; bu	胡扯；废话
+sv	offer	noun	a sacrifice	牺牲；受害者；祭品
+sv	skepp	noun	a ship	船；（教堂）中殿
+sv	kräva	noun	crop, craw (a bird's stomach)	嗉囊
+sv	kräva	verb	to demand, to forcefully reque	要求；需要；夺去（生命）
+sv	framåt	adj	forward, progressive, full of	积极的；进取的
+sv	framåt	adv	forward, ahead (as a direction	向前
+sv	van	noun	a member of the Vanir	华纳神族成员
+sv	lista	verb	to add items to a list; to com	列出；列入名单
+sv	nervös	adj	nervous (anxious)	紧张
+sv	prova	verb	to try, to make an attempt; to	试；试穿
+sv	överst	adv	at the top	在最上面
+sv	ställ	noun	a stand (device to hold someth	架子；支架
+sv	varken	conj	neither	既不…也不
+sv	bredvid	prep	next to, beside	在…旁边
+sv	bredvid	adv	beside (next to someone or som	在旁边
+sv	jaka	verb	to say yes, to agree, to suppo	肯定；同意
+sv	tecken	noun	A visible indication; a sign.	标志；迹象；符号
+sv	gen	adj	gain; short, direct	近的；直接的
+sv	räkna	verb	to count (enumerate consecutiv	数；计算
+sv	skäl	noun	reason (for something)	理由；原因
+sv	lag	noun	a water-based solution of suga	盐水；卤水
+sv	jämn	adj	smooth, even	平坦；均匀；偶数的
+sv	kraft	noun	force (similar senses to Engli	力；力量
+sv	bjuda	verb	to offer, to give as a gift	请客；提供；邀请
+pt	carro	noun	cart (vehicle drawn or pushed 	车；汽车；手推车
+pt	vezes	prep	times (multiplied by)	乘以
+pt	amigo	noun	friend (person whose company o	朋友；伙伴
+pt	sério	adj	serious; solemn (without humor	严肃的；认真的；严重的
+pt	parte	noun	part; section; portion	部分；一方；当事人
+pt	viu	intj	used at the beginning or end o	（句首或句尾加强语气）听到没；好吗
+pt	olha	noun	a stew prepared with meat, chi	肉菜杂烩（炖菜）
+pt	aquelar	verb	a wildcard verb, used to repla	（口）万能动词，代替任何动词
+pt	lado	noun	side	边；侧面；旁边
+pt	gosto	noun	like (vote showing support on 	点赞
+pt	caso	noun	an actual event, situation or 	事件；情况；案件；（语法）格
+pt	cabeça	noun	head (part of the body)	头；头脑
+pt	tanto	adv	so much (to a large or excessi	那么多；如此
+pt	tanto	det	so much / so many (a large or 	那么多的
+pt	tanto	pron	so much / so many (a large or 	那么多
+pt	tanto	pron	as much as / as many as	和……一样多
+pt	garota	verb	inflection of garotar: third-p	（garotar 的变位）
+pt	garote	noun	a gender-neutral form of garot	（中性）孩子；少年
+pt	amar	verb	to love, to have great affecti	爱
+pt	meio	adj	half	一半的；半
+pt	medo	adj	Median	（古）米底的
+pt	importar	verb	to import	进口；重要；在乎
+pt	pessoal	noun	staff, personnel	员工；人员；大家
+pt	forma	noun	tin (metal pan used for baking	烤盘；模具
+pt	demais	adv	too, overly	太；过于
+pt	tal	adj	used to express that somebody 	某个（不知或不在乎是谁）
+pt	boca	verb	inflection of bocar: third-per	（bocar 的变位）
+pt	eram	verb	third-person plural present in	（erar 的变位）
+pt	idéia	noun	pre-reform spelling (used unti	（旧拼写）想法
+pt	deixa	noun	cue (action or event that is a	提示；暗示
+pt	irmã	noun	sister	姐妹；姐姐；妹妹
+pt	vindo	adj	arrived	来的；到达的
+pt	irá	noun	meliponine	无刺蜂
+pt	jantar	noun	dinner (evening meal)	晚餐
+pt	jantar	verb	to dine	吃晚饭
+pt	prazer	verb	synonym of aprazer	使高兴
+pt	prazer	intj	pleased to meet you!	幸会！
+pt	procurar	verb	to search; to seek; to look fo	寻找；寻求；设法
+pt	final	noun	final	决赛
+pt	dêste	contraction	pre-reform spelling (used unti	（旧拼写）（de + este）这个的
+pt	aquilo	pron	that sentence; that word, that	那句话；那件事
+pt	direito	noun	law (body of rules and standar	法律；法学；权利
+pt	conversar	verb	to talk; to chat (to engage in	谈话；聊天
+pt	trazer	verb	bring (to transport toward som	带来；拿来
+pt	nele	noun	An ancient French coin.	（古）法国钱币
+pt	calma	noun	calm	平静；冷静
+pt	palavra	noun	unit of language	词；话；诺言
+pt	médico	noun	consulting room, clinic	医生；诊所
+pt	médico	adj	Median	（古）米底的
+pt	fogo	noun	fire (chemical reaction produc	火；火灾
+pt	foda-se	intj	fuck, shit (expression of dism	操；妈的
+pt	baixar	verb	to lower (to move something to	降低；下降；下载
+pt	ceder	verb	to cede, to give up, to give a	让出；放弃；屈服
+pt	desculpa	noun	excuse, pretext (explanation d	借口；道歉
+pt	jack	noun	rapist	（俚）强奸犯
+pt	linda	noun	cachaça	甘蔗酒
+pt	especial	adj	special	特别的；特殊的
+pt	após	prep	after (later in time)	在……之后
+pt	si	noun	si (musical note)	西（音符）
+pt	negócio	noun	affair (that which is done or 	事情；生意；东西
+pt	doutor	noun	a doctor (a person who has att	博士；医生
+pt	pé	noun	foot, part of the human body	脚；（植物）株；底部
+pt	ama	noun	female nurse	奶妈；保姆
+pt	fato	noun	a set of clothing traditionall	一套衣服；西装
+pt	sentido	adj	felt (that has been experience	感觉到的；伤心的
+pt	puta	adj	an intensifier used in a simil	他妈的（加强语气）
+pt	s	noun	used to indicate any sequence 	秒（符号）
+pt	menina	noun	girl (female child)	女孩；小姐
+pt	bonito	noun	bonito (any of various marine 	鲣鱼
+pt	respeitar	verb	to respect, look up to	尊敬；尊重；遵守
+pt	tie	noun	pibling	（中性）叔叔或阿姨
+pt	agente	pron	misspelling of a gente	（误拼）我们（a gente）
+pt	milhão	noun	million (10⁶)	百万
+pt	milhão	noun	a type corn with a tall and la	大粒玉米
+pt	chamado	noun	calling	召唤；呼唤
+pt	daí	contraction	then, afterwards, thus	（de + aí）从那里；然后；于是
+pt	jesus	noun	Jesus (figure of Jesus)	耶稣
+pt	surpresa	adj	inflection of surpresar: third	（surpresar 的变位）
+pt	acidente	verb	inflection of acidentar: first	（acidentar 的变位）
+pt	u	adv	where (interrogative adverb)	（古）哪里
+pt	parabéns	intj	happy birthday!	生日快乐！；恭喜！
+pt	loja	noun	shop, store	商店；会所
+pt	espaço	noun	interval of time	时间间隔；空间；空白
+pt	passa	noun	dried fruit	果干；葡萄干
+pt	papel	noun	paper (sheet material typicall	纸；文件；角色
+pt	interessante	adj	entertaining; amusing	有趣的；引人入胜的
+pt	banheiro	noun	bathroom, lavatory	浴室；卫生间
+pt	capaz	adj	able, capable	能干的；有能力的；可能
+pt	penso	noun	band-aid	创可贴；敷料
+pt	velha	noun	mother	（口）母亲；老妇人；（棋）和局
+pt	hein	intj	huh? hm? (reinforces a questio	嗯？；啊？
+pt	juro	noun	interest	利息
+pt	nêle	contraction	pre-reform spelling (used unti	（旧拼写）（em + ele）在他里面
+pt	vista	noun	eye; eyeball	视力；眼睛；视野；景色
+pt	né	contraction	contraction of não é	（não é）不是吗；对吧
+pt	time	noun	a team	队伍；球队
+pt	mar	noun	sea	大海；海
+pt	general	adj	general (said of the subcatego	将级的
+pt	general	noun	general (highest rank in the c	将军（军衔）
+pt	oficial	noun	officer, official	军官；官员
+pt	cavalo	noun	knight	（国际象棋）马；（俚）海洛因
+pt	serão	noun	evening	晚上；加班
+pt	padre	noun	ecclesiastical priest (Christi	神父；牧师
+pt	centro	noun	centre (middle of anything)	中心；市中心
+pt	carne	noun	flesh	肉；肌肉
+pt	teste	noun	witness	（古）证人
+pt	chamada	noun	call (telephone conversation)	电话；点名
+pt	passo	noun	step; footstep; pace (movement	步；步伐；脚步
+pt	guarda	noun	guard (person who protects or 	警卫；看守
+pt	guarda	noun	guard (squad responsible for p	卫队
+pt	falo	noun	phallus	阴茎
+pt	costas	noun	back (the rear of body)	背部；后背
+pt	cérebro	noun	brain, cerebrum (organ located	大脑
+pt	bola	noun	bread roll (small, round bread	小圆面包
+pt	branco	noun	argent	（纹章）银色；白色
+pt	sentar	verb	to seat	坐；使坐下
+pt	tiro	noun	the act of shooting	射击；枪声
+pt	chá	noun	tea plant (Camellia sinensis, 	茶树；茶
+pt	vário	adj	various, diverse	不同的；各种的
+pt	henry	noun	henry (SI unit for electrical 	亨利（电感单位）
+pt	trem	noun	set (a series of, a group of)	一套；火车；东西
+pt	confiar	verb	to confide, entrust	托付；信任；吐露
+pt	sargento	noun	sergeant (rank above that of a	中士
+pt	justo	adj	free from sin and guilt; right	正义的；公正的；紧身的
+pt	rir	verb	(reflexive) to laugh (to expre	笑；嘲笑
+pt	corte	noun	a court	宫廷；法院
+pt	saco	noun	bag; sack	袋子；麻烦
+pt	saído	adj	that came out	出来的；外出的
+pt	pega	noun	handle	把手
+pt	repente	noun	attack, upsurge	突发；冲动
+pt	meia	noun	obsolete unit of measure for l	（旧）液量单位（约六品脱）
+pt	meia	num	six	六（报数用）
+pt	aula	noun	classroom	课；教室
+pt	lhes	pron	indirect object of eles and el	他们（间接宾格）；她们；你们
+pt	liga	noun	alloy (metal combined of more 	合金；联盟；吊袜带
+pt	uau	noun	vav (name of the Hebrew letter	希伯来字母 vav
+pt	lua	noun	moonlight, moonshine	月光；月亮
+pt	paciente	noun	patient (noun phrase semantica	（语法）受事
+pt	esperança	noun	hope	希望；（巴）螽斯
+pt	banhar	verb	(reflexive) to bathe; to give 	洗澡；沐浴
+pt	alta	noun	discharge (the act of releasin	出院；上涨
+pt	bomba	noun	pump (device for moving or com	泵
+pt	câmara	noun	chamber	室；议会；市政厅；相机
+pt	garoto	verb	first-person singular present 	（garotar 的变位）
+pt	última	noun	recent news	最新消息
+pt	consigo	adv	third-person singular reflexiv	（com + si）和自己一起
+pt	Senhora	noun	Lady (aristocratic title for a	夫人（贵族头衔）
+pt	cuidado	adj	meditated, thought-out	精心的；周密的
+pt	causar	verb	to cause	引起；造成
+pt	licença	intj	clipping of com licença	劳驾；借过
+pt	além	adv	there, over there	那边；更远处
+pt	querido	adj	dear	亲爱的
+pt	tarde	adv	late (near the end of a period	晚；迟
+pt	engraçar	verb	to become friendly	讨好；喜欢上
+pt	honrar	verb	to honor	尊敬；给……带来荣誉
+pt	diretor	adj	governing	指导的；领导的
+pt	sorte	noun	fate	命运；运气
+pt	conseguir	verb	to get, obtain	得到；能够；做到
+pt	chão	noun	ground, soil, earth	地面；地板；土地
+pt	quão	prep	as (to the same extent or degr	和……一样
+pt	programa	noun	computer instructions	程序；节目；计划
+pt	campo	noun	country; countryside	乡村；田野；领域；场地
+pt	leva	noun	wave (sudden unusually large a	一批；一波
+pt	nave	noun	ship	船；（教堂）中殿；宇宙飞船
+pt	ouros	noun	diamonds (one of the four suit	（纸牌）方块
+pt	loucura	noun	insanity, madness	疯狂
+pt	porta	adj	relational adjective of veia p	门静脉的
+pt	portar	verb	to bear; to carry	携带；举止
+pt	esposa	noun	bride	妻子；新娘
+pt	esposar	verb	to espouse	娶；嫁；拥护
+pt	ganhar	verb	to win (to achieve victory in 	赢；挣；获得
+pt	estado	noun	state (subdivision of a nation	州；状态；国家
+pt	rua	intj	out! (strong, impolite demand 	滚出去！
+pt	toque	noun	touch, tap	触摸；铃声；提醒
+pt	beleza	intj	what's up? (informal greeting)	你好；好的；没问题
+pt	chance	noun	probability	可能性；机会
+it	farlo	verb	compound of the infinitive far	（fare + lo）做它；做这件事
+it	alle	contraction	contraction of a le; to the, a	（a + le）到；在；向
+it	tipa	noun	type, fellow, character, girl,	女人；姑娘；（女的）家伙
+it	appena	adv	barely, hardly	刚刚；几乎不；一……就
+it	piacere	verb	(followed by a or preceded by 	使喜欢；令人愉快
+it	ai	contraction	contraction of a i; to the, at	（a + i）到；在；向
+it	gente	adj	noble	（旧）高贵的
+it	gente	noun	gens (legally defined unit of 	（古罗马）氏族；人们
+it	degli	contraction	contraction of di gli; of the,	（di + gli）……的；一些
+it	caso	noun	chance, fate	偶然；命运；情况；案例
+it	mondo	adj	cleaned (vegetables)	洗净的；去皮的
+it	nullo	det	futile, ineffectual, vain	无效的；徒劳的
+it	sentito	adj	sincere	真诚的；衷心的
+it	a'	contraction	truncation of ai (“to the m pl	（a + i 的截短）到；在
+it	a'	particle	uttered before a noun to call 	喂（呼唤人时用）
+it	stesso	det	same, equal	相同的；本身；自己
+it	capire	verb	to understand	理解；明白
+it	buonanotte	noun	an instance or circumstance in	道晚安
+it	sotto	prep	under, beneath, underneath	在……下面
+it	suoi	noun	"his/her parents"	他（她）的父母
+it	bella	noun	beauty, belle (beautiful woman	美人；心上人；决胜局
+it	bello	noun	beauty	美；美好之处；心上人
+it	porta	noun	gate	门；大门；球门
+it	portare	verb	to bring, fetch, take, carry	带来；拿；携带；穿戴
+it	morto	noun	dead man	死者；尸体
+it	morto	verb	died	死了；已故
+it	menare	verb	to hit, beat	打；带领；度过
+it	avanti	adj	previous, prior, last	前一个的；以前的
+it	avanti	adv	forward, ahead, onward	向前；往前；以前
+it	avanti	prep	before, in front of (a place) 	在……前面；……以前
+it	avanti	noun	player whose main objective is	前锋
+it	polizia	noun	police	警察；警方
+it	fino	adj	thin, fine	细的；精细的；纯的
+it	fine	adj	thin	细的；精致的；高雅的
+it	aiuto	intj	help!	救命！
+it	paura	noun	fear	害怕；恐惧；担心
+it	nell'	contraction	contraction of in l'; in the	（in + l'）在……里
+it	capo	noun	boss, chief, leader	老板；首领；头；岬角
+it	capo	adj	head, chief, leading	首席的；主要的
+it	amore	noun	love	爱；爱情；亲爱的
+it	nei	contraction	contraction of in i; in the	（in + i）在……里
+it	piano	adj	plane	平的；平坦的；简单的
+it	piano	noun	plane	平面；楼层；计划；钢琴
+it	piano	adj	of any of the popes named Pius	庇护（教皇）的
+it	piare	verb	synonym of pigolare	（雏鸟）唧唧叫
+it	comunque	conj	however, whatever	无论如何；不管怎样
+it	dall'	contraction	contraction of da l'; from the	（da + l'）从；由
+it	prestare	verb	to lend	借出；给予
+it	merda	intj	"fuck no!", shit!" (in respons	妈的！；糟了！
+it	bambino	noun	child, baby, toddler, tot (mal	孩子；小孩；男孩
+it	bambina	noun	babe	女孩；小女孩；宝贝
+it	tornare	verb	to return, to come back	回来；返回；变得正确
+it	vostro	det	your; plural and polite forms	你们的；您的
+it	vostro	pron	yours	你们的
+it	neanche	conj	neither	也不
+it	girare	verb	to turn, stir, turn over	转；转动；周游；拍摄
+it	diavolo	intj	the devil, the heck, the dicke	见鬼；究竟
+it	contro	noun	con	反对意见；坏处
+it	contro	adj	counter	反向的
+it	punto	adv	reinforces negation: at all (c	一点也不；根本不
+it	puntare	verb	to push, lean, rest, plant, br	推；撑；瞄准；押注
+it	quale	det	what?	什么；哪个；哪些
+it	quale	adv	as	作为；如同
+it	passato	noun	past (the period of time that 	过去；往事；浓汤
+it	passare	verb	to pass (all senses)	经过；通过；度过；传递
+it	magari	adv	even	也许；甚至
+it	magari	conj	even if	即使；但愿
+it	magari	intj	of course!; you bet!	但愿如此！；当然
+it	terra	noun	ground	地面；土地；陆地
+it	terra	noun	planet	地球；行星
+it	strada	noun	road, way, street	道路；街道；路途
+it	sola	noun	the only one, the only woman	唯一的女人；骗局
+it	possibile	noun	possible	可能的事
+it	significare	verb	to mean, to signify	意味着；表示
+it	nelle	contraction	contraction of in le; in the	（in + le）在……里
+it	riuscire	verb	to manage; to be able	成功；能够；结果是
+it	messo	adj	badly-off (poor) or well-off (	境况（好或坏）的
+it	mettere	verb	to put, to place, to lay, to s	放；放置；穿上；花（时间）
+it	piccolo	adj	small	小的；年幼的；少的
+it	tardare	verb	to be late, to delay (of a per	迟到；延误；拖延
+it	maritare	verb	to cause (usually a woman) to 	使结婚；嫁出
+it	sperare	verb	to candle (to inspect a transp	照检（如照蛋）
+it	lasciare	verb	to leave (to leave something b	离开；留下；让；放弃
+it	ascoltare	verb	to listen to	听；聆听；听从
+it	auto	noun	auto (genre of dramatic litera	（西班牙）宗教短剧
+it	fantastico	adj	fantastic (of or pertaining to	幻想的；奇妙的；极好的
+it	fatta	noun	type, kind	种类；类型
+it	numero	noun	number	数；数字；号码；节目
+it	portato	adj	second-hand, used	二手的；穿过的；有天赋的
+it	forte	noun	fort, fortress	要塞；堡垒；长处
+it	forte	adj	strong	强壮的；强的；大声的
+it	amo	verb	Rome form of abbiamo: first-pe	（罗马方言）我们有
+it	amare	verb	to love, to like	爱；喜欢
+it	roba	noun	things, stuff	东西；物品
+it	telefonare	verb	to telephone, to call, to make	打电话
+it	sacco	noun	sack, bag	袋子；一袋；大量
+it	stia	noun	hutch, coop (for small animals	笼子；鸡舍
+it	bravo	adj	good, well-behaved	好的；能干的；乖的
+it	bravo	noun	henchman	打手；（雇佣的）刺客
+it	festa	noun	feast	节日；聚会；假日
+it	senso	noun	sense	感觉；意义；方向
+it	genere	noun	kind	种类；类型；（语法）性
+it	pure	adv	too, also, as well	也；尽管
+it	pure	conj	even though, even if, although	即使；尽管
+it	ufficio	noun	office	办公室；职务；部门
+it	ufficiare	verb	to officiate, to perform relig	主持宗教仪式；正式请求
+it	verso	noun	verse	诗句；（动物）叫声；方向
+it	verso	prep	vicinity, proximity, nearby	附近；左右
+it	farti	verb	compound of the infinitive far	（fare + ti）为你做；让你
+it	morire	verb	to die	死；死亡
+it	vecchio	adj	old, outworn	老的；旧的；过时的
+it	conoscere	verb	to know (a person or place), t	认识；了解；经历
+it	divertire	verb	to turn away, to divert	使开心；使分心
+it	conto	adj	known, familiar	熟知的；熟悉的
+it	conto	adj	refined, elegant, gracious	（旧）优雅的
+it	contare	verb	to count	数；计算；指望；重要
+it	farmi	verb	compound of the infinitive far	（fare + mi）为我做；让我
+it	squadra	noun	set square, triangle (tool)	直角尺；队；小组
+it	squadrare	verb	to delimit in a square or rect	使成方形；打量
+it	sapete	verb	(you) know	你们知道
+it	parola	noun	word (distinct unit of languag	词；话；诺言；发言权
+it	capitano	noun	captain	船长；队长；上尉
+it	capitare	verb	to happen	发生；碰巧来到
+it	gioco	noun	game	游戏；比赛；赌博
+it	giocare	verb	to play a game, for fun or as 	玩；游戏；参赛；赌
+it	perfetto	adj	perfect	完美的；完全的
+it	perfetto	noun	perfect tense	（语法）完成时
+it	mente	noun	mind	头脑；心智；思想
+it	mentire	verb	to lie (tell an untruth)	说谎
+it	mangiare	verb	to eat	吃；吃饭；侵蚀
+it	resto	noun	rest, remainder, balance	剩余；余额；找零
+it	tratta	noun	seine fishing	拖网捕鱼；汇票；路段；贩卖（人口）
+it	buongiorno	intj	good day	早上好；你好
+it	davanti	noun	a front	前面；正面
+it	tizio	noun	man, someone, guy, what's-his-	某人；家伙
+it	dalle	contraction	contraction of da le; from the	（da + le）从；由
+it	dalle	verb	compound of da', the second-pe	（da' + le）给她；给它
+it	quanti	pron	synonym of chi sg (“who”): tho	所有……的人；凡是……的人
+it	culo	noun	ass, bottom, buttocks, butt, a	屁股；肛门；好运
+it	fuoco	noun	fire	火；火灾；射击；焦点
+it	fuoco	intj	fire!	开火！
+it	re	noun	re (musical note)	re音（D音）
+it	regina	noun	queen (monarch)	女王；王后；（棋）后
+it	mandato	noun	mandate, charge, commission, t	委托；任期；授权；令状
+it	mandare	verb	to send, forward, dispatch, tr	寄；送；派；发出
+it	puttana	noun	bitch	妓女；婊子
+it	negli	contraction	contraction of in gli; in the	（in + gli）在……里
+it	iniziare	verb	to begin, to set about	开始；引导入门
+it	fammi	verb	compound of fa', the second-pe	（fa' + mi）让我；给我做
+it	però	conj	yet, but, however, nevertheles	但是；然而
+it	genitore	noun	parent	父亲或母亲；家长
+it	ricevere	verb	to receive, get, have, be give	收到；接受；接待
+it	fu	adj	deceased, late	已故的
+it	agli	contraction	contraction of a gli; to the, 	（a + gli）到；在；向
+it	scritto	noun	text	文字；书面作品；笔试
+it	scrivere	verb	to write	写；书写
+it	smettila	verb	Compound of imperative (tu for	别再这样了；停下
+it	smetterla	verb	(reflexive) to stop or give up	停止；罢手
+it	sulle	contraction	contraction of su le; on the	（su + le）在……上
+it	cura	noun	care	照顾；关心；治疗
+it	curare	verb	to treat, cure (a patient, dis	治疗；照顾；编辑
+it	provato	adj	exhausted	疲惫的；经受考验的；证实的
+it	arrivare	verb	to arrive, to come, to reach	到达；来到；达到
+it	paese	noun	country (nation)	国家；村庄；小镇
+it	sull'	contraction	contraction of su l'; on the	（su + l'）在……上
+it	pace	adv	peace be with you; that's it; 	罢了；算了；就这样
+it	libro	noun	book	书；卷；瓣胃
+it	amica	noun	girlfriend	女性朋友；女朋友
+it	sui	contraction	contraction of su i; on the	（su + i）在……上
+it	venuta	noun	coming, arrival	到来；来临
+it	scelta	noun	choice	选择；挑选；精选
+it	scoperto	noun	only used in allo scoperto	（allo scoperto）露天；公开
+it	fatti	verb	compound of fa', the second-pe	（fa' + ti）你去做；让自己
+it	dirlo	verb	compound of the infinitive dir	说出来；说它
+it	alcuno	adj	some, a few	一些；（否定句）没有任何
+it	dieco	adj	synonym of dioico	雌雄异株的
+it	usare	verb	to use	使用；习惯于
+it	dello	contraction	contraction of di lo; of the, 	（di + lo）……的；一些
+it	bagnare	verb	to bath, to bathe	弄湿；浇；沐浴
+it	aria	noun	air	空气；神态；咏叹调
+it	ario	adj	Aryan	雅利安的
+it	giù	adv	down, downstairs, below	向下；在下面；楼下
+it	cane	noun	dog, male dog	狗；（枪的）击锤
+it	cane	adj	freezing, biting (of cold)	刺骨的（寒冷）
+it	campo	noun	field	田野；场地；领域；营地
+it	campare	verb	to live, manage or get by (on)	维生；过活
+it	luce	noun	light (visible electromagnetic	光；灯；跨度
+it	lucere	verb	to shine	发光；闪耀
+it	fra	noun	friar (used as a title before 	修士（用于名前）
+it	saperlo	verb	compound of the infinitive sap	知道这件事
+it	passo	noun	footstep (sound)	步；脚步；山口；段落
+it	passo	adj	dried	干的（如葡萄干）
+it	insomma	intj	well, well then	唉；还行；总之
+it	capello	noun	a single hair (on the head)	头发
+it	verità	noun	truth	真相；真理
+it	funzionare	verb	to function, to work	运转；起作用
+it	alto	adj	high, tall	高的；大声的
+it	preoccuparti	verb	compound of the infinitive pre	你担心
+it	cibare	verb	to feed	喂养；滋养
+it	caro	adj	dear (beloved, or in the salut	亲爱的；昂贵的
+it	solito	noun	usual	惯常的事；老样子
+it	incidente	adj	incident	入射的；附带的
+it	incidere	verb	to carve, engrave, incise, mon	雕刻；切开；录制；影响
+it	speciale	noun	special	专题节目；特辑
+it	cambiare	verb	to exchange	换；兑换；改变
+it	vera	noun	wedding ring, wedding band	婚戒；井栏
+it	camera	noun	room; chamber (all senses)	房间；卧室；议院
+it	oltre	adv	farther, further, past, by, on	更远；再往前；以上
+it	oltre	prep	beyond, over, on the other sid	超过；在……那边；除了
+it	semplice	noun	simple person	普通人；头脑简单的人
+it	riguardo	noun	respect, connection, regard	关注；照顾；尊重；关系
+it	riguardare	verb	to concern, regard, be about, 	涉及；关于；重看
+it	aspetto	noun	synonym of pausa	（乐）休止；停顿
+it	chiaro	adj	bright, shiny	明亮的；清楚的；浅色的
+it	chiaro	adv	plainly, frankly, candidly, op	坦白地；清楚地
+it	bocca	noun	mouth (all senses)	嘴；口
+it	permesso	intj	said to ask for permission; ma	可以吗；借过
+it	scusami	verb	compound of scusa, the second-	原谅我；对不起
+it	sistemare	verb	to arrange, lay out, put, plac	安排；整理；安置；解决
+it	fondo	noun	bottom	底部；尽头；基金；背景
+it	resta	noun	awn, ear (of grain)	芒；麦芒
+it	saputo	adj	knowledgeable	博学的；自以为是的
+it	saputo	noun	know-it-all	自以为无所不知的人
+it	arma	noun	weapon, arms	武器；兵种
+it	fermo	adj	still	静止的；坚定的；停着的
+it	cristo	intj	express anger, astonishment, f	天哪！；该死！
+it	grado	noun	degree	度；程度；等级；学位
+it	grado	noun	satisfaction, liking, will	意愿；喜好
+it	iniziato	adj	initiated	被引导入门的；已开始的
+it	iniziato	noun	initiate	入会者；入门者
+it	libero	noun	libero, sweeper	（足球）自由人
+it	liberare	verb	to free, set free, release, li	释放；解放；腾出
+it	stronzare	verb	to fraudulently devalue (curre	削减（铸币）成色
+it	pezzo	noun	piece, chunk	块；片；件；（乐）曲
+it	segretare	verb	to classify (a document), to m	列为机密
+it	colpo	noun	blow, knock, shock	打击；一击；枪声；抢劫
+it	porto	noun	port (type of wine)	波特酒
+it	porto	noun	ferry	渡口；渡船
+it	oppure	conj	or	或者；要不然
+it	vederti	verb	compound of the infinitive ved	见到你
+it	lista	noun	list, pile	名单；清单；条带
+it	listare	verb	to border, edge	镶边；加框
+it	veloce	adj	fast, quick, speedy, rapid	快的；迅速的
+it	assassino	adj	murderous	杀人的；凶残的；勾人的
+it	finché	conj	as long as, while	只要；直到
+it	ormai	adv	by now, by this time, now, at 	现在已经；事到如今
+it	interessare	verb	to be interesting, to be of in	使感兴趣；涉及；关系到
+it	giusta	prep	according to, in accordance wi	依照；根据
+it	tenero	noun	tender part, soft part	嫩的部分；柔情
+it	zio	noun	uncle (male relative)	叔叔；伯父；舅舅
+it	centrare	verb	to hit, hit the centre	击中；对准中心；把握要点
+it	sogno	noun	dream	梦；梦想
+it	sognare	verb	to dream (of)	梦见；梦想
+it	cariare	verb	to decay (teeth)	蛀蚀（牙齿）
+it	bruttare	verb	to sully, soil or dirty	弄脏；玷污
+it	nello	contraction	contraction of in lo; in the	（in + lo）在……里
+it	sole	noun	sun	太阳；阳光
+it	glielo	pron	it to him, her or them	把它给他（她、他们）
+it	spesso	adj	thick	厚的；浓的
+it	scena	noun	scene (in all senses)	场景；舞台；场面
+it	lasciami	verb	compound of lascia, the second	让我；放开我
+it	gentile	noun	gentile. Gentile (a non-Jew, a	非犹太人；外邦人
+it	rapporto	noun	report, statement, account	报告；关系；比率
+it	rapportare	verb	to compare (with)	比较；转述
+it	incontrare	verb	to meet, come across, bump int	遇见；碰到；会见
+it	errore	noun	mistake, error, slip, howler, 	错误
+it	occhiata	noun	look, glance, gander	一瞥；看一眼
+it	occhiato	adj	ocellated	有眼状斑的
+it	risposta	verb	inflection of rispostare	回击；反驳
+it	presa	noun	grip, hold, grasp, grip	抓握；插座；捕获
+it	servizio	noun	service, serve	服务；（网球）发球；报道
+it	schifo	adj	reluctant, shy	（旧）不情愿的；腼腆的
+it	addosso	prep	on, next to	紧挨着；贴着
+it	addossare	verb	to lean	靠在；推诿；归咎
+it	diverso	noun	homosexual, gay	同性恋者
+it	sparato	noun	the collar of a men's dress sh	衬衫硬前襟
+it	sparare	verb	to shoot, to fire	开枪；射击；（夸张地）说
+it	realtà	noun	reality	现实；实际
+it	do	noun	do (musical note)	哆（C音）
+it	do	noun	alternative form of doh	哆（唱名）
+it	normale	adj	normal	正常的；普通的
+it	programmare	verb	to program, plan, schedule, se	编程；计划；安排
+it	nonna	noun	grandmother, granny	祖母；外祖母
+it	nonno	noun	grandfather	祖父；外祖父
+it	notizia	noun	item of news	消息；新闻
+it	posizione	noun	position	位置；地位；姿势
+it	proposito	noun	purpose, intention, plan, desi	目的；意图；（a proposito）顺便说
+it	farci	verb	compound of the infinitive far	（fare + ci）对此做；在那里做
+it	terribile	adj	terrible, terrifying, fearful	可怕的；糟糕的
+it	ritardare	verb	to delay, to defer, to hold up	延迟；推迟；迟到
+it	attentare	verb	to try to damage, to attack [w	图谋侵害；谋害
+it	bar	noun	bar (place serving drinks)	酒吧；咖啡馆；巴（压力单位）
+it	fallo	noun	any member of the Phallus taxo	鬼笔属真菌
+it	fallo	verb	compound of fa', the second-pe	（fa' + lo）做吧；去做
+it	fallare	verb	to fail to germinate (of a see	不发芽；犯错
+it	bisogna	noun	thing, matter, affair	事情；需要
+it	bisognare	verb	it is necessary to ..., one mu	必须；需要
+it	cioè	adv	used to rephrase, clarify or c	也就是说；即
+it	studio	noun	study	学习；研究；书房；工作室
+it	studiare	verb	to study	学习；研究；琢磨
+it	armare	verb	to arm	武装；装备；装填
+it	uscita	noun	exit, way out	出口；出去；出版；言论
+it	quante	pron	female equivalent of (formal, 	所有……的女性；凡是……的人
+it	guai	intj	woe!	糟了！；当心（警告）
+it	intorno	noun	neighbourhood/neighborhood	周边；邻近
+it	mancare	verb	to be lacking, to be missing (	缺少；缺席；想念
+it	esserci	verb	(reflexive) to be at a place, 	在场；存在；有
+it	chiave	noun	key	钥匙；扳手；（乐）谱号；关键
+it	cervello	noun	cerebrum	大脑；头脑
+it	peccare	verb	to sin	（宗教）犯罪；有缺点
+it	questione	noun	question, issue, matter, point	问题；事情；争论
+it	adorare	verb	to love with one's entire hear	崇拜；热爱
+it	rubato	adj	rubato	自由速度的（音乐）
+it	sala	noun	axletree	车轴
+it	salare	verb	to salt (to add salt to)	加盐；腌；逃（课）
+it	base	noun	base, alkaline	基础；基地；碱
+it	relazione	noun	connection	关系；联系；报告
+it	cliente	noun	customer	顾客；客户
+it	spalle	noun	back	背；后背
+it	spalla	noun	shoulder	肩膀；肩肉；配角
+it	seconda	noun	second (gear in a car)	二档；二年级；第二
+it	valere	verb	to be worth	值；有价值；有效
+it	diritto	adv	straight	直接；径直
+it	diritto	noun	right side	正面；正手；权利
+it	sicuramente	adv	surely, certainly, definitely,	当然；肯定
+it	denaro	noun	money	钱；（古）德纳里银币
+it	riuscito	adj	that has had a certain outcome	成功的；有……结果的
+it	nero	noun	black (color/colour)	黑色；黑人
+it	negro	adj	negro	（旧）黑色的；黑人的
+it	negro	noun	ghostwriter	代笔人；枪手
+it	vestire	verb	to dress	给……穿衣；穿；为……做衣服
+it	carta	noun	paper (the material)	纸；文件；卡；地图
+it	ex	noun	Ellipsis of ex-fidanzato, ex-f	前任；前夫；前妻
+it	conosciuto	noun	the known, that which is known	已知的事物
+it	zona	noun	a zone, area or district	地区；区域；地带
+it	intendere	verb	to mean	意思是；打算；理解
+it	negozio	noun	shop, a store	商店；交易
+it	partita	noun	match, game	比赛；一批；一局；账目
+it	spaziare	verb	to range or rove (over) [with 	漫游；涉猎
+it	linea	noun	line	线；线路；身材
+it	lineare	adj	linear, one-dimensional	线性的；直线的；连贯的
+it	fronte	noun	forehead, brow	额头；正面
+it	fronte	noun	squall line, front	锋面；前线；阵线
+it	vinto	noun	loser	战败者；失败者
+it	simile	adj	similar	相似的；这样的
+it	ricercare	noun	ricercar	（乐）利切卡尔
+it	pena	noun	pain	痛苦；刑罚；怜悯
+it	penare	verb	to suffer	受苦；费力
+it	luogo	noun	place (location; position)	地方；场所
+it	lettera	noun	letter (symbol in an alphabet)	字母；信；文字
+it	salvare	verb	to save, rescue, retrieve, del	救；拯救；保存
+it	corso	noun	course (of a river, of a unive	进程；课程；河道；大街
+it	corso	noun	the Corsican language	科西嘉语
+it	correre	verb	to run [auxiliary essere or av	跑；奔跑；赶；流
+it	missione	noun	mission	使命；任务；使团
+it	duro	adj	hard	硬的；艰难的；严厉的
+it	contatto	noun	contact (all senses)	接触；联系；联系人
+it	contattare	verb	to contact, to get in touch wi	联系；接触
+it	pericolare	verb	to be in danger	有危险；面临危险
+it	freddare	verb	to cool	使冷却；（枪）击毙
+it	tristo	adj	wretched	可怜的；邪恶的；悲惨的
+it	promesso	adj	promised	承诺的；已订婚的
+it	promettere	verb	to promise	承诺；答应；预示
+it	esercito	adj	exercised	训练有素的；熟练的
+it	esercitare	verb	to train (students, soldiers, 	训练；锻炼；从事
+it	dunque	adv	then, afterwards	那么；因此
+it	guardia	noun	guard (all senses)	守卫；警卫；警察；值班
+it	casino	noun	mess	混乱；乱七八糟；（俗）妓院
+it	caccia	noun	hunting; shooting	打猎；追捕；寻找
+it	cacciare	verb	to hunt, to prey on (of animal	打猎；捕食；赶走
+it	gay	adj	gay	同性恋的
+it	gay	noun	gay	同性恋者
+it	massimo	adj	maximum	最大的；最高的
+it	regola	noun	rule, norm, code, principle, o	规则；规矩；节制
+it	ballo	noun	dance, ball	舞蹈；舞会
+it	ascoltami	verb	compound of ascolta, the secon	听我说
+it	governo	noun	government, administration, ru	政府；管理；照料
+it	governare	verb	to govern, to rule, to control	统治；管理；照料
+it	anima	noun	soul	灵魂；心灵；内芯
+it	animare	verb	to animate	使有生气；鼓舞；激活
+it	forma	noun	form	形状；形式；状态；模具
+it	formare	verb	to form, create, shape, make, 	形成；组成；培养
+it	tornata	noun	round	一轮；会议；回归
+it	droga	noun	spice	毒品；香料
+it	drogare	verb	to season, to spice (food)	加香料；下药；使吸毒
+it	cellulare	noun	cellular phone, cell phone, ce	手机；囚车
+it	ferma	noun	service, draft	服役期；（猎犬）定位指示
+it	ferma	noun	ferme générale (a system of ou	（法国旧制）包税制
+it	borsa	noun	bag, handbag, purse, briefcase	包；手袋；奖学金；证券交易所
+it	palle	noun	courage, bravery	勇气；（俗）睾丸
+it	palla	noun	ball (object used for playing 	球；谎言；无聊的事
+it	palla	noun	palla (cloth worn by ladies)	（古罗马）女式披风
+it	palla	noun	a cloth used to cover a chalic	圣杯盖布
+it	piena	noun	flood, spate (condition of a r	洪水；人潮
+it	attacco	noun	attack, assault	攻击；发作；接头
+it	attaccare	verb	to stick, attach, append	粘贴；连接；攻击；开始
+it	dagli	verb	compound of da', the second-pe	（da' + gli）给他；给他们
+it	affatto	adv	completely	完全；（否定）一点也不
+it	reale	noun	flagship of a fleet personally	旗舰（国王座舰）
+it	reale	noun	various gold and silver coins 	（古）金银币
+it	inferno	adj	hellish, infernal	地下的；地狱的
+it	inferno	noun	hell	地狱
+it	inferno	noun	a kind of red wine	因菲尔诺红酒
+it	parlarne	verb	compound of the infinitive par	谈论此事
