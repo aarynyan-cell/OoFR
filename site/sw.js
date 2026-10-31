@@ -7,17 +7,17 @@
 // "oofr3-shell-" ones, and this worker only ever deletes its own older copies.
 // They may share a site (aarynyan-cell.github.io), so names must never clash.
 const CACHE_PREFIX = "multape-shell-";
-const CACHE_NAME = `${CACHE_PREFIX}5c981339b7af`;
+const CACHE_NAME = `${CACHE_PREFIX}5b24c812d961`;
 // Dictionary shards stay cached across app updates (a different prefix).
 const DICTIONARY_CACHE = "multape-dictionary";
 const DICTIONARY_VERSION = "2026.10.30-2304+zh.2026.10.30-2012+cjk.2026.10.30-2141+g.2026-10-30T22:43:09+ja.2026.10.28-0142+en.2026.10.28-0119+s.2026.10.30-2149";
 const ASSETS = [
   "./",
-  "./assets/engine.worker-DeS1vzp1.js",
+  "./assets/engine.worker-S1D_mg7K.js",
   "./assets/ibm-plex-mono-latin-500-normal-DSY6xOcd.woff2",
   "./assets/ibm-plex-mono-latin-600-normal-BgSNZQsw.woff2",
   "./assets/index-BT8BnK9G.css",
-  "./assets/index-BY8HfelZ.js",
+  "./assets/index-CCSYwlpf.js",
   "./assets/literata-latin-400-normal-CLtNJ872.woff2",
   "./assets/literata-latin-500-normal-Dbph1WrK.woff2",
   "./assets/ort-wasm-simd-threaded-qyIweqWS.mjs",
