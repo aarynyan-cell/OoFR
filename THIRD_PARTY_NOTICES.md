@@ -42,6 +42,7 @@ The generated lexicon is intended as a lightweight learning aid. Users can edit 
 - URL: `https://kaikki.org/dictionary/French/`
 - Upstream licensing: Wiktionary content is available under CC BY-SA and GFDL; individual media files retain their Wikimedia Commons licenses.
 - Use in OoFR 法语磁带: French headwords, parts of speech, definitions, IPA, audio links, fixed expressions and inflection relations in the sharded offline dictionary.
+- Use in MulTape 练习 → 动词变位: the conjugation tables of about 7,200 French verbs (five simple tenses, past participle, auxiliary), from English Wiktionary via `https://kaikki.org/dictionary/French/`, kept in `dictionary/fr/conj-*.json` under CC BY-SA 4.0.
 
 ## Morphalou 3.1
 
@@ -137,11 +138,18 @@ MulTape 1.0 offered Piper voices (`rhasspy/piper-voices`: French, English and Sp
 - Modified copy: MulTape stores the large weights of its four ONNX models as int8 with per-channel scales (`v2/scripts/build_supertonic_int8.py`; the computation is unchanged), which brings the download from about 400 MB to about 103 MB. The changed files carry a notice saying so (in each model's metadata and in `NOTICE.md` next to them); `tts.json`, `unicode_indexer.json` and the voice styles are unchanged.
 - Use in MulTape: the device's own natural French, English, Spanish, Japanese, Korean, German, Swedish, Brazilian Portuguese and Italian voices (optional download; one model for all of them, two of its preset voices per language). The copy is served next to the app (`voices/supertonic-3-int8/`, with `LICENSE` and `NOTICE.md`), and the app shows that these voices are AI-synthesised, the licence's restrictions and a link to the licence where they are offered and where one is chosen. It reads the text itself, with no phonemizer (`v2/src/speech/supertonic/`); Japanese sentences with furigana are read from their kana (`v2/src/speech/ja/`).
 
+## Whisper base (MulTape 2.1, speech recognition pack “语音识别包”)
+
+- Source: OpenAI Whisper, `https://github.com/openai/whisper`, Copyright (c) 2022 OpenAI
+- License: MIT (code and model weights, the `LICENSE` file of that repository; the Hugging Face card of `openai/whisper-base` lists Apache License 2.0)
+- Converted model: `onnx-community/whisper-base` on Hugging Face, revision `1846881b6b3a3024392c1eea3ad983695bc23925` (`https://huggingface.co/onnx-community/whisper-base`), converted to ONNX with 8-bit weights for Transformers.js; its `onnx/encoder_model_quantized.onnx`, `onnx/decoder_model_merged_quantized.onnx` and `vocab.json` are used, renamed only (`v2/scripts/fetch_whisper_pack.sh`, checked by SHA-256)
+- Use in MulTape: checks 跟读 and 复述 takes on the device (optional download, about 78 MB), where the browser's own speech recognition does not work. The copy is served next to the app (`voices/whisper-base-int8/`, with `LICENSE` and `NOTICE.md`). The audio features, decoding and vocabulary are MulTape's own code (`v2/src/speech/whisper/`); the lesson's language is given to the model, never guessed.
+
 ## ONNX Runtime Web
 
 - Source: `onnxruntime-web` 1.30.0, `https://github.com/microsoft/onnxruntime`
 - License: MIT
-- Use in MulTape: runs the device's own voice models (Supertonic 3, MeloTTS) in the browser (WebAssembly).
+- Use in MulTape: runs the device's own voice models (Supertonic 3, MeloTTS) and the speech recognition pack (Whisper) in the browser (WebAssembly).
 
 # AI
 
