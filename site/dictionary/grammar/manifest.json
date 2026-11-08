@@ -1,46 +1,46 @@
 {
   "type": "multape.grammar-manifest.v1",
-  "version": "2026-10-30T22:43:09",
+  "version": "2026-11-08T02:11:14",
   "languages": {
     "ja": {
       "points": 291,
-      "bytes": 661318
+      "bytes": 667336
     },
     "zh": {
       "points": 162,
-      "bytes": 312058
+      "bytes": 315440
     },
     "es": {
       "points": 167,
-      "bytes": 372259
+      "bytes": 375557
     },
     "ko": {
       "points": 205,
-      "bytes": 438994
+      "bytes": 443173
     },
     "fr": {
       "points": 172,
-      "bytes": 425425
+      "bytes": 428904
     },
     "en": {
       "points": 141,
-      "bytes": 331985
+      "bytes": 334751
     },
     "de": {
       "points": 186,
-      "bytes": 321683
+      "bytes": 325384
     },
     "sv": {
       "points": 180,
-      "bytes": 275020
+      "bytes": 278594
     },
     "pt": {
       "points": 183,
-      "bytes": 321038
+      "bytes": 324683
     },
     "it": {
       "points": 186,
-      "bytes": 317691
+      "bytes": 321403
     }
   }
 }
